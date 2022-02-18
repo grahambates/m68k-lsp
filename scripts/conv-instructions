@@ -1,0 +1,176 @@
+#!/usr/bin/env ts-node
+const fs = require("fs");
+// const yaml = require("js-yaml");
+const summaries = require("../server/docs/instructions-single.json");
+
+function processMd(mnemonic) {
+  const file =
+    __dirname +
+    "/../server/docs/instructions/" +
+    mnemonic.toLowerCase() +
+    ".md";
+  if (!fs.existsSync(file)) {
+    return;
+  }
+  const data = fs.readFileSync(file, "utf-8");
+  const parts = data.split("\n\n*From MOTOROLA")[0].split(/\n\n## /);
+  const [title, summary] = parts.shift().substr(2).split(" - ");
+
+  return parts.reduce(
+    (acc, part) => {
+      const lines = part.split("\n");
+      let prop = lines.shift();
+      prop = prop[0].toLowerCase() + prop.substr(1); // lcfirst
+
+      if (prop === "syntax") {
+        acc.syntax = lines.slice(1, -1).map((s) => {
+          const parts = s.split(/\s+/);
+          parts[0] = parts[0].toLowerCase();
+          return parts.join(" ");
+        });
+      } else if (prop === "sample syntax") {
+        acc.sampleSyntax = lines.slice(1, -1);
+      } else if (prop === "attributes") {
+        // Skip
+      } else if (prop === "condition codes") {
+        const [, x, n, z, v, c] = lines[2].split("|");
+        acc.conditionCodes = { x, n, z, v, c };
+        acc.conditionCodeDescription = lines.slice(4).join("\n") || undefined;
+      } else if (prop.includes("source operand addressing mode")) {
+        acc.srcAddressing = addrModes(lines);
+      } else if (prop.includes("destination operand addressing mode")) {
+        acc.destAddressing = addrModes(lines);
+      } else {
+        acc[prop] = lines.join("\n");
+      }
+      return acc;
+    },
+    { title, summary }
+  );
+}
+
+function addrModes(lines) {
+  const [
+    dn,
+    an,
+    anIndirect,
+    anPostInc,
+    anPreDec,
+    anOffset,
+    anIdx,
+    absW,
+    absL,
+    pcOffset,
+    pcIdx,
+    imm,
+  ] = lines[2].split("|").slice(1, -1).map(Boolean);
+  return {
+    dn,
+    an,
+    anIndirect,
+    anPostInc,
+    anPreDec,
+    anOffset,
+    anIdx,
+    absW,
+    absL,
+    pcOffset,
+    pcIdx,
+    imm,
+  };
+}
+
+function lookup(mnemonic, groupMnem) {
+  const summary = summaries[groupMnem || mnemonic];
+  let inst = processMd(mnemonic) || (groupMnem && processMd(groupMnem));
+  if (!inst) console.log(groupMnem || mnemonic);
+  const item = inst
+    ? {
+        title: mnemonic,
+        summary,
+        operation: inst.operation,
+        syntax: inst.syntax,
+        description: inst.description,
+        src: inst.srcAddressing,
+        dest: inst.destAddressing,
+        ccr: inst.conditionCodes,
+      }
+    : { title: mnemonic, summary, syntax: [] };
+  return item;
+}
+
+const csv = fs.readFileSync(
+  __dirname + "/../server/docs/inst-proc-xref-single.csv"
+);
+
+const lines = csv.toString().substr(1).split("\r\n");
+
+const out = {};
+
+const ccs = {
+  cc: "Carry Clear",
+  cs: "Carry Set",
+  eq: "Equal",
+  f: "False",
+  ge: "Greater or Equal",
+  gt: "Greater Than",
+  hi: "High",
+  le: "Less or Equal",
+  ls: "Low or Same",
+  lt: "Less Than",
+  mi: "Minus",
+  ne: "Not Equal",
+  pl: "Plus",
+  t: "True",
+  vc: "Overflow Clear",
+  vs: "Overflow Set",
+};
+
+for (const line of lines) {
+  const parts = line.split(",");
+  const mnemonic = parts.shift();
+  const [
+    mc68000,
+    mc68010,
+    mc68020,
+    mc68030,
+    mc68040,
+    mc68060,
+    mc68881,
+    mc68851,
+    cpu32,
+  ] = parts.map(Boolean);
+  const procs = {
+    mc68000,
+    mc68010,
+    mc68020,
+    mc68030,
+    mc68040,
+    mc68060,
+    mc68881,
+    mc68851,
+    cpu32,
+  };
+
+  if (mnemonic.endsWith("cc")) {
+    for (const key in ccs) {
+      if (mnemonic === "Bcc" && ["f", "t"].includes(key)) {
+        continue;
+      }
+      const summarySuffix = ccs[key];
+      const mnem = mnemonic.replace(/cc$/, key);
+      const item = lookup(mnem, mnemonic);
+      item.summary += ": " + summarySuffix;
+      out[mnem.toLowerCase()] = { ...item, procs };
+    }
+  } else {
+    const item = lookup(mnemonic);
+    out[mnemonic.toLowerCase()] = { ...item, procs };
+  }
+}
+
+const json = JSON.stringify(out, null, 2);
+fs.writeFileSync(__dirname + "/../server/src/docs/instructions.json", json);
+
+// const yml = yaml.dump(out, {});
+// fs.writeFileSync(__dirname + "/../server/src/docs/instructions.yaml", yml);

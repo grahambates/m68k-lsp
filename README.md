@@ -1,0 +1,19 @@
+# Motoralo 68000 family language server
+
+LSP server for 68k assembly based on [tree-sitter-m68k](https://github.com/grahambats/tree-sitter-m68k)
+
+- Includes VS Code extension (not yet published)
+- Suitable for use with other LSP supporting editors e.g. Neovim
+
+## TODO
+
+- Formatting
+- Diagnostics
+  - Check instruction syntax?
+  - Check allowed instructions for processor?
+  - Linter rules?
+- Full documentation for 68010+ instructions
+- Settings for:
+  - Include paths
+  - Supported Processor(s) to limit instruction completions
+- Amiga or other platform specific docs?

@@ -1,0 +1,51 @@
+{
+  "name": "m68k-lsp-client",
+  "description": "VSCode client for m68k language server",
+  "author": "Graham Bates",
+  "license": "MIT",
+  "version": "0.1.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/grahambates/m68k-lsp"
+  },
+  "engines": {
+    "vscode": "^1.52.0"
+  },
+  "categories": [],
+  "keywords": [
+    "multi-root ready"
+  ],
+  "activationEvents": [
+    "onLanguage:vasmmot"
+  ],
+  "main": "./out/extension",
+  "contributes": {
+    "configuration": {
+      "type": "object",
+      "title": "M68k configuration",
+      "properties": {
+        "m68k.trace.server": {
+          "scope": "window",
+          "type": "string",
+          "enum": [
+            "off",
+            "messages",
+            "verbose"
+          ],
+          "default": "off",
+          "description": "Traces the communication between VS Code and the language server."
+        }
+      }
+    }
+  },
+  "dependencies": {
+    "m68k-lsp-server": "^0.1.0",
+    "vscode-languageclient": "^7.0.0"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.52.0"
+  },
+  "extensionDependencies": [
+    "clcxce.motorola-68k-assembly"
+  ]
+}

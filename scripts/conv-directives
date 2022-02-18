@@ -1,0 +1,41 @@
+#!/usr/bin/env node
+const fs = require("fs");
+
+const inDir = __dirname + "/../server/docs/directives";
+const files = fs.readdirSync(inDir);
+
+const json = {};
+
+for (const file of files) {
+  if (file.endsWith(".md")) {
+    const data = fs.readFileSync(inDir + "/" + file, "utf-8");
+    const parts = data.split(/\n\n###? /);
+    const [title, summary] = parts.shift().substr(2).split(" - ");
+
+    const item = parts.reduce(
+      (acc, part) => {
+        const lines = part.split("\n");
+        let prop = lines.shift();
+        prop = prop[0].toLowerCase() + prop.substr(1); // lcfirst
+
+        if (prop === "syntax") {
+          acc.syntax = lines.slice(1, -1).map((s) => {
+            const parts = s.split(/\s+/);
+            parts[0] = parts[0].toLowerCase();
+            return parts.join(" ");
+          });
+        } else {
+          acc[prop] = lines.join("\n").trim();
+        }
+        return acc;
+      },
+      { title, summary }
+    );
+
+    let varName = file.replace(/.md$/, "");
+    json[varName] = item;
+  }
+}
+
+const indexPath = __dirname + "/../server/src/docs/directives.json";
+fs.writeFileSync(indexPath, JSON.stringify(json, null, 2));

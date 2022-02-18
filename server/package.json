@@ -1,0 +1,28 @@
+{
+  "name": "m68k-lsp-server",
+  "description": "Motorola 68000 assembly language server in node.",
+  "version": "0.1.0",
+  "author": "Graham Bates",
+  "license": "MIT",
+  "engines": {
+    "node": "*"
+  },
+  "bin": "cli.js",
+  "main": "out/server.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/grahambates/m68k-lsp"
+  },
+  "dependencies": {
+    "vscode-languageserver": "^7.0.0",
+    "vscode-languageserver-textdocument": "^1.0.1",
+    "vscode-uri": "^3.0.3",
+    "web-tree-sitter": "^0.20.3"
+  },
+  "scripts": {
+    "build-wasm": "npx tree-sitter build-wasm node_modules/tree-sitter-m68k"
+  },
+  "devDependencies": {
+    "tree-sitter-m68k": "^0.1.2"
+  }
+}

@@ -1,0 +1,185 @@
+ABCD|Add Decimal with Extend
+ADD|Add
+ADDA|Add Address
+ADDI|Add Immediate
+ADDQ|Add Quick
+ADDX|Add with Extend
+AND|Logical AND
+ANDI|Logical AND Immediate
+ANDI to CCR|AND Immediate to Condition Code Register
+ANDI to SR|AND Immediate to Status Register
+ASL, ASR|Arithmetic Shift Left and Right
+Bcc|Branch Conditionally
+BCHG|Test Bit and Change
+BCLR|Test Bit and Clear
+BFCHG|Test Bit Field and Change
+BFCLR|Test Bit Field and Clear
+BFEXTS|Signed Bit Field Extract
+BFEXTU|Unsigned Bit Field Extract
+BFFFO|Bit Field Find First One
+BFINS|Bit Field Insert
+BFSET|Test Bit Field and Set
+BFTST|Test Bit Field
+BGND|Enter Background Mode
+BKPT|Breakpoint
+BRA|Branch
+BSET|Test Bit and Set
+BSR|Branch to Subroutine
+BTST|Test Bit
+CALLM|CALL Module
+CAS|Compare and Swap Operands
+CAS2|Compare and Swap Dual Operands
+CHK|Check Register Against Bound
+CHK2|Check Register Against Upper and Lower Bounds
+CINV|Invalidate Cache Entries
+CLR|Clear
+CMP|Compare
+CMPA|Compare Address
+CMPI|Compare Immediate
+CMPM|Compare Memory to Memory
+CMP2|Compare Register Against Upper and Lower Bounds
+cpBcc|Branch on Coprocessor Condition
+cpDBcc|Test Coprocessor Condition Decrement and Branch
+cpGEN|Coprocessor General Function
+cpRESTORE|Coprocessor Restore Function
+cpSAVE|Coprocessor Save Function
+cpScc|Set on Coprocessor Condition
+cpTRAPcc|Trap on Coprocessor Condition
+DBcc|Test Condition, Decrement and Branch
+DIVS, DIVSL|Signed Divide
+DIVU, DIVUL|Unsigned Divide
+EOR|Logical Exclusive-OR
+EORI|Logical Exclusive-OR Immediate
+EORI to CCR|Exclusive-OR Immediate to Condition Code Register
+EORI to SR|Exclusive-OR Immediate to Status Register
+EXG|Exchange Registers
+EXT, EXTB|Sign Extend
+FABS|Floating-Point Absolute Value
+FSABS, FDABS|Floating-Point Absolute Value (Single/Double Precision)
+FACOS|Floating-Point Arc Cosine
+FADD|Floating-Point Add
+FSADD, FDADD|Floating-Point Add (Single/Double Precision)
+FASIN|Floating-Point Arc Sine
+FATAN|Floating-Point Arc Tangent
+FATANH|Floating-Point Hyperbolic Arc Tangent
+FBcc|Floating-Point Branch
+FCMP|Floating-Point Compare
+FCOS|Floating-Point Cosine
+FCOSH|Floating-Point Hyperbolic Cosine
+FDBcc|Floating-Point Decrement and Branch
+FDIV|Floating-Point Divide
+FSDIV, FDDIV|Floating-Point Divide (Single/Double Precision)
+FETOX|Floating-Point ex
+FETOXM1|Floating-Point ex–1
+FGETEXP|Floating-Point Get Exponent
+FGETMAN|Floating-Point Get Mantissa
+FINT|Floating-Point Integer Part
+FINTRZ|Floating-Point Integer Part, Round-to-Zero
+FLOG10|Floating-Point Log10
+FLOG2|Floating-Point Log2
+FLOGN|Floating-Point Loge
+FLOGNP1|Floating-Point Loge(x+1)
+FMOD|Floating-Point Modulo Remainder
+FMOVE|Move Floating-Point Register
+FSMOVE,FDMOVE|Move Floating-Point Register (Single/Double Precision)
+FMOVECR|Move Constant ROM
+FMOVEM|Move Multiple Floating-Point Registers
+FMUL|Floating-Point Multiply
+FSMUL,FDMUL|Floating-Point Multiply (Single/Double Precision)
+FNEG|Floating-Point Negate
+FSNEG,FDNEG|Floating-Point Negate (Single/Double Precision)
+FNOP|Floating-Point No Operation
+FREM|IEEE Remainder
+FRESTORE|Restore Floating-Point Internal State
+FSAVE|Save Floating-Point Internal State
+FSCALE|Floating-Point Scale Exponent
+FScc|Floating-Point Set According to Condition
+FSGLDIV|Single-Precision Divide
+FSGLMUL|Single-Precision Multiply
+FSIN|Sine
+FSINCOS|Simultaneous Sine and Cosine
+FSINH|Hyperbolic Sine
+FSQRT|Floating-Point Square Root
+FSSQRT,FDSQRT|Floating-Point Square Root (Single/Double Precision)
+FSUB|Floating-Point Subtract
+FSSUB,FDSUB|Floating-Point Subtract (Single/Double Precision)
+FTAN|Tangent
+FTANH|Hyperbolic Tangent
+FTENTOX|Floating-Point 10x
+FTRAPcc|Floating-Point Trap on Condition
+FTST|Floating-Point Test
+FTWOTOX|Floating-Point 2x
+ILLEGAL|Take Illegal Instruction Trap
+JMP|Jump
+JSR|Jump to Subroutine
+LEA|Load Effective Address
+LINK|Link and Allocate
+LPSTOP|Low-Power Stop
+LSL, LSR|Logical Shift Left and Right
+MOVE|Move
+MOVEA|Move Address
+MOVE from CCR|Move from Condition Code Register
+MOVE from SR|Move from Status Register
+MOVE to CCR|Move to Condition Code Register
+MOVE to SR|Move to Status Register
+MOVE USP|Move User Stack Pointer
+MOVE16|16-Byte Block Move
+MOVEC|Move Control Register
+MOVEM|Move Multiple Registers
+MOVEP|Move Peripheral
+MOVEQ|Move Quick
+MOVES|Move Alternate Address Space
+MULS|Signed Multiply
+MULU|Unsigned Multiply
+NBCD|Negate Decimal with Extend
+NEG|Negate
+NEGX|Negate with Extend
+NOP|No Operation
+NOT|Logical Complement
+OR|Logical Inclusive-OR
+ORI|Logical Inclusive-OR Immediate
+ORI to CCR|Inclusive-OR Immediate to Condition Code Register
+ORI to SR|Inclusive-OR Immediate to Status Register
+PACK|Pack BCD
+PBcc|Branch on PMMU Condition
+PDBcc|Test, Decrement, and Branch on PMMU Condition
+PEA|Push Effective Address
+PFLUSH|Flush Entry(ies) in the ATCs
+PFLUSHA|Flush Entry(ies) in the ATCs
+PFLUSHR|Flush Entry(ies) in the ATCs and RPT Entries
+PFLUSHS|Flush Entry(ies) in the ATCs
+PLOAD|Load an Entry into the ATC
+PLPA|Load Physical Address
+PMOVE|Move PMMU Register
+PRESTORE|PMMU Restore Function
+PSAVE|PMMU Save Function
+PScc|Set on PMMU Condition
+PTEST|Test a Logical Address
+PTRAPcc|Trap on PMMU Condition
+PVALID|Validate a Pointer
+RESET|Reset External Devices
+ROL, ROR|Rotate Left and Right
+ROXL, ROXR|Rotate with Extend Left and Right
+RTD|Return and Deallocate
+RTE|Return from Exception
+RTM|Return from Module
+RTR|Return and Restore
+RTS|Return from Subroutine
+SBCD|Subtract Decimal with Extend
+Scc|Set Conditionally
+STOP|Stop
+SUB|Subtract
+SUBA|Subtract Address
+SUBI|Subtract Immediate
+SUBQ|Subtract Quick
+SUBX|Subtract with Extend
+SWAP|Swap Register Words
+TAS|Test Operand and Set
+TBLS, TBLSN|Signed Table Lookup with Interpolate
+TBLU, TBLUN|Unsigned Table Lookup with Interpolate
+TRAP|Trap
+TRAPcc|Trap Conditionally
+TRAPV|Trap on Overflow
+TST|Test Operand
+UNLK|Unlink
+UNPK|Unpack BC

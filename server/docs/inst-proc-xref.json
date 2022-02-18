@@ -1,0 +1,4562 @@
+{
+  "abcd": {
+    "summary": "Add decimal with extend",
+    "operation": "[destination]₁₀ ← [source]₁₀ + [destination]₁₀ + [X]",
+    "syntax": [
+      "abcd[.b] Dy,Dx",
+      "abcd[.b] -(Ay),-(Ax)"
+    ],
+    "description": "Add the source operand to the destination operand along with the extend bit, and store the result in the destination location. The addition is performed using `BCD` arithmetic. The only legal addressing modes are data register direct and memory to memory with address register indirect using pre-decrementing.",
+    "ccr": {
+      "x": "*",
+      "n": "U",
+      "z": "*",
+      "v": "U",
+      "c": "*"
+    },
+    "procs": {
+      "mc68000": true,
+      "mc68010": true,
+      "mc68020": true,
+      "mc68030": true,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": false,
+      "mc68851": false,
+      "cpu32": true
+    }
+  },
+  "add": {
+    "summary": "Add binary",
+    "operation": "[destination] ← [source] + [destination]",
+    "syntax": [
+      "add[.(bwl)] <source>,<destination>"
+    ],
+    "description": "Add the source operand to the destination operand and store the result in the destination location.",
+    "src": {
+      "dn": true,
+      "an": true,
+      "anIndirect": true,
+      "anPostInc": true,
+      "anPreDec": true,
+      "anOffset": true,
+      "anIdx": true,
+      "absW": true,
+      "absL": true,
+      "pcOffset": true,
+      "pcIdx": true,
+      "imm": true
+    },
+    "dest": {
+      "dn": true,
+      "an": false,
+      "anIndirect": true,
+      "anPostInc": true,
+      "anPreDec": true,
+      "anOffset": true,
+      "anIdx": true,
+      "absW": true,
+      "absL": true,
+      "pcOffset": false,
+      "pcIdx": false,
+      "imm": false
+    },
+    "ccr": {
+      "x": "*",
+      "n": "*",
+      "z": "*",
+      "v": "*",
+      "c": "*"
+    },
+    "procs": {
+      "mc68000": true,
+      "mc68010": true,
+      "mc68020": true,
+      "mc68030": true,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": false,
+      "mc68851": false,
+      "cpu32": true
+    }
+  },
+  "adda": {
+    "summary": "Add address",
+    "operation": "[destination] ← [source] + [destination]",
+    "syntax": [
+      "adda[.(wl)] <source>,An"
+    ],
+    "description": "Add the source operand to the destination address register and store the result in the destination address register. The source is sign-extended before it is added to the destination. For example, if we execute `ADDA.W D3,A4` where A4 = 00000100₁₆ and D3.W = 8002₁₆, the contents of D3 are sign-extended to FFFF8002₁₆ and added to 00000100₁₆ to give FFFF8102₁₆, which is stored in A4.\n",
+    "src": {
+      "dn": true,
+      "an": true,
+      "anIndirect": true,
+      "anPostInc": true,
+      "anPreDec": true,
+      "anOffset": true,
+      "anIdx": true,
+      "absW": true,
+      "absL": true,
+      "pcOffset": true,
+      "pcIdx": true,
+      "imm": true
+    },
+    "ccr": {
+      "x": "-",
+      "n": "-",
+      "z": "-",
+      "v": "-",
+      "c": "-"
+    },
+    "procs": {
+      "mc68000": true,
+      "mc68010": true,
+      "mc68020": true,
+      "mc68030": true,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": false,
+      "mc68851": false,
+      "cpu32": true
+    }
+  },
+  "addi": {
+    "summary": "Add immediate",
+    "operation": "[destination] ← \\<literal\\> + [destination]",
+    "syntax": [
+      "addi[.(bwl)] #<data>,<destination>"
+    ],
+    "description": "Add immediate data to the destination operand. Store the result in the destination operand. `ADDI` can be used to add a literal directly to a memory location. For example, `ADDI.W #$1234,$2000` has the effect [M(2000₁₆)]←[M(2000₁₆)]+1234₁₆.",
+    "dest": {
+      "dn": true,
+      "an": false,
+      "anIndirect": true,
+      "anPostInc": true,
+      "anPreDec": true,
+      "anOffset": true,
+      "anIdx": true,
+      "absW": true,
+      "absL": true,
+      "pcOffset": false,
+      "pcIdx": false,
+      "imm": false
+    },
+    "ccr": {
+      "x": "*",
+      "n": "*",
+      "z": "*",
+      "v": "*",
+      "c": "*"
+    },
+    "procs": {
+      "mc68000": true,
+      "mc68010": true,
+      "mc68020": true,
+      "mc68030": true,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": false,
+      "mc68851": false,
+      "cpu32": true
+    }
+  },
+  "addq": {
+    "summary": "Add quick",
+    "operation": "[destination] ← \\<literal\\> + [destination]",
+    "syntax": [
+      "addq[.(bwl)] #<data>,<destination>"
+    ],
+    "description": "Add the immediate data to the contents of the destination operand. The immediate data must be in the range 1 to 8. Word and longword operations on address registers do not affect condition codes. Note that a word operation on an address register affects all bits of the register.",
+    "dest": {
+      "dn": true,
+      "an": true,
+      "anIndirect": true,
+      "anPostInc": true,
+      "anPreDec": true,
+      "anOffset": true,
+      "anIdx": true,
+      "absW": true,
+      "absL": true,
+      "pcOffset": false,
+      "pcIdx": false,
+      "imm": false
+    },
+    "ccr": {
+      "x": "*",
+      "n": "*",
+      "z": "*",
+      "v": "*",
+      "c": "*"
+    },
+    "procs": {
+      "mc68000": true,
+      "mc68010": true,
+      "mc68020": true,
+      "mc68030": true,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": false,
+      "mc68851": false,
+      "cpu32": true
+    }
+  },
+  "addx": {
+    "summary": "Add extended",
+    "operation": "[destination] ← [source] + [destination] + [X]",
+    "syntax": [
+      "addx[.(bwl)] Dy,Dx",
+      "addx[.(bwl)] -(Ay),-(Ax)"
+    ],
+    "description": "Add the source operand to the destination operand along with the extend bit, and store the result in the destination location. The only legal addressing modes are data register direct and memory to memory with address register indirect using pre-decrementing.",
+    "ccr": {
+      "x": "*",
+      "n": "*",
+      "z": "*",
+      "v": "*",
+      "c": "*"
+    },
+    "procs": {
+      "mc68000": true,
+      "mc68010": true,
+      "mc68020": true,
+      "mc68030": true,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": false,
+      "mc68851": false,
+      "cpu32": true
+    }
+  },
+  "and": {
+    "summary": "AND logical",
+    "operation": "[destination] ← [source] . [destination]",
+    "syntax": [
+      "and[.(bwl)] <source>,<destination>"
+    ],
+    "description": "`AND` the source operand to the destination operand and store the result in the destination location.",
+    "src": {
+      "dn": true,
+      "an": false,
+      "anIndirect": true,
+      "anPostInc": true,
+      "anPreDec": true,
+      "anOffset": true,
+      "anIdx": true,
+      "absW": true,
+      "absL": true,
+      "pcOffset": true,
+      "pcIdx": true,
+      "imm": true
+    },
+    "dest": {
+      "dn": true,
+      "an": false,
+      "anIndirect": true,
+      "anPostInc": true,
+      "anPreDec": true,
+      "anOffset": true,
+      "anIdx": true,
+      "absW": true,
+      "absL": true,
+      "pcOffset": false,
+      "pcIdx": false,
+      "imm": false
+    },
+    "ccr": {
+      "x": "-",
+      "n": "*",
+      "z": "*",
+      "v": "0",
+      "c": "0"
+    },
+    "procs": {
+      "mc68000": true,
+      "mc68010": true,
+      "mc68020": true,
+      "mc68030": true,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": false,
+      "mc68851": false,
+      "cpu32": true
+    }
+  },
+  "andi": {
+    "summary": "AND immediate",
+    "operation": "[destination] ← \\<literal\\>.[destination]\n[CCR] ← \\<data\\>.[CCR]\nIF [S] = 1\n  THEN\n    [SR] ← <literal>.[SR]\n  ELSE TRAP",
+    "syntax": [
+      "andi[.(bwl)] #<data>,<destination>",
+      "andi[.b] #<data>,CCR",
+      "andi[.w] #<data>,SR"
+    ],
+    "description": "*AND* the immediate data to the destination operand. The `ANDI` permits a literal operand to be ANDed with a destination other than a data register. For example, `ANDI #$FE00,$1234` or `ANDI.B #$F0,(A2)+`.\n\n** ANDI to CCR - AND immediate to condition code register **\n\n*AND* the immediate data to the condition code register (i.e., the least-significant byte of the status register).\n\n`ANDI` is used to clear selected bits of the `CCR`. For example, `ANDI #$FA,CCR` clears the Z- and C-bits, i.e., XNZVC = X N 0 V 0.\n\n** ANDI to SR - AND immediate to status register **\n\n*AND* the immediate data to the status register and store the result in the status register. All bits of the SR are affected.\n\nThis instruction is used to clear the interrupt mask, the S-bit, and the T-bit of the *SR*. `ANDI #<data>,SR` affects both the status byte of the *SR* and the *CCR*. For example, `ANDI #$7FFF,SR` clears the trace bit of the status register, while `ANDI #$7FFE,SR` clears the trace bit and also clears the carry bit of the *CCR*.",
+    "dest": {
+      "dn": true,
+      "an": false,
+      "anIndirect": true,
+      "anPostInc": true,
+      "anPreDec": true,
+      "anOffset": true,
+      "anIdx": true,
+      "absW": true,
+      "absL": true,
+      "pcOffset": false,
+      "pcIdx": false,
+      "imm": false
+    },
+    "ccr": {
+      "x": "-",
+      "n": "*",
+      "z": "*",
+      "v": "0",
+      "c": "0"
+    },
+    "procs": {
+      "mc68000": true,
+      "mc68010": true,
+      "mc68020": true,
+      "mc68030": true,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": false,
+      "mc68851": false,
+      "cpu32": true
+    }
+  },
+  "asl": {
+    "summary": "Arithmetic shift left",
+    "operation": "[destination] ← [destination] shifted by \\<count\\>",
+    "syntax": [
+      "asl[.(bwl)] [<count>,]<destination>"
+    ],
+    "description": "Arithmetically shift the bits of the operand left. The shift count may be specified in one of three ways. The count may be a literal, the contents of a data register, or the value 1. An immediate (i.e., literal) count permits a shift of 1 to 8 places. If the count is in a register, the value is modulo 64 (i.e., 0 to 63). If no count is specified, one shift is made (i.e., `ASL <destination>` shifts the contents of the *word* at the effective address one place left).\n\nThe effect of an arithmetic shift left is to shift a zero into the least-significant bit position and to shift the most-significant bit out into both the X- and the C-bits of the *CCR*. The overflow bit of the *CCR* is set if a sign change occurs during shifting (i.e., if the most-significant bit changes value during shifting).\n\n```ascii\n┌───┐     ┌──────────────┐\n│ C │◄──┬─┤ Operand ◄─── │◄─── 0\n└───┘   │ └──────────────┘\n┌───┐   │\n│ X │◄──┘\n└───┘\n```",
+    "src": {
+      "dn": true,
+      "an": false,
+      "anIndirect": false,
+      "anPostInc": false,
+      "anPreDec": false,
+      "anOffset": false,
+      "anIdx": false,
+      "absW": false,
+      "absL": false,
+      "pcOffset": false,
+      "pcIdx": false,
+      "imm": true
+    },
+    "dest": {
+      "dn": true,
+      "an": false,
+      "anIndirect": true,
+      "anPostInc": true,
+      "anPreDec": true,
+      "anOffset": true,
+      "anIdx": true,
+      "absW": true,
+      "absL": true,
+      "pcOffset": false,
+      "pcIdx": false,
+      "imm": false
+    },
+    "ccr": {
+      "x": "*",
+      "n": "*",
+      "z": "*",
+      "v": "*",
+      "c": "*"
+    },
+    "procs": {
+      "mc68000": true,
+      "mc68010": true,
+      "mc68020": true,
+      "mc68030": true,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": false,
+      "mc68851": false,
+      "cpu32": true
+    }
+  },
+  "asr": {
+    "summary": "Arithmetic shift right",
+    "operation": "[destination] ← [destination] shifted by \\<count\\>",
+    "syntax": [
+      "asr[.(bwl)] [<count>,]<destination>"
+    ],
+    "description": "Arithmetically shift the bits of the operand in the specified direction (i.e., left or right). The shift count may be specified in one of three ways. The count may be a literal, the contents of a data register, or the value 1. An immediate (i.e., literal) count permits a shift of 1 to 8 places. If the count is in a register, the value is modulo 64 (i.e., 0 to 63). If no count is specified, one shift is made (i.e., `ASR <destination>` shifts the contents of the *word* at the effective address one place right).\n\nThe effect of an arithmetic shift right is to shift the least-significant bit into both the X- and C-bits of the CCR. The most-significant bit (i.e., the sign bit) is *replicated* to preserve the sign of the number.\n\n```ascii\n   ┌───┬──────────────┐     ┌───┐\n┌─►│MSB│ Operand ───► ├─┬──►│ C │\n│  └─┬─┴──────────────┘ │   └───┘\n└────┘                  │   ┌───┐\n                        └──►│ X │\n                            └───┘\n```",
+    "src": {
+      "dn": true,
+      "an": false,
+      "anIndirect": false,
+      "anPostInc": false,
+      "anPreDec": false,
+      "anOffset": false,
+      "anIdx": false,
+      "absW": false,
+      "absL": false,
+      "pcOffset": false,
+      "pcIdx": false,
+      "imm": true
+    },
+    "dest": {
+      "dn": true,
+      "an": false,
+      "anIndirect": true,
+      "anPostInc": true,
+      "anPreDec": true,
+      "anOffset": true,
+      "anIdx": true,
+      "absW": true,
+      "absL": true,
+      "pcOffset": false,
+      "pcIdx": false,
+      "imm": false
+    },
+    "ccr": {
+      "x": "*",
+      "n": "*",
+      "z": "*",
+      "v": "*",
+      "c": "*"
+    },
+    "procs": {
+      "mc68000": true,
+      "mc68010": true,
+      "mc68020": true,
+      "mc68030": true,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": false,
+      "mc68851": false,
+      "cpu32": true
+    }
+  },
+  "bcc": {
+    "summary": "Branch on carry clear (higher than or same",
+    "operation": "If C̅ THEN [PC] ← [PC] + d",
+    "syntax": [
+      "bcc <label>"
+    ],
+    "description": "If the the carry bit is clear, program execution continues at location [PC] + displacement, d. The displacement is a two's complement value. The value in the PC corresponds to the current location plus two. The range of the branch is -126 to +128 bytes with an 8-bit offset, and -32K to +32K bytes with a 16-bit offset. A short branch to the next instruction is impossible, since the branch code 0 indicates a long branch with a 16-bit offset. The assembly language form `BCC *+8` means branch to the point eight bytes from the current PC if the carry bit is clear.",
+    "ccr": {
+      "x": "-",
+      "n": "-",
+      "z": "-",
+      "v": "-",
+      "c": "-"
+    },
+    "procs": {
+      "mc68000": true,
+      "mc68010": true,
+      "mc68020": true,
+      "mc68030": true,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": false,
+      "mc68851": false,
+      "cpu32": true
+    }
+  },
+  "bchg": {
+    "summary": "Test a bit and change",
+    "operation": "[Z] ← ¬(\\<bit_number\\> OF [destination])<br/>\n\\<bit_number\\> OF [destination] ← ¬(\\<bit_number\\> OF [destination])",
+    "syntax": [
+      "bchg[.(bl)] <bit_number>,<destination>"
+    ],
+    "description": "A bit in the destination operand is tested and the state of the specified bit is reflected in the condition of the Z-bit in the CCR. After the test operation, the state of the specified bit is changed in the destination. If a data register is the destination, then the bit numbering is modulo 32, allowing bit manipulation of all bits in a data register. If a memory location is the destination, a byte is read from that location, the bit operation performed using the bit number modulo 8, and the byte written back to the location. Note that bit zero refers to the least-significant bit. The bit number for this operation may be specified either *statically* by an immediate value or *dynamically* by the contents of a data register.",
+    "src": {
+      "dn": true,
+      "an": false,
+      "anIndirect": false,
+      "anPostInc": false,
+      "anPreDec": false,
+      "anOffset": false,
+      "anIdx": false,
+      "absW": false,
+      "absL": false,
+      "pcOffset": false,
+      "pcIdx": false,
+      "imm": true
+    },
+    "dest": {
+      "dn": true,
+      "an": false,
+      "anIndirect": true,
+      "anPostInc": true,
+      "anPreDec": true,
+      "anOffset": true,
+      "anIdx": true,
+      "absW": true,
+      "absL": true,
+      "pcOffset": false,
+      "pcIdx": false,
+      "imm": false
+    },
+    "ccr": {
+      "x": "-",
+      "n": "-",
+      "z": "*",
+      "v": "-",
+      "c": "-"
+    },
+    "procs": {
+      "mc68000": true,
+      "mc68010": true,
+      "mc68020": true,
+      "mc68030": true,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": false,
+      "mc68851": false,
+      "cpu32": true
+    }
+  },
+  "bclr": {
+    "summary": "Test a bit and clear",
+    "operation": "[Z] ← ¬(\\<bit_number\\> OF [destination])<br/>\n\\<bit_number\\> OF [destination] ← 0",
+    "syntax": [
+      "bclr[.(bl)] <bit_number>,<destination>"
+    ],
+    "description": "A bit in the destination operand is tested and the state of the specified bit is reflected in the condition of the Z-bit in the condition code. After the test, the state of the specified bit is cleared in the destination. If a data register is the destination, the bit numbering is modulo 32, allowing bit manipulation of all bits in a data register. If a memory location is the destination, a byte is read from that location, the bit operation performed using the bit number modulo 8, and the byte written back to the location. Bit zero refers to the least-significant bit. The bit number for this operation may be specified either by an immediate value or dynamically by the contents of a data register.",
+    "src": {
+      "dn": true,
+      "an": false,
+      "anIndirect": false,
+      "anPostInc": false,
+      "anPreDec": false,
+      "anOffset": false,
+      "anIdx": false,
+      "absW": false,
+      "absL": false,
+      "pcOffset": false,
+      "pcIdx": false,
+      "imm": true
+    },
+    "dest": {
+      "dn": true,
+      "an": false,
+      "anIndirect": true,
+      "anPostInc": true,
+      "anPreDec": true,
+      "anOffset": true,
+      "anIdx": true,
+      "absW": true,
+      "absL": true,
+      "pcOffset": false,
+      "pcIdx": false,
+      "imm": false
+    },
+    "ccr": {
+      "x": "-",
+      "n": "-",
+      "z": "*",
+      "v": "-",
+      "c": "-"
+    },
+    "procs": {
+      "mc68000": true,
+      "mc68010": true,
+      "mc68020": true,
+      "mc68030": true,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": false,
+      "mc68851": false,
+      "cpu32": true
+    }
+  },
+  "bfchg": {
+    "summary": "Test Bit Field and Change",
+    "procs": {
+      "mc68000": false,
+      "mc68010": false,
+      "mc68020": true,
+      "mc68030": true,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": false,
+      "mc68851": false,
+      "cpu32": false
+    }
+  },
+  "bfclr": {
+    "summary": "Test Bit Field and Clear",
+    "procs": {
+      "mc68000": false,
+      "mc68010": false,
+      "mc68020": true,
+      "mc68030": true,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": false,
+      "mc68851": false,
+      "cpu32": false
+    }
+  },
+  "bfexts": {
+    "summary": "Signed Bit Field Extract",
+    "procs": {
+      "mc68000": false,
+      "mc68010": false,
+      "mc68020": true,
+      "mc68030": true,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": false,
+      "mc68851": false,
+      "cpu32": false
+    }
+  },
+  "bfextu": {
+    "summary": "Unsigned Bit Field Extract",
+    "procs": {
+      "mc68000": false,
+      "mc68010": false,
+      "mc68020": true,
+      "mc68030": true,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": false,
+      "mc68851": false,
+      "cpu32": false
+    }
+  },
+  "bfffo": {
+    "summary": "Bit Field Find First One",
+    "procs": {
+      "mc68000": false,
+      "mc68010": false,
+      "mc68020": true,
+      "mc68030": true,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": false,
+      "mc68851": false,
+      "cpu32": false
+    }
+  },
+  "bfins": {
+    "summary": "Bit Field Insert",
+    "procs": {
+      "mc68000": false,
+      "mc68010": false,
+      "mc68020": true,
+      "mc68030": true,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": false,
+      "mc68851": false,
+      "cpu32": false
+    }
+  },
+  "bfset": {
+    "summary": "Test Bit Field and Set",
+    "procs": {
+      "mc68000": false,
+      "mc68010": false,
+      "mc68020": true,
+      "mc68030": true,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": false,
+      "mc68851": false,
+      "cpu32": false
+    }
+  },
+  "bftst": {
+    "summary": "Test Bit Field",
+    "procs": {
+      "mc68000": false,
+      "mc68010": false,
+      "mc68020": true,
+      "mc68030": true,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": false,
+      "mc68851": false,
+      "cpu32": false
+    }
+  },
+  "bgnd": {
+    "summary": "Enter Background Mode",
+    "procs": {
+      "mc68000": false,
+      "mc68010": false,
+      "mc68020": false,
+      "mc68030": false,
+      "mc68040": false,
+      "mc68060": false,
+      "mc68881": false,
+      "mc68851": false,
+      "cpu32": true
+    }
+  },
+  "bkpt": {
+    "summary": "Breakpoint",
+    "procs": {
+      "mc68000": false,
+      "mc68010": true,
+      "mc68020": true,
+      "mc68030": true,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": false,
+      "mc68851": false,
+      "cpu32": true
+    }
+  },
+  "bra": {
+    "summary": "Branch always",
+    "operation": "[PC] ← [PC] + d",
+    "syntax": [
+      "bra[.(bw)] <label>",
+      "bra[.(bw)] <literal>"
+    ],
+    "description": "Program execution continues at location [PC] + d. The displacement, d, is a two's complement value (8 bits for a short branch and 16 bits for a long branch). The value in the PC corresponds to the current location plus two. Note that a short branch to the next instruction is impossible, since the branch code 0 is used to indicate a long branch with a 16-bit offset.",
+    "ccr": {
+      "x": "-",
+      "n": "-",
+      "z": "-",
+      "v": "-",
+      "c": "-"
+    },
+    "procs": {
+      "mc68000": true,
+      "mc68010": true,
+      "mc68020": true,
+      "mc68030": true,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": false,
+      "mc68851": false,
+      "cpu32": true
+    }
+  },
+  "bset": {
+    "summary": "Test a bit and set",
+    "operation": "[Z] ← ¬(\\<bit_number\\> OF [destination])<br/>\n\\<bit_number\\> OF [destination] ← 1",
+    "syntax": [
+      "bset[.(bl)] <bit_number>,<destination>"
+    ],
+    "description": "A bit in the destination operand is tested and the state of the specified bit is reflected in the condition of the Z-bit of the condition code. After the test, the specified bit is set in the destination. If a data register is the destination then the bit numbering is modulo 32, allowing bit manipulation of all bits in a data register. If a memory location is the destination, a byte is read from that location, the bit operation performed using bit number modulo 8, and the byte written back to the location. Bit zero refers to the least-significant bit. The bit number for this operation may be specified either by an immediate value or dynamically by the contents of a data register.",
+    "src": {
+      "dn": true,
+      "an": false,
+      "anIndirect": false,
+      "anPostInc": false,
+      "anPreDec": false,
+      "anOffset": false,
+      "anIdx": false,
+      "absW": false,
+      "absL": false,
+      "pcOffset": false,
+      "pcIdx": false,
+      "imm": true
+    },
+    "dest": {
+      "dn": true,
+      "an": false,
+      "anIndirect": true,
+      "anPostInc": true,
+      "anPreDec": true,
+      "anOffset": true,
+      "anIdx": true,
+      "absW": true,
+      "absL": true,
+      "pcOffset": false,
+      "pcIdx": false,
+      "imm": false
+    },
+    "ccr": {
+      "x": "-",
+      "n": "-",
+      "z": "*",
+      "v": "-",
+      "c": "-"
+    },
+    "procs": {
+      "mc68000": true,
+      "mc68010": true,
+      "mc68020": true,
+      "mc68030": true,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": false,
+      "mc68851": false,
+      "cpu32": true
+    }
+  },
+  "bsr": {
+    "summary": "Branch to subroutine",
+    "operation": "[SP] ← [SP] - 4; [M([SP])] ← [PC]; [PC] ← [PC] + d\n",
+    "syntax": [
+      "bsr[.(bw)] <label>"
+    ],
+    "description": "The longword address of the instruction immediately following the `BSR` instruction is pushed onto the system stack pointed at by A7. Program execution then continues at location [PC] + displacement. The displacement is an 8-bit two's complement value for a short branch, or a 16-bit two's complement value for a long branch. The value in the PC corresponds to the current location plus two. Note that a short branch to the next instruction is impossible, since the branch code 0 is used to indicate a long branch with a 16-bit offset.",
+    "ccr": {
+      "x": "-",
+      "n": "-",
+      "z": "-",
+      "v": "-",
+      "c": "-"
+    },
+    "procs": {
+      "mc68000": true,
+      "mc68010": true,
+      "mc68020": true,
+      "mc68030": true,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": false,
+      "mc68851": false,
+      "cpu32": true
+    }
+  },
+  "btst": {
+    "summary": "Test a bit",
+    "operation": "[Z] ← ¬(\\<bit_number\\> OF [destination])",
+    "syntax": [
+      "btst[.(bl)] <bit_number>,<destination>"
+    ],
+    "description": "A bit in the destination operand is tested and the state of the specified bit is reflected in the condition of the Z-bit in the CCR. The destination is not modified by a `BTST` instruction. If a data register is the destination, then the bit numbering is modulo 32, allowing bit manipulation of all bits in a data register. If a memory location is the destination, a byte is read from that location, the bit operation performed. Bit 0 refers to the least-significant bit. The bit number for this operation may be specified either statically by an immediate value or dynamically by the contents of a data register.",
+    "src": {
+      "dn": true,
+      "an": false,
+      "anIndirect": false,
+      "anPostInc": false,
+      "anPreDec": false,
+      "anOffset": false,
+      "anIdx": false,
+      "absW": false,
+      "absL": false,
+      "pcOffset": false,
+      "pcIdx": false,
+      "imm": true
+    },
+    "dest": {
+      "dn": true,
+      "an": false,
+      "anIndirect": true,
+      "anPostInc": true,
+      "anPreDec": true,
+      "anOffset": true,
+      "anIdx": true,
+      "absW": true,
+      "absL": true,
+      "pcOffset": true,
+      "pcIdx": true,
+      "imm": false
+    },
+    "ccr": {
+      "x": "-",
+      "n": "-",
+      "z": "*",
+      "v": "-",
+      "c": "-"
+    },
+    "procs": {
+      "mc68000": true,
+      "mc68010": true,
+      "mc68020": true,
+      "mc68030": true,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": false,
+      "mc68851": false,
+      "cpu32": true
+    }
+  },
+  "callm": {
+    "summary": "CALL Module",
+    "procs": {
+      "mc68000": false,
+      "mc68010": false,
+      "mc68020": true,
+      "mc68030": false,
+      "mc68040": false,
+      "mc68060": false,
+      "mc68881": false,
+      "mc68851": false,
+      "cpu32": false
+    }
+  },
+  "cas": {
+    "summary": "Compare and Swap Operands",
+    "procs": {
+      "mc68000": false,
+      "mc68010": false,
+      "mc68020": true,
+      "mc68030": true,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": true,
+      "mc68851": false,
+      "cpu32": false
+    }
+  },
+  "cas2": {
+    "summary": "Compare and Swap Dual Operands",
+    "procs": {
+      "mc68000": false,
+      "mc68010": false,
+      "mc68020": true,
+      "mc68030": true,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": true,
+      "mc68851": false,
+      "cpu32": false
+    }
+  },
+  "chk": {
+    "summary": "Check register against bounds",
+    "operation": "IF [Dn] < 0 OR [Dn] > [\\<ea\\>] THEN TRAP",
+    "syntax": [
+      "chk[.w] <source>,Dn"
+    ],
+    "description": "The contents of the low-order word in the data register specified in the instruction are examined and compared with the upper bound at the effective address. The upper bound is a two's complement integer. If the data register value is less than zero or greater than the upper bound contained in the operand word, then the processor initiates exception processing.",
+    "src": {
+      "dn": true,
+      "an": false,
+      "anIndirect": true,
+      "anPostInc": true,
+      "anPreDec": true,
+      "anOffset": true,
+      "anIdx": true,
+      "absW": true,
+      "absL": true,
+      "pcOffset": false,
+      "pcIdx": false,
+      "imm": false
+    },
+    "ccr": {
+      "x": "-",
+      "n": "*",
+      "z": "U",
+      "v": "U",
+      "c": "U"
+    },
+    "procs": {
+      "mc68000": true,
+      "mc68010": true,
+      "mc68020": true,
+      "mc68030": true,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": false,
+      "mc68851": false,
+      "cpu32": true
+    }
+  },
+  "chk2": {
+    "summary": "Check Register Against Upper and Lower Bounds",
+    "procs": {
+      "mc68000": false,
+      "mc68010": false,
+      "mc68020": true,
+      "mc68030": true,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": false,
+      "mc68851": false,
+      "cpu32": true
+    }
+  },
+  "cinv": {
+    "summary": "Invalidate Cache Entries",
+    "procs": {
+      "mc68000": false,
+      "mc68010": false,
+      "mc68020": false,
+      "mc68030": false,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": false,
+      "mc68851": false,
+      "cpu32": false
+    }
+  },
+  "clr": {
+    "summary": "Clear an operand",
+    "operation": "[destination] ← 0",
+    "syntax": [
+      "clr[.(bwl)] <destination>"
+    ],
+    "description": "The destination is cleared - loaded with all zeros. The `CLR` instruction can't be used to clear an address register. You can use `SUBA.L A0,A0` to clear A0. Note that a side effect of `CLR`'s implementation is a *read* from the specified effective address before the clear (i.e., write) operation is executed. Under certain circumstances this might cause a problem (e.g., with write-only memory).",
+    "src": {
+      "dn": true,
+      "an": false,
+      "anIndirect": true,
+      "anPostInc": true,
+      "anPreDec": true,
+      "anOffset": true,
+      "anIdx": true,
+      "absW": true,
+      "absL": true,
+      "pcOffset": false,
+      "pcIdx": false,
+      "imm": false
+    },
+    "ccr": {
+      "x": "-",
+      "n": "0",
+      "z": "1",
+      "v": "0",
+      "c": "0"
+    },
+    "procs": {
+      "mc68000": true,
+      "mc68010": true,
+      "mc68020": true,
+      "mc68030": true,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": false,
+      "mc68851": false,
+      "cpu32": true
+    }
+  },
+  "cmp": {
+    "summary": "Compare",
+    "operation": "[destination] - [source]",
+    "syntax": [
+      "cmp[.(bwl)] <source>,Dn"
+    ],
+    "description": "Subtract the source operand from the destination operand and set the condition codes accordingly. The destination must be a data register. The destination is not modified by this instruction.",
+    "src": {
+      "dn": true,
+      "an": true,
+      "anIndirect": true,
+      "anPostInc": true,
+      "anPreDec": true,
+      "anOffset": true,
+      "anIdx": true,
+      "absW": true,
+      "absL": true,
+      "pcOffset": true,
+      "pcIdx": true,
+      "imm": true
+    },
+    "ccr": {
+      "x": "-",
+      "n": "*",
+      "z": "*",
+      "v": "*",
+      "c": "*"
+    },
+    "procs": {
+      "mc68000": true,
+      "mc68010": true,
+      "mc68020": true,
+      "mc68030": true,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": false,
+      "mc68851": false,
+      "cpu32": true
+    }
+  },
+  "cmpa": {
+    "summary": "Compare address",
+    "operation": "[destination] - [source]",
+    "syntax": [
+      "cmpa[.(wl)] <source>,An"
+    ],
+    "description": "Subtract the source operand from the destination address register and set the condition codes accordingly. The address register is not modified. The size of the operation may be specified as word or longword. Word length operands are sign-extended to 32 bits before the comparison is carried out.",
+    "src": {
+      "dn": true,
+      "an": true,
+      "anIndirect": true,
+      "anPostInc": true,
+      "anPreDec": true,
+      "anOffset": true,
+      "anIdx": true,
+      "absW": true,
+      "absL": true,
+      "pcOffset": true,
+      "pcIdx": true,
+      "imm": true
+    },
+    "ccr": {
+      "x": "-",
+      "n": "*",
+      "z": "*",
+      "v": "*",
+      "c": "*"
+    },
+    "procs": {
+      "mc68000": true,
+      "mc68010": true,
+      "mc68020": true,
+      "mc68030": true,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": false,
+      "mc68851": false,
+      "cpu32": true
+    }
+  },
+  "cmpi": {
+    "summary": "Compare immediate",
+    "operation": "[destination] - \\<immediate_data\\>",
+    "syntax": [
+      "cmpi[.(bwl)] #<data>,<destination>"
+    ],
+    "description": "Subtract the immediate data from the destination operand and set the condition codes accordingly - the destination is not modified. `CMPI` permits the comparison of a literal with memory.",
+    "dest": {
+      "dn": true,
+      "an": false,
+      "anIndirect": true,
+      "anPostInc": true,
+      "anPreDec": true,
+      "anOffset": true,
+      "anIdx": true,
+      "absW": true,
+      "absL": true,
+      "pcOffset": true,
+      "pcIdx": true,
+      "imm": false
+    },
+    "ccr": {
+      "x": "-",
+      "n": "*",
+      "z": "*",
+      "v": "*",
+      "c": "*"
+    },
+    "procs": {
+      "mc68000": true,
+      "mc68010": true,
+      "mc68020": true,
+      "mc68030": true,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": false,
+      "mc68851": false,
+      "cpu32": true
+    }
+  },
+  "cmpm": {
+    "summary": "Compare memory with memory",
+    "operation": "[destination] - [source]",
+    "syntax": [
+      "cmpm[.(bwl)] (Ay)+,(Ax)+"
+    ],
+    "description": "Subtract the source operand from the destination operand and set the condition codes accordingly. The destination is not modified by this instruction. The only permitted addressing mode is address register indirect with post-incrementing for both source and destination operands.",
+    "ccr": {
+      "x": "-",
+      "n": "*",
+      "z": "*",
+      "v": "*",
+      "c": "*"
+    },
+    "procs": {
+      "mc68000": true,
+      "mc68010": true,
+      "mc68020": true,
+      "mc68030": true,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": false,
+      "mc68851": false,
+      "cpu32": true
+    }
+  },
+  "cmp2": {
+    "summary": "Compare Register Against Upper and Lower Bounds",
+    "procs": {
+      "mc68000": false,
+      "mc68010": false,
+      "mc68020": true,
+      "mc68030": true,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": false,
+      "mc68851": false,
+      "cpu32": true
+    }
+  },
+  "cpbcc": {
+    "summary": "Branch on Coprocessor Condition",
+    "procs": {
+      "mc68000": false,
+      "mc68010": false,
+      "mc68020": true,
+      "mc68030": true,
+      "mc68040": false,
+      "mc68060": false,
+      "mc68881": false,
+      "mc68851": false,
+      "cpu32": false
+    }
+  },
+  "cpdbcc": {
+    "summary": "Test Coprocessor Condition Decrement and Branch",
+    "procs": {
+      "mc68000": false,
+      "mc68010": false,
+      "mc68020": true,
+      "mc68030": true,
+      "mc68040": false,
+      "mc68060": false,
+      "mc68881": false,
+      "mc68851": false,
+      "cpu32": false
+    }
+  },
+  "cpgen": {
+    "summary": "Coprocessor General Function",
+    "procs": {
+      "mc68000": false,
+      "mc68010": false,
+      "mc68020": true,
+      "mc68030": true,
+      "mc68040": false,
+      "mc68060": false,
+      "mc68881": false,
+      "mc68851": false,
+      "cpu32": false
+    }
+  },
+  "cprestore": {
+    "summary": "Coprocessor Restore Function",
+    "procs": {
+      "mc68000": false,
+      "mc68010": false,
+      "mc68020": true,
+      "mc68030": true,
+      "mc68040": false,
+      "mc68060": false,
+      "mc68881": false,
+      "mc68851": false,
+      "cpu32": false
+    }
+  },
+  "cpsave": {
+    "summary": "Coprocessor Save Function",
+    "procs": {
+      "mc68000": false,
+      "mc68010": false,
+      "mc68020": true,
+      "mc68030": true,
+      "mc68040": false,
+      "mc68060": false,
+      "mc68881": false,
+      "mc68851": false,
+      "cpu32": false
+    }
+  },
+  "cpscc": {
+    "summary": "Set on Coprocessor Condition",
+    "procs": {
+      "mc68000": false,
+      "mc68010": false,
+      "mc68020": true,
+      "mc68030": true,
+      "mc68040": false,
+      "mc68060": false,
+      "mc68881": false,
+      "mc68851": false,
+      "cpu32": false
+    }
+  },
+  "cptrapcc": {
+    "summary": "Trap on Coprocessor Condition",
+    "procs": {
+      "mc68000": false,
+      "mc68010": false,
+      "mc68020": true,
+      "mc68030": true,
+      "mc68040": false,
+      "mc68060": false,
+      "mc68881": false,
+      "mc68851": false,
+      "cpu32": false
+    }
+  },
+  "cpushl": {
+    "summary": "Push and Possibly Invalidate Cache Line",
+    "procs": {
+      "mc68000": false,
+      "mc68010": false,
+      "mc68020": false,
+      "mc68030": false,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": false,
+      "mc68851": false,
+      "cpu32": false
+    }
+  },
+  "cpushp": {
+    "summary": "Push and Possibly Invalidate Cache Line",
+    "procs": {
+      "mc68000": false,
+      "mc68010": false,
+      "mc68020": false,
+      "mc68030": false,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": false,
+      "mc68851": false,
+      "cpu32": false
+    }
+  },
+  "cpusha": {
+    "summary": "Push and Possibly Invalidate Cache Line",
+    "procs": {
+      "mc68000": false,
+      "mc68010": false,
+      "mc68020": false,
+      "mc68030": false,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": false,
+      "mc68851": false,
+      "cpu32": false
+    }
+  },
+  "dbcc": {
+    "summary": "Test condition, decrement, and branch",
+    "operation": "IF(condition false)<br/>\n&nbsp;&nbsp;THEN [Dn] ← [Dn] - 1 {decrement loop counter}<br/>\n&nbsp;&nbsp;&nbsp;&nbsp;IF [Dn] = -1<br/>\n&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;THEN [PC] ← [PC] + 2 {fall through to next instruction}<br/>\n&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ELSE [PC] ← [PC] + d {take branch}<br/>\n&nbsp;&nbsp;ELSE [PC] ← [PC] + 2 {fall through to next instruction}<br/>",
+    "syntax": [
+      "dbcc Dn,<label>"
+    ],
+    "description": "The `DBcc` instruction provides an automatic looping facility and replaces the usual decrement counter, test, and branch instructions. Three parameters are required by the `DBcc` instruction: a branch condition (specified by 'cc'), a data register that serves as the loop down-counter, and a label that indicates the start of the loop. The `DBcc` first tests the condition 'cc', and if 'cc' is true the loop is terminated and the branch back to \\<label\\> not taken. The 14 branch conditions supported by Bcc are also supported by `DBcc`, as well as `DBF` and `DBT` (F = false, and T = true). Note that many assemblers permit the mnemonic `DBF` to be expressed as `DBRA` (i.e., decrement and branch back).\n\nIt is important to appreciate that the condition tested by the `DBcc` instruction works in the *opposite* sense to a `Bcc`, conditional branch, instruction. For example, `BCC` means branch on carry clear, whereas `DBcc` means continue (i.e., exit the loop) on carry clear. That is, the `DBcc` condition is a loop terminator. If the termination condition is not true, the low-order 16 bits of the specified data register are decremented. If the result is -1, the loop is not taken and the next instruction is executed. If the result is not -1, a branch is made to 'label'. Note that the label represents a 16-bit signed value, permitting a branch range of -32K to +32K bytes. Since the value in Dn decremented is 16 bits, the loop may be executed up to 64K times.\n\nWe can use the instruction `DBEQ`, decrement and branch on zero, to mechanize the high-level language construct `REPEAT`...`UNTIL`.\n\n```\nLOOP ...            REPEAT\n     ...\n     ...              [D0] := [D0] - 1\n     ...\n     DBEQ D0,REPEAT UNTIL [D0] = - 1 OR [Z] = 1\n```",
+    "ccr": {
+      "x": "-",
+      "n": "-",
+      "z": "-",
+      "v": "-",
+      "c": "-"
+    },
+    "procs": {
+      "mc68000": true,
+      "mc68010": true,
+      "mc68020": true,
+      "mc68030": true,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": false,
+      "mc68851": false,
+      "cpu32": true
+    }
+  },
+  "divs": {
+    "summary": "Signed divide",
+    "operation": "[destination] ← [destination]/[source]",
+    "syntax": [
+      "divs <source>,Dn"
+    ],
+    "description": "Divide the destination operand by the source operand and store the result in the destination. The destination is a longword and the source is a 16-bit value. The result (i.e., destination register) is a 32-bit value arranged so that the quotient is the lower-order word and the remainder is the upper-order word. `DIVS` performs division on two's complement values. An attempt to divide by zero causes an exception. The sign of the remainder is always the same as the sign of the dividend (unless the remainder is zero).\n\nAttempting to divide a number by zero results in a divide-by-zero exception. If overflow is detected during division, the operands are unaffected. Overflow is checked for at the start of the operation and occurs if the quotient is larger than a 16-bit signed integer. If the upper word of the dividend is greater than or equal to the divisor, the V-bit is set and the instruction terminated.",
+    "src": {
+      "dn": true,
+      "an": false,
+      "anIndirect": true,
+      "anPostInc": true,
+      "anPreDec": true,
+      "anOffset": true,
+      "anIdx": true,
+      "absW": true,
+      "absL": true,
+      "pcOffset": true,
+      "pcIdx": true,
+      "imm": true
+    },
+    "ccr": {
+      "x": "-",
+      "n": "*",
+      "z": "*",
+      "v": "*",
+      "c": "0"
+    },
+    "procs": {
+      "mc68000": true,
+      "mc68010": true,
+      "mc68020": true,
+      "mc68030": true,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": true,
+      "mc68851": false,
+      "cpu32": false
+    }
+  },
+  "divsl": {
+    "summary": "Signed Divide",
+    "procs": {
+      "mc68000": false,
+      "mc68010": false,
+      "mc68020": true,
+      "mc68030": true,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": false,
+      "mc68851": false,
+      "cpu32": true
+    }
+  },
+  "divu": {
+    "summary": "Unsigned divide",
+    "operation": "[destination] ← [destination]/[source]",
+    "syntax": [
+      "divu <source>,Dn"
+    ],
+    "description": "Divide the destination operand by the source operand and store the result in the destination. The destination is a longword and the source is a 16-bit value. The result (i.e., destination register) is a 32-bit value arranged so that the quotient is the lower-order word and the remainder is the upper-order word. `DIVU` performs division on unsigned values. An attempt to divide by zero causes an exception.\n\nAttempting to divide a number by zero results in a divide-by-zero exception. If overflow is detected during division, the operands are unaffected. Overflow is checked for at the start of the operation and occurs if the quotient is larger than a 16-bit signed integer. If the upper word of the dividend is greater than or equal to the divisor, the V-bit is set and the instruction terminated.",
+    "src": {
+      "dn": true,
+      "an": false,
+      "anIndirect": true,
+      "anPostInc": true,
+      "anPreDec": true,
+      "anOffset": true,
+      "anIdx": true,
+      "absW": true,
+      "absL": true,
+      "pcOffset": true,
+      "pcIdx": true,
+      "imm": true
+    },
+    "ccr": {
+      "x": "-",
+      "n": "*",
+      "z": "*",
+      "v": "*",
+      "c": "0"
+    },
+    "procs": {
+      "mc68000": true,
+      "mc68010": true,
+      "mc68020": true,
+      "mc68030": true,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": true,
+      "mc68851": false,
+      "cpu32": false
+    }
+  },
+  "divul": {
+    "summary": "Unsigned Divide Long",
+    "procs": {
+      "mc68000": false,
+      "mc68010": false,
+      "mc68020": true,
+      "mc68030": true,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": false,
+      "mc68851": false,
+      "cpu32": true
+    }
+  },
+  "eor": {
+    "summary": "Exclusive OR logical",
+    "operation": "[destination] ← [source] ⊕ [destination]",
+    "syntax": [
+      "eor[.(bwl)] Dn,<destination>"
+    ],
+    "description": "EOR (exclusive or) the source operand with the destination operand and store the result in the destination location Note that the source operand must be a data register and that the operation `EOR <source>,Dn` is not permitted.",
+    "dest": {
+      "dn": true,
+      "an": false,
+      "anIndirect": true,
+      "anPostInc": true,
+      "anPreDec": true,
+      "anOffset": true,
+      "anIdx": true,
+      "absW": true,
+      "absL": true,
+      "pcOffset": false,
+      "pcIdx": false,
+      "imm": false
+    },
+    "ccr": {
+      "x": "-",
+      "n": "*",
+      "z": "*",
+      "v": "0",
+      "c": "0"
+    },
+    "procs": {
+      "mc68000": true,
+      "mc68010": true,
+      "mc68020": true,
+      "mc68030": true,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": false,
+      "mc68851": false,
+      "cpu32": true
+    }
+  },
+  "eori": {
+    "summary": "EOR immediate",
+    "operation": "IF [S] = 1<br/>\n&nbsp;THEN<br/>\n&nbsp;&nbsp;[SR] ← \\<literal\\> ⊕ [SR]<br/>\n&nbsp;ELSE TRAP<br/>",
+    "syntax": [
+      "eori #<data>,SR"
+    ],
+    "description": "EOR (exclusive OR) the immediate data with the contents of the status register and store the result in the status register. All bits of the status register are affected.",
+    "dest": {
+      "dn": true,
+      "an": false,
+      "anIndirect": true,
+      "anPostInc": true,
+      "anPreDec": true,
+      "anOffset": true,
+      "anIdx": true,
+      "absW": true,
+      "absL": true,
+      "pcOffset": false,
+      "pcIdx": false,
+      "imm": false
+    },
+    "ccr": {
+      "x": "*",
+      "n": "*",
+      "z": "*",
+      "v": "*",
+      "c": "*"
+    },
+    "procs": {
+      "mc68000": true,
+      "mc68010": true,
+      "mc68020": true,
+      "mc68030": true,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": false,
+      "mc68851": false,
+      "cpu32": true
+    }
+  },
+  "exg": {
+    "summary": "Exchange registers",
+    "operation": "[Rx] ← [Ry]; [Ry] ← [Rx]",
+    "syntax": [
+      "exg[.l] Rx,Ry"
+    ],
+    "description": "Exchange the contents of two registers. The size of the instruction is a longword because the entire 32-bit contents of two registers are exchanged. The instruction permits the exchange of address registers, data registers, and address and data registers.",
+    "ccr": {
+      "x": "-",
+      "n": "-",
+      "z": "-",
+      "v": "-",
+      "c": "-"
+    },
+    "procs": {
+      "mc68000": true,
+      "mc68010": true,
+      "mc68020": true,
+      "mc68030": true,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": false,
+      "mc68851": false,
+      "cpu32": true
+    }
+  },
+  "ext": {
+    "summary": "Sign-extend a data register",
+    "operation": "[destination] ← sign-extended[destination]",
+    "syntax": [
+      "ext[.(wl)] Dn"
+    ],
+    "description": "Extend the least-significant byte in a data register to a word, or extend the least-significant word in a data register to a longword. If the operation is word sized, bit 7 of the designated data register is copied to bits (8:15). If the operation is longword sized, bit 15 is copied to bits (16:31).",
+    "ccr": {
+      "x": "-",
+      "n": "*",
+      "z": "*",
+      "v": "0",
+      "c": "0"
+    },
+    "procs": {
+      "mc68000": true,
+      "mc68010": true,
+      "mc68020": true,
+      "mc68030": true,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": false,
+      "mc68851": false,
+      "cpu32": true
+    }
+  },
+  "extb": {
+    "summary": "Sign Extend byte",
+    "procs": {
+      "mc68000": false,
+      "mc68010": false,
+      "mc68020": true,
+      "mc68030": true,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": false,
+      "mc68851": false,
+      "cpu32": true
+    }
+  },
+  "fabs": {
+    "summary": "Floating-Point Absolute Value",
+    "procs": {
+      "mc68000": false,
+      "mc68010": false,
+      "mc68020": false,
+      "mc68030": false,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": true,
+      "mc68851": true,
+      "cpu32": true
+    }
+  },
+  "fsabs": {
+    "summary": "Floating-Point Absolute Value (Single Precision)",
+    "procs": {
+      "mc68000": false,
+      "mc68010": false,
+      "mc68020": false,
+      "mc68030": false,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": true,
+      "mc68851": true,
+      "cpu32": false
+    }
+  },
+  "fdabs": {
+    "summary": "Floating-Point Absolute Value (Double Precision)",
+    "procs": {
+      "mc68000": false,
+      "mc68010": false,
+      "mc68020": false,
+      "mc68030": false,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": true,
+      "mc68851": true,
+      "cpu32": false
+    }
+  },
+  "facos": {
+    "summary": "Floating-Point Arc Cosine",
+    "procs": {
+      "mc68000": false,
+      "mc68010": false,
+      "mc68020": false,
+      "mc68030": false,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": true,
+      "mc68851": true,
+      "cpu32": true
+    }
+  },
+  "fadd": {
+    "summary": "Floating-Point Add",
+    "procs": {
+      "mc68000": false,
+      "mc68010": false,
+      "mc68020": false,
+      "mc68030": false,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": true,
+      "mc68851": true,
+      "cpu32": true
+    }
+  },
+  "fsadd": {
+    "summary": "Floating-Point Add (Single Precision)",
+    "procs": {
+      "mc68000": false,
+      "mc68010": false,
+      "mc68020": false,
+      "mc68030": false,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": true,
+      "mc68851": true,
+      "cpu32": false
+    }
+  },
+  "fdadd": {
+    "summary": "Floating-Point Add (Double Precision)",
+    "procs": {
+      "mc68000": false,
+      "mc68010": false,
+      "mc68020": false,
+      "mc68030": false,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": true,
+      "mc68851": true,
+      "cpu32": false
+    }
+  },
+  "fasin": {
+    "summary": "Floating-Point Arc Sine",
+    "procs": {
+      "mc68000": false,
+      "mc68010": false,
+      "mc68020": false,
+      "mc68030": false,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": true,
+      "mc68851": true,
+      "cpu32": true
+    }
+  },
+  "fatan": {
+    "summary": "Floating-Point Arc Tangent",
+    "procs": {
+      "mc68000": false,
+      "mc68010": false,
+      "mc68020": false,
+      "mc68030": false,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": true,
+      "mc68851": true,
+      "cpu32": true
+    }
+  },
+  "fatanh": {
+    "summary": "Floating-Point Hyperbolic Arc Tangent",
+    "procs": {
+      "mc68000": false,
+      "mc68010": false,
+      "mc68020": false,
+      "mc68030": false,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": true,
+      "mc68851": true,
+      "cpu32": true
+    }
+  },
+  "fbcc": {
+    "summary": "Floating-Point Branch",
+    "procs": {
+      "mc68000": false,
+      "mc68010": false,
+      "mc68020": false,
+      "mc68030": false,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": true,
+      "mc68851": true,
+      "cpu32": true
+    }
+  },
+  "fcmp": {
+    "summary": "Floating-Point Compare",
+    "procs": {
+      "mc68000": false,
+      "mc68010": false,
+      "mc68020": false,
+      "mc68030": false,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": true,
+      "mc68851": true,
+      "cpu32": true
+    }
+  },
+  "fcos": {
+    "summary": "Floating-Point Cosine",
+    "procs": {
+      "mc68000": false,
+      "mc68010": false,
+      "mc68020": false,
+      "mc68030": false,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": true,
+      "mc68851": true,
+      "cpu32": true
+    }
+  },
+  "fcosh": {
+    "summary": "Floating-Point Hyperbolic Cosine",
+    "procs": {
+      "mc68000": false,
+      "mc68010": false,
+      "mc68020": false,
+      "mc68030": false,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": true,
+      "mc68851": true,
+      "cpu32": true
+    }
+  },
+  "fdbcc": {
+    "summary": "Floating-Point Decrement and Branch",
+    "procs": {
+      "mc68000": false,
+      "mc68010": false,
+      "mc68020": false,
+      "mc68030": false,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": true,
+      "mc68851": true,
+      "cpu32": true
+    }
+  },
+  "fdiv": {
+    "summary": "Floating-Point Divide",
+    "procs": {
+      "mc68000": false,
+      "mc68010": false,
+      "mc68020": false,
+      "mc68030": false,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": true,
+      "mc68851": true,
+      "cpu32": true
+    }
+  },
+  "fsdiv": {
+    "summary": "Floating-Point Divide (Single Precision)",
+    "procs": {
+      "mc68000": false,
+      "mc68010": false,
+      "mc68020": false,
+      "mc68030": false,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": true,
+      "mc68851": true,
+      "cpu32": false
+    }
+  },
+  "fddiv": {
+    "summary": "Floating-Point Divide (Double Precision)",
+    "procs": {
+      "mc68000": false,
+      "mc68010": false,
+      "mc68020": false,
+      "mc68030": false,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": true,
+      "mc68851": true,
+      "cpu32": false
+    }
+  },
+  "fetox": {
+    "summary": "Floating-Point ex",
+    "procs": {
+      "mc68000": false,
+      "mc68010": false,
+      "mc68020": false,
+      "mc68030": false,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": true,
+      "mc68851": true,
+      "cpu32": true
+    }
+  },
+  "fetoxm1": {
+    "summary": "Floating-Point ex–1",
+    "procs": {
+      "mc68000": false,
+      "mc68010": false,
+      "mc68020": false,
+      "mc68030": false,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": true,
+      "mc68851": true,
+      "cpu32": true
+    }
+  },
+  "fgetexp": {
+    "summary": "Floating-Point Get Exponent",
+    "procs": {
+      "mc68000": false,
+      "mc68010": false,
+      "mc68020": false,
+      "mc68030": false,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": true,
+      "mc68851": true,
+      "cpu32": true
+    }
+  },
+  "fgetman": {
+    "summary": "Floating-Point Get Mantissa",
+    "procs": {
+      "mc68000": false,
+      "mc68010": false,
+      "mc68020": false,
+      "mc68030": false,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": true,
+      "mc68851": true,
+      "cpu32": true
+    }
+  },
+  "fint": {
+    "summary": "Floating-Point Integer Part",
+    "procs": {
+      "mc68000": false,
+      "mc68010": false,
+      "mc68020": false,
+      "mc68030": false,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": true,
+      "mc68851": true,
+      "cpu32": true
+    }
+  },
+  "fintrz": {
+    "summary": "Floating-Point Integer Part, Round-to-Zero",
+    "procs": {
+      "mc68000": false,
+      "mc68010": false,
+      "mc68020": false,
+      "mc68030": false,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": true,
+      "mc68851": true,
+      "cpu32": true
+    }
+  },
+  "flog10": {
+    "summary": "Floating-Point Log10",
+    "procs": {
+      "mc68000": false,
+      "mc68010": false,
+      "mc68020": false,
+      "mc68030": false,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": true,
+      "mc68851": true,
+      "cpu32": true
+    }
+  },
+  "flog2": {
+    "summary": "Floating-Point Log2",
+    "procs": {
+      "mc68000": false,
+      "mc68010": false,
+      "mc68020": false,
+      "mc68030": false,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": true,
+      "mc68851": true,
+      "cpu32": true
+    }
+  },
+  "flogn": {
+    "summary": "Floating-Point Loge",
+    "procs": {
+      "mc68000": false,
+      "mc68010": false,
+      "mc68020": false,
+      "mc68030": false,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": true,
+      "mc68851": true,
+      "cpu32": true
+    }
+  },
+  "flognp1": {
+    "summary": "Floating-Point Loge(x+1)",
+    "procs": {
+      "mc68000": false,
+      "mc68010": false,
+      "mc68020": false,
+      "mc68030": false,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": true,
+      "mc68851": true,
+      "cpu32": false
+    }
+  },
+  "fmod": {
+    "summary": "Floating-Point Modulo Remainder",
+    "procs": {
+      "mc68000": false,
+      "mc68010": false,
+      "mc68020": false,
+      "mc68030": false,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": true,
+      "mc68851": true,
+      "cpu32": true
+    }
+  },
+  "fmove": {
+    "summary": "Move Floating-Point Register",
+    "procs": {
+      "mc68000": false,
+      "mc68010": false,
+      "mc68020": false,
+      "mc68030": false,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": true,
+      "mc68851": true,
+      "cpu32": true
+    }
+  },
+  "fsmove": {
+    "summary": "Move Floating-Point Register (Single Precision)",
+    "procs": {
+      "mc68000": false,
+      "mc68010": false,
+      "mc68020": false,
+      "mc68030": false,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": true,
+      "mc68851": true,
+      "cpu32": false
+    }
+  },
+  "fdmove": {
+    "summary": "Move Floating-Point Register (Double Precision)",
+    "procs": {
+      "mc68000": false,
+      "mc68010": false,
+      "mc68020": false,
+      "mc68030": false,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": true,
+      "mc68851": true,
+      "cpu32": false
+    }
+  },
+  "fmovecr": {
+    "summary": "Move Constant ROM",
+    "procs": {
+      "mc68000": false,
+      "mc68010": false,
+      "mc68020": false,
+      "mc68030": false,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": true,
+      "mc68851": true,
+      "cpu32": true
+    }
+  },
+  "fmovem": {
+    "summary": "Move Multiple Floating-Point Registers",
+    "procs": {
+      "mc68000": false,
+      "mc68010": false,
+      "mc68020": false,
+      "mc68030": false,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": true,
+      "mc68851": true,
+      "cpu32": true
+    }
+  },
+  "fmul": {
+    "summary": "Floating-Point Multiply",
+    "procs": {
+      "mc68000": false,
+      "mc68010": false,
+      "mc68020": false,
+      "mc68030": false,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": true,
+      "mc68851": true,
+      "cpu32": true
+    }
+  },
+  "fsmul": {
+    "summary": "Floating-Point Multiply (Single Precision)",
+    "procs": {
+      "mc68000": false,
+      "mc68010": false,
+      "mc68020": false,
+      "mc68030": false,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": true,
+      "mc68851": true,
+      "cpu32": false
+    }
+  },
+  "fdmul": {
+    "summary": "Floating-Point Multiply (Double Precision)",
+    "procs": {
+      "mc68000": false,
+      "mc68010": false,
+      "mc68020": false,
+      "mc68030": false,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": true,
+      "mc68851": true,
+      "cpu32": false
+    }
+  },
+  "fneg": {
+    "summary": "Floating-Point Negate",
+    "procs": {
+      "mc68000": false,
+      "mc68010": false,
+      "mc68020": false,
+      "mc68030": false,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": true,
+      "mc68851": true,
+      "cpu32": true
+    }
+  },
+  "fsneg": {
+    "summary": "Floating-Point Negate (Single Precision)",
+    "procs": {
+      "mc68000": false,
+      "mc68010": false,
+      "mc68020": false,
+      "mc68030": false,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": true,
+      "mc68851": true,
+      "cpu32": true
+    }
+  },
+  "fdneg": {
+    "summary": "Floating-Point Negate (Double Precision)",
+    "procs": {
+      "mc68000": false,
+      "mc68010": false,
+      "mc68020": false,
+      "mc68030": false,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": true,
+      "mc68851": true,
+      "cpu32": true
+    }
+  },
+  "fnop": {
+    "summary": "Floating-Point No Operation",
+    "procs": {
+      "mc68000": false,
+      "mc68010": false,
+      "mc68020": false,
+      "mc68030": false,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": true,
+      "mc68851": true,
+      "cpu32": true
+    }
+  },
+  "frem": {
+    "summary": "IEEE Remainder",
+    "procs": {
+      "mc68000": false,
+      "mc68010": false,
+      "mc68020": false,
+      "mc68030": false,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": true,
+      "mc68851": true,
+      "cpu32": true
+    }
+  },
+  "frestore": {
+    "summary": "Restore Floating-Point Internal State",
+    "procs": {
+      "mc68000": false,
+      "mc68010": false,
+      "mc68020": false,
+      "mc68030": false,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": true,
+      "mc68851": true,
+      "cpu32": true
+    }
+  },
+  "fsave": {
+    "summary": "Save Floating-Point Internal State",
+    "procs": {
+      "mc68000": false,
+      "mc68010": false,
+      "mc68020": false,
+      "mc68030": false,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": true,
+      "mc68851": true,
+      "cpu32": true
+    }
+  },
+  "fscale": {
+    "summary": "Floating-Point Scale Exponent",
+    "procs": {
+      "mc68000": false,
+      "mc68010": false,
+      "mc68020": false,
+      "mc68030": false,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": true,
+      "mc68851": true,
+      "cpu32": true
+    }
+  },
+  "fscc": {
+    "summary": "Floating-Point Set According to Condition",
+    "procs": {
+      "mc68000": false,
+      "mc68010": false,
+      "mc68020": false,
+      "mc68030": false,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": true,
+      "mc68851": true,
+      "cpu32": true
+    }
+  },
+  "fsgldiv": {
+    "summary": "Single-Precision Divide",
+    "procs": {
+      "mc68000": false,
+      "mc68010": false,
+      "mc68020": false,
+      "mc68030": false,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": true,
+      "mc68851": true,
+      "cpu32": true
+    }
+  },
+  "fsglmul": {
+    "summary": "Single-Precision Multiply",
+    "procs": {
+      "mc68000": false,
+      "mc68010": false,
+      "mc68020": false,
+      "mc68030": false,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": true,
+      "mc68851": true,
+      "cpu32": true
+    }
+  },
+  "fsin": {
+    "summary": "Sine",
+    "procs": {
+      "mc68000": false,
+      "mc68010": false,
+      "mc68020": false,
+      "mc68030": false,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": true,
+      "mc68851": true,
+      "cpu32": true
+    }
+  },
+  "fsincos": {
+    "summary": "Simultaneous Sine and Cosine",
+    "procs": {
+      "mc68000": false,
+      "mc68010": false,
+      "mc68020": false,
+      "mc68030": false,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": true,
+      "mc68851": true,
+      "cpu32": true
+    }
+  },
+  "fsinh": {
+    "summary": "Hyperbolic Sine",
+    "procs": {
+      "mc68000": false,
+      "mc68010": false,
+      "mc68020": false,
+      "mc68030": false,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": true,
+      "mc68851": true,
+      "cpu32": true
+    }
+  },
+  "fsqrt": {
+    "summary": "Floating-Point Square Root",
+    "procs": {
+      "mc68000": false,
+      "mc68010": false,
+      "mc68020": false,
+      "mc68030": false,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": true,
+      "mc68851": true,
+      "cpu32": true
+    }
+  },
+  "fssqrt": {
+    "summary": "Floating-Point Square Root (Single Precision)",
+    "procs": {
+      "mc68000": false,
+      "mc68010": false,
+      "mc68020": false,
+      "mc68030": false,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": true,
+      "mc68851": true,
+      "cpu32": false
+    }
+  },
+  "fdsqrt": {
+    "summary": "Floating-Point Square Root (Double Precision)",
+    "procs": {
+      "mc68000": false,
+      "mc68010": false,
+      "mc68020": false,
+      "mc68030": false,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": true,
+      "mc68851": true,
+      "cpu32": false
+    }
+  },
+  "fsub": {
+    "summary": "Floating-Point Subtract",
+    "procs": {
+      "mc68000": false,
+      "mc68010": false,
+      "mc68020": false,
+      "mc68030": false,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": true,
+      "mc68851": true,
+      "cpu32": true
+    }
+  },
+  "fssub": {
+    "summary": "Floating-Point Subtract (Single Precision)",
+    "procs": {
+      "mc68000": false,
+      "mc68010": false,
+      "mc68020": false,
+      "mc68030": false,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": true,
+      "mc68851": true,
+      "cpu32": false
+    }
+  },
+  "fdsub": {
+    "summary": "Floating-Point Subtract (Double Precision)",
+    "procs": {
+      "mc68000": false,
+      "mc68010": false,
+      "mc68020": false,
+      "mc68030": false,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": true,
+      "mc68851": true,
+      "cpu32": false
+    }
+  },
+  "ftan": {
+    "summary": "Tangent",
+    "procs": {
+      "mc68000": false,
+      "mc68010": false,
+      "mc68020": false,
+      "mc68030": false,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": true,
+      "mc68851": true,
+      "cpu32": true
+    }
+  },
+  "ftanh": {
+    "summary": "Hyperbolic Tangent",
+    "procs": {
+      "mc68000": false,
+      "mc68010": false,
+      "mc68020": false,
+      "mc68030": false,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": true,
+      "mc68851": true,
+      "cpu32": true
+    }
+  },
+  "ftentox": {
+    "summary": "Floating-Point 10x",
+    "procs": {
+      "mc68000": false,
+      "mc68010": false,
+      "mc68020": false,
+      "mc68030": false,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": true,
+      "mc68851": true,
+      "cpu32": true
+    }
+  },
+  "ftrapcc": {
+    "summary": "Floating-Point Trap on Condition",
+    "procs": {
+      "mc68000": false,
+      "mc68010": false,
+      "mc68020": false,
+      "mc68030": false,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": true,
+      "mc68851": true,
+      "cpu32": true
+    }
+  },
+  "ftst": {
+    "summary": "Floating-Point Test",
+    "procs": {
+      "mc68000": false,
+      "mc68010": false,
+      "mc68020": false,
+      "mc68030": false,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": true,
+      "mc68851": true,
+      "cpu32": true
+    }
+  },
+  "ftwotox": {
+    "summary": "Floating-Point 2x",
+    "procs": {
+      "mc68000": false,
+      "mc68010": false,
+      "mc68020": false,
+      "mc68030": false,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": true,
+      "mc68851": true,
+      "cpu32": true
+    }
+  },
+  "illegal": {
+    "summary": "Illegal instruction",
+    "operation": "[SSP] ← [SSP] - 4; [M([SSP])] ← [PC];<br/>\n[SSP] ← [SSP] - 2; [M([SSP])] ← [SR];<br/>\n[PC] ← Illegal instruction vector",
+    "syntax": [
+      "illegal"
+    ],
+    "description": "The bit pattern of the illegal instruction, 4AFC₁₆ causes the illegal instruction trap to be taken. As in all exceptions, the contents of the program counter and the processor status word are pushed onto the supervisor stack at the start of exception processing.\n",
+    "ccr": {
+      "x": "-",
+      "n": "-",
+      "z": "-",
+      "v": "-",
+      "c": "-"
+    },
+    "procs": {
+      "mc68000": true,
+      "mc68010": true,
+      "mc68020": true,
+      "mc68030": true,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": false,
+      "mc68851": false,
+      "cpu32": true
+    }
+  },
+  "jmp": {
+    "summary": "Jump (unconditionally)",
+    "operation": "[PC] ← destination",
+    "syntax": [
+      "jmp <destination>"
+    ],
+    "description": "Program execution continues at the effective address specified by the instruction.",
+    "src": {
+      "dn": false,
+      "an": false,
+      "anIndirect": true,
+      "anPostInc": false,
+      "anPreDec": false,
+      "anOffset": true,
+      "anIdx": true,
+      "absW": true,
+      "absL": true,
+      "pcOffset": true,
+      "pcIdx": true,
+      "imm": false
+    },
+    "ccr": {
+      "x": "-",
+      "n": "-",
+      "z": "-",
+      "v": "-",
+      "c": "-"
+    },
+    "procs": {
+      "mc68000": true,
+      "mc68010": true,
+      "mc68020": true,
+      "mc68030": true,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": false,
+      "mc68851": false,
+      "cpu32": true
+    }
+  },
+  "jsr": {
+    "summary": "Jump to subroutine",
+    "operation": "[SP] ← [SP] - 4; [M([SP])] ← [PC]<br/>\n[PC] ← destination",
+    "syntax": [
+      "jsr <destination>"
+    ],
+    "description": "`JSR` pushes the longword address of the instruction immediately following the `JSR` onto the system stack. Program execution then continues at the address specified in the instruction.",
+    "src": {
+      "dn": false,
+      "an": false,
+      "anIndirect": true,
+      "anPostInc": false,
+      "anPreDec": false,
+      "anOffset": true,
+      "anIdx": true,
+      "absW": true,
+      "absL": true,
+      "pcOffset": true,
+      "pcIdx": true,
+      "imm": false
+    },
+    "ccr": {
+      "x": "-",
+      "n": "-",
+      "z": "-",
+      "v": "-",
+      "c": "-"
+    },
+    "procs": {
+      "mc68000": true,
+      "mc68010": true,
+      "mc68020": true,
+      "mc68030": true,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": false,
+      "mc68851": false,
+      "cpu32": true
+    }
+  },
+  "lea": {
+    "summary": "Load effective address",
+    "operation": "[An] ← \\<ea\\>",
+    "syntax": [
+      "lea[.l] <source>,An"
+    ],
+    "description": "The effective address is computed and loaded into the specified address register. For example, `LEA (-6,A0,D0.W),A1` calculates the sum of address register A0 plus data register D0.W sign-extended to 32 bits minus 6, and deposits the result in address register A1. The difference between the `LEA` and `PEA` instructions is that `LEA` calculates an effective address and puts it in an address register, while `PEA` calculates an effective address in the same way but pushes it on the stack.",
+    "src": {
+      "dn": false,
+      "an": false,
+      "anIndirect": true,
+      "anPostInc": false,
+      "anPreDec": false,
+      "anOffset": true,
+      "anIdx": true,
+      "absW": true,
+      "absL": true,
+      "pcOffset": true,
+      "pcIdx": true,
+      "imm": false
+    },
+    "ccr": {
+      "x": "-",
+      "n": "-",
+      "z": "-",
+      "v": "-",
+      "c": "-"
+    },
+    "procs": {
+      "mc68000": true,
+      "mc68010": true,
+      "mc68020": true,
+      "mc68030": true,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": false,
+      "mc68851": false,
+      "cpu32": true
+    }
+  },
+  "link": {
+    "summary": "Link and allocate",
+    "operation": "[SP] ← [SP] - 4; [M([SP])] ← [An];<br/>\n[An] ← [SP]; [SP] ← [SP] + d",
+    "syntax": [
+      "link[.w] An,#<displacement>"
+    ],
+    "description": "The contents of the specified address register are first pushed onto the stack. Then, the address register is loaded with the updated stack pointer. Finally, the 16-bit sign-extended displacement is added to the stack pointer. The contents of the address register occupy two words on the stack. A *negative displacement* must be used to allocate stack area to a procedure. At the end of a `LINK` instruction, the old value of address register An has been pushed on the stack and the new An is pointing at the base of the stack frame. The stack pointer itself has been moved up by d bytes and is pointing at the top of the stack frame. Address register An is called the *frame pointer* because it is used to reference data on the stack frame. By convention, programmers often use A6 as a frame pointer.",
+    "ccr": {
+      "x": "-",
+      "n": "-",
+      "z": "-",
+      "v": "-",
+      "c": "-"
+    },
+    "procs": {
+      "mc68000": true,
+      "mc68010": true,
+      "mc68020": true,
+      "mc68030": true,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": false,
+      "mc68851": false,
+      "cpu32": true
+    }
+  },
+  "lpstop": {
+    "summary": "Low-Power Stop",
+    "procs": {
+      "mc68000": false,
+      "mc68010": false,
+      "mc68020": false,
+      "mc68030": false,
+      "mc68040": false,
+      "mc68060": false,
+      "mc68881": false,
+      "mc68851": false,
+      "cpu32": true
+    }
+  },
+  "lsl": {
+    "summary": "Logical shift left",
+    "operation": "[destination] ← [destination] shifted by \\<count\\>",
+    "syntax": [
+      "lsl[.(bwl)] [<count>,]<destination>"
+    ],
+    "description": "Logically shift the bits of the operand left. A zero is shifted into the input position and the bit shifted out is copied into both the C- and the X-bit of the CCR. The shift count may be specified in one of three ways. The count may be a literal, the contents of a data register, or the value 1. An immediate count permits a shift of 1 to 8 places. If the count is in a register, the value is modulo 64 - from 0 to 63. If no count is specified, one shift is made (e.g., `LSL <destination>` shifts the *word* at the effective address one position left).\n\n```ascii\n┌───┐     ┌──────────────┐\n│ C │◄──┬─┤ Operand ◄─── │◄─── 0\n└───┘   │ └──────────────┘\n┌───┐   │\n│ X │◄──┘\n└───┘\n```",
+    "src": {
+      "dn": true,
+      "an": false,
+      "anIndirect": false,
+      "anPostInc": false,
+      "anPreDec": false,
+      "anOffset": false,
+      "anIdx": false,
+      "absW": false,
+      "absL": false,
+      "pcOffset": false,
+      "pcIdx": false,
+      "imm": true
+    },
+    "dest": {
+      "dn": true,
+      "an": false,
+      "anIndirect": true,
+      "anPostInc": true,
+      "anPreDec": true,
+      "anOffset": true,
+      "anIdx": true,
+      "absW": true,
+      "absL": true,
+      "pcOffset": false,
+      "pcIdx": false,
+      "imm": false
+    },
+    "ccr": {
+      "x": "*",
+      "n": "*",
+      "z": "*",
+      "v": "0",
+      "c": "*"
+    },
+    "procs": {
+      "mc68000": true,
+      "mc68010": true,
+      "mc68020": true,
+      "mc68030": true,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": false,
+      "mc68851": false,
+      "cpu32": true
+    }
+  },
+  "lsr": {
+    "summary": "Logical shift right",
+    "operation": "[destination] ← [destination] shifted by \\<count\\>",
+    "syntax": [
+      "lsr[.(bwl)] [<count>,]<destination>"
+    ],
+    "description": "Logically shift the bits of the operand right. A zero is shifted into the input position and the bit shifted out is copied into both the C- and the X-bit of the CCR. The shift count may be specified in one of three ways. The count may be a literal, the contents of a data register, or the value 1. An immediate count permits a shift of 1 to 8 places. If the count is in a register, the value is modulo 64 - from 0 to 63. If no count is specified, one shift is made (e.g., `LSR <destination>` shifts the *word* at the effective address one position right).\n\n```ascii\n       ┌──────────────┐     ┌───┐\n 0 ───►│ Operand ───► ├─┬──►│ C │\n       └──────────────┘ │   └───┘\n                        │   ┌───┐\n                        └──►│ X │\n                            └───┘\n```",
+    "src": {
+      "dn": true,
+      "an": false,
+      "anIndirect": false,
+      "anPostInc": false,
+      "anPreDec": false,
+      "anOffset": false,
+      "anIdx": false,
+      "absW": false,
+      "absL": false,
+      "pcOffset": false,
+      "pcIdx": false,
+      "imm": true
+    },
+    "dest": {
+      "dn": true,
+      "an": false,
+      "anIndirect": true,
+      "anPostInc": true,
+      "anPreDec": true,
+      "anOffset": true,
+      "anIdx": true,
+      "absW": true,
+      "absL": true,
+      "pcOffset": false,
+      "pcIdx": false,
+      "imm": false
+    },
+    "ccr": {
+      "x": "*",
+      "n": "*",
+      "z": "*",
+      "v": "0",
+      "c": "*"
+    },
+    "procs": {
+      "mc68000": true,
+      "mc68010": true,
+      "mc68020": true,
+      "mc68030": true,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": false,
+      "mc68851": false,
+      "cpu32": true
+    }
+  },
+  "move": {
+    "summary": "Copy data from source to destination",
+    "operation": "[destination] ← [source]\n[CCR] ← [source]\n[destination] ← [SR]\nIF [S] = 1<br/>&nbsp;&nbsp;THEN [SR] ← [source]<br/>ELSE TRAP\nIF [S] = 1&nbsp;&nbsp;&nbsp;&nbsp;{MOVE USP,An form}<br/> &nbsp;&nbsp;THEN [USP] ← [An]<br/> ELSE TRAP\nIF [S] = 1&nbsp;&nbsp;&nbsp;&nbsp;{MOVE An,USP form}<br/> &nbsp;&nbsp;THEN [An] ← [USP]<br/> ELSE TRAP",
+    "syntax": [
+      "move[.(bwl)] <source>,<destination>",
+      "move[.w] <source>,CCR",
+      "move[.w] SR,<destination>",
+      "move[.w] <source>,SR",
+      "move[.l] USP,An",
+      "move[.l] An,USP"
+    ],
+    "description": "Move the contents of the source to the destination location. The data is examined as it is moved and the condition codes set accordingly. Note that this is actually a *copy* command because the source is not affected by the move. The move instruction has the widest range of addressing modes of all the 68000's instructions.\n\n**Copy data to CCR from source**\n\nMove the contents of the source operand to the condition code register. The source operand is a *word*, but only the low-order *byte* contains the condition codes. The upper byte is neglected. Note that `MOVE <source>,CCR` is a word operation, but `ANDI`, `ORI`, and `EORI` to `CCR` are all byte operations.\n\n**Copy data from SR to destination**\n\nMove the contents of the status register to the destination location. The source operand, the status register, is a word. This instruction is not privileged in the 68000, but is privileged in the 68010, 68020, and 68030. Executing a `MOVE SR,<destination>` while in the user mode on these processors results in a privilege violation trap.\n\n**Copy data to SR from source**\n\nMove the contents of the source operand to the status register. The source operand is a word and all bits of the status register are affected.\n\n**Copy data to or from USP**\n\nMove the contents of the user stack pointer to an address register or vice versa. This is a privileged instruction and allows the operating system running in the supervisor state either to read the contents of the user stack pointer or to set up the user stack pointer.",
+    "src": {
+      "dn": true,
+      "an": true,
+      "anIndirect": true,
+      "anPostInc": true,
+      "anPreDec": true,
+      "anOffset": true,
+      "anIdx": true,
+      "absW": true,
+      "absL": true,
+      "pcOffset": true,
+      "pcIdx": true,
+      "imm": true
+    },
+    "dest": {
+      "dn": true,
+      "an": false,
+      "anIndirect": true,
+      "anPostInc": true,
+      "anPreDec": true,
+      "anOffset": true,
+      "anIdx": true,
+      "absW": true,
+      "absL": true,
+      "pcOffset": false,
+      "pcIdx": false,
+      "imm": false
+    },
+    "ccr": {
+      "x": "-",
+      "n": "*",
+      "z": "*",
+      "v": "0",
+      "c": "0"
+    },
+    "procs": {
+      "mc68000": true,
+      "mc68010": true,
+      "mc68020": true,
+      "mc68030": true,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": false,
+      "mc68851": false,
+      "cpu32": true
+    }
+  },
+  "movea": {
+    "summary": "Move address",
+    "operation": "[An] ← [source]",
+    "syntax": [
+      "movea[.(wl)] <source>,An"
+    ],
+    "description": "Move the contents of the source to the destination location. The destination is an address register. The source must be a word or longword. If it is a word, it is sign-extended to a longword. The condition codes are not affected.",
+    "src": {
+      "dn": true,
+      "an": true,
+      "anIndirect": true,
+      "anPostInc": true,
+      "anPreDec": true,
+      "anOffset": true,
+      "anIdx": true,
+      "absW": true,
+      "absL": true,
+      "pcOffset": true,
+      "pcIdx": true,
+      "imm": true
+    },
+    "ccr": {
+      "x": "-",
+      "n": "-",
+      "z": "-",
+      "v": "-",
+      "c": "-"
+    },
+    "procs": {
+      "mc68000": true,
+      "mc68010": true,
+      "mc68020": true,
+      "mc68030": true,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": false,
+      "mc68851": false,
+      "cpu32": true
+    }
+  },
+  "move16": {
+    "summary": "16-Byte Block Move",
+    "procs": {
+      "mc68000": false,
+      "mc68010": false,
+      "mc68020": false,
+      "mc68030": false,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": false,
+      "mc68851": false,
+      "cpu32": false
+    }
+  },
+  "movec": {
+    "summary": "Move Control Register",
+    "procs": {
+      "mc68000": false,
+      "mc68010": true,
+      "mc68020": true,
+      "mc68030": true,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": false,
+      "mc68851": false,
+      "cpu32": true
+    }
+  },
+  "movem": {
+    "summary": "Move multiple registers",
+    "operation": "REPEAT<br/>\n&nbsp;&nbsp;[destination_register] ← [source]<br/>\nUNTIL all registers in list moved\n\nREPEAT<br/>\n&nbsp;&nbsp;[destination] ← [source_register]<br/>\nUNTIL all registers in list moved",
+    "syntax": [
+      "movem[.(wl)] <source>,<register_list>",
+      "movem[.(wl)] <register_list>,<destination>"
+    ],
+    "description": "The group of registers specified by `<register_list>` is copied to or from consecutive memory locations. The starting location is provided by the effective address. Any combination of the 68000's sixteen address and data registers can be copied by a single `MOVEM` instruction. Note that either a word or a longword can be moved, and that a word is sign-extended to a longword when it is moved (even if the destination is a data register).\n\nWhen a group of registers is transferred to or from memory (using an addressing mode other than pre-decrementing or postincrementing), the registers are transferred starting at the specified address and up through higher addresses. The order of transfer of registers is data register D0 to D7, followed by address register A0 to A7.\n\nFor example, `MOVEM.L D0-D2/D4/A5/A6,$1234` moves registers `D0,D1,D2,D4,A5,A6` to memory, starting at location $1234 (in which D0 is stored) and moving to locations $1238, $123C,... Note that the address counter is incremented by 2 or 4 after each move according to whether the operation is moving words or longwords, respectively.\n\nIf the effective address is in the pre-decrement mode (i.e., `-(An)`), only a register to memory operation is permitted. The registers are stored starting at the specified address minus two (or four for longword operands) and down through lower addresses. The order of storing is from address register A7 to address register A0, then from data register D7 to data register D0. The decremented address register is updated to contain the address of the last word stored.\n\nIf the effective address is in the post-increment mode (i.e., `(An)+`), only a memory to register transfer is permitted. The registers are loaded starting at the specified address and up through higher addresses. The order of loading is the inverse of that used by the pre-decrement mode and is D0 to D7 followed by A0 to A7. The incremented address register is updated to contain the address of the last word plus two (or four for longword operands).\n\nNote that the `MOVEM` instruction has a side effect. An extra bus cycle occurs for memory operands, and an operand at one address higher than the last register in the list is accessed. This extra access is an 'overshoot' and has no effect as far as the programmer is concerned. However, it could cause a problem if the overshoot extended beyond the bounds of physical memory. Once again, remember that `MOVEM.W` sign-extends words when they are moved to data registers.",
+    "src": {
+      "dn": false,
+      "an": false,
+      "anIndirect": true,
+      "anPostInc": true,
+      "anPreDec": false,
+      "anOffset": true,
+      "anIdx": true,
+      "absW": true,
+      "absL": true,
+      "pcOffset": true,
+      "pcIdx": true,
+      "imm": false
+    },
+    "dest": {
+      "dn": false,
+      "an": false,
+      "anIndirect": true,
+      "anPostInc": false,
+      "anPreDec": true,
+      "anOffset": true,
+      "anIdx": true,
+      "absW": true,
+      "absL": true,
+      "pcOffset": false,
+      "pcIdx": false,
+      "imm": false
+    },
+    "ccr": {
+      "x": "-",
+      "n": "-",
+      "z": "-",
+      "v": "-",
+      "c": "-"
+    },
+    "procs": {
+      "mc68000": true,
+      "mc68010": true,
+      "mc68020": true,
+      "mc68030": true,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": false,
+      "mc68851": false,
+      "cpu32": true
+    }
+  },
+  "movep": {
+    "summary": "Move peripheral data",
+    "operation": "[destination] ← [source]",
+    "syntax": [
+      "movep[.(wl)] Dx,(d,Ay)",
+      "movep[.(wl)] (d,Ay),Dx"
+    ],
+    "description": "The `MOVEP` operation moves data between a data register and a byte-oriented memory mapped peripheral. The data is moved between the specified data register and *alternate bytes* within the peripheral's address space, starting at the location specified and incrementing by two. This instruction is designed to be used in conjunction with 8-bit peripherals connected to the 68000's 16-bit data bus. The high-order byte of the data register is transferred first and the low-order byte transferred last. The memory address is specified by the address register indirect mode with a 16-bit offset. If the address is even, all transfers are to or from the high-order half of the data bus. If the address is odd, all the transfers are made to the low-order half of the data bus.",
+    "ccr": {
+      "x": "-",
+      "n": "-",
+      "z": "-",
+      "v": "-",
+      "c": "-"
+    },
+    "procs": {
+      "mc68000": true,
+      "mc68010": true,
+      "mc68020": true,
+      "mc68030": true,
+      "mc68040": true,
+      "mc68060": false,
+      "mc68881": false,
+      "mc68851": false,
+      "cpu32": true
+    }
+  },
+  "moveq": {
+    "summary": "Move quick (copy a small literal to a destination)",
+    "operation": "[destination] ← \\<literal\\>",
+    "syntax": [
+      "moveq[.l] #<data>,Dn"
+    ],
+    "description": "Move the specified literal to a data register. The literal data is an eight-bit field within the `MOVEQ` op-code and specifies a signed value in the range -128 to +127. When the source operand is transferred, it is sign-extended to 32 bits. Consequently, although only 8 bits are moved, the `MOVEQ` instruction is a *longword* operation.",
+    "ccr": {
+      "x": "-",
+      "n": "*",
+      "z": "*",
+      "v": "0",
+      "c": "0"
+    },
+    "procs": {
+      "mc68000": true,
+      "mc68010": true,
+      "mc68020": true,
+      "mc68030": true,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": false,
+      "mc68851": false,
+      "cpu32": true
+    }
+  },
+  "moves": {
+    "summary": "Move Alternate Address Space",
+    "procs": {
+      "mc68000": false,
+      "mc68010": true,
+      "mc68020": true,
+      "mc68030": true,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": false,
+      "mc68851": false,
+      "cpu32": true
+    }
+  },
+  "muls": {
+    "summary": "Signed multiply",
+    "operation": "[destination] ← [destination] * [source]",
+    "syntax": [
+      "muls[.w] <source>,Dn"
+    ],
+    "description": "Multiply the 16-bit destination operand by the 16-bit source\noperand and store the result in the destination. Both the source and destination are 16-bit word values and the destination result is a 32-bit longword. The product is therefore a correct product and is not truncated. `MULS` performs multiplication with two's complement values.",
+    "src": {
+      "dn": true,
+      "an": false,
+      "anIndirect": true,
+      "anPostInc": true,
+      "anPreDec": true,
+      "anOffset": true,
+      "anIdx": true,
+      "absW": true,
+      "absL": true,
+      "pcOffset": true,
+      "pcIdx": true,
+      "imm": true
+    },
+    "ccr": {
+      "x": "-",
+      "n": "*",
+      "z": "*",
+      "v": "0",
+      "c": "0"
+    },
+    "procs": {
+      "mc68000": true,
+      "mc68010": true,
+      "mc68020": true,
+      "mc68030": true,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": true,
+      "mc68851": false,
+      "cpu32": false
+    }
+  },
+  "mulu": {
+    "summary": "Unsigned multiply",
+    "operation": "[destination] ← [destination] * [source]",
+    "syntax": [
+      "mulu[.w] <source>,Dn"
+    ],
+    "description": "Multiply the 16-bit destination operand by the 16-bit source\noperand and store the result in the destination. Both the source and destination are 16-bit word values and the destination result is a 32-bit longword. The product is therefore a correct product and is not truncated. `MULU` performs multiplication with unsigned values.",
+    "src": {
+      "dn": true,
+      "an": false,
+      "anIndirect": true,
+      "anPostInc": true,
+      "anPreDec": true,
+      "anOffset": true,
+      "anIdx": true,
+      "absW": true,
+      "absL": true,
+      "pcOffset": true,
+      "pcIdx": true,
+      "imm": true
+    },
+    "ccr": {
+      "x": "-",
+      "n": "*",
+      "z": "*",
+      "v": "0",
+      "c": "0"
+    },
+    "procs": {
+      "mc68000": true,
+      "mc68010": true,
+      "mc68020": true,
+      "mc68030": true,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": true,
+      "mc68851": false,
+      "cpu32": false
+    }
+  },
+  "nbcd": {
+    "summary": "Negate decimal with sign extend",
+    "operation": "[destination]₁₀ ← 0 − [destination]₁₀ - [X]",
+    "syntax": [
+      "nbcd[.b] <destination>"
+    ],
+    "description": "The operand addressed as the destination and the extend bit in the CCR are subtracted from zero. The subtraction is performed using binary coded decimal (BCD) arithmetic. This instruction calculates the ten's complement of the destination if the X-bit is clear, and the nine's complement if X = 1. This is a byte-only operation. Negating a BCD number (with X = 0) has the effect of subtracting it from 100₁₀.",
+    "dest": {
+      "dn": true,
+      "an": false,
+      "anIndirect": true,
+      "anPostInc": true,
+      "anPreDec": true,
+      "anOffset": true,
+      "anIdx": true,
+      "absW": true,
+      "absL": true,
+      "pcOffset": false,
+      "pcIdx": false,
+      "imm": false
+    },
+    "ccr": {
+      "x": "*",
+      "n": "U",
+      "z": "*",
+      "v": "U",
+      "c": "*"
+    },
+    "procs": {
+      "mc68000": true,
+      "mc68010": true,
+      "mc68020": true,
+      "mc68030": true,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": false,
+      "mc68851": false,
+      "cpu32": true
+    }
+  },
+  "neg": {
+    "summary": "Negate",
+    "operation": "[destination] ← 0 - [destination]",
+    "syntax": [
+      "neg[.(bwl)] <destination>"
+    ],
+    "description": "Subtract the destination operand from 0 and store the result in the destination location. The difference between `NOT` and `NEG` instructions is that NOT performs a bit-by-bit logical complementation, while a `NEG` performs a two's complement arithmetic subtraction. All bits of the condition code register are modified by a `NEG` operation. For example, if D3.B = 11100111₂, the logical operation `NEG.B D3` results in D3 = 00011001₂ (XNZVC=10001) and `NOT.B D3`= 00011000₂ (XNZVC=-0000).",
+    "dest": {
+      "dn": true,
+      "an": false,
+      "anIndirect": true,
+      "anPostInc": true,
+      "anPreDec": true,
+      "anOffset": true,
+      "anIdx": true,
+      "absW": true,
+      "absL": true,
+      "pcOffset": false,
+      "pcIdx": false,
+      "imm": false
+    },
+    "ccr": {
+      "x": "*",
+      "n": "*",
+      "z": "*",
+      "v": "*",
+      "c": "*"
+    },
+    "procs": {
+      "mc68000": true,
+      "mc68010": true,
+      "mc68020": true,
+      "mc68030": true,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": false,
+      "mc68851": false,
+      "cpu32": true
+    }
+  },
+  "negx": {
+    "summary": "Negate with extend",
+    "operation": "[destination] ← 0 - [destination] - [X]",
+    "syntax": [
+      "negx <destination>"
+    ],
+    "description": "The operand addressed as the destination and the extend bit are subtracted from zero. `NEGX` is the same as `NEG` except that the X-bit is also subtracted from zero.",
+    "dest": {
+      "dn": true,
+      "an": false,
+      "anIndirect": true,
+      "anPostInc": true,
+      "anPreDec": true,
+      "anOffset": true,
+      "anIdx": true,
+      "absW": true,
+      "absL": true,
+      "pcOffset": false,
+      "pcIdx": false,
+      "imm": false
+    },
+    "ccr": {
+      "x": "*",
+      "n": "*",
+      "z": "*",
+      "v": "*",
+      "c": "*"
+    },
+    "procs": {
+      "mc68000": true,
+      "mc68010": true,
+      "mc68020": true,
+      "mc68030": true,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": false,
+      "mc68851": false,
+      "cpu32": true
+    }
+  },
+  "nop": {
+    "summary": "No operation",
+    "operation": "None",
+    "syntax": [
+      "nop"
+    ],
+    "description": "The no operation instruction, `NOP` performs no *computation*. Execution continues with the instruction following the `NOP` instruction. The processor's state is not modified by a `NOP`.",
+    "ccr": {
+      "x": "-",
+      "n": "-",
+      "z": "-",
+      "v": "-",
+      "c": "-"
+    },
+    "procs": {
+      "mc68000": true,
+      "mc68010": true,
+      "mc68020": true,
+      "mc68030": true,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": false,
+      "mc68851": false,
+      "cpu32": true
+    }
+  },
+  "not": {
+    "summary": "Logical complement",
+    "operation": "[destination] ← [destination]",
+    "syntax": [
+      "not[.(bwl)] <destination>"
+    ],
+    "description": "Calculate the logical complement of the destination and store the result in the destination. The difference between `NOT` and `NEG` is that `NOT` performs a bit-by-bit logical complementation, while a `NEG` performs a two's complement arithmetic subtraction. Moreover, `NEG` updates all bits of the CCR, while `NOT` clears the V- and C-bits, updates the N- and Z-bits, and doesn't affect the X-bit.",
+    "src": {
+      "dn": true,
+      "an": false,
+      "anIndirect": true,
+      "anPostInc": true,
+      "anPreDec": true,
+      "anOffset": true,
+      "anIdx": true,
+      "absW": true,
+      "absL": true,
+      "pcOffset": false,
+      "pcIdx": false,
+      "imm": false
+    },
+    "ccr": {
+      "x": "-",
+      "n": "*",
+      "z": "*",
+      "v": "0",
+      "c": "0"
+    },
+    "procs": {
+      "mc68000": true,
+      "mc68010": true,
+      "mc68020": true,
+      "mc68030": true,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": false,
+      "mc68851": false,
+      "cpu32": true
+    }
+  },
+  "or": {
+    "summary": "OR logical",
+    "operation": "[destination] ← [source] + [destination]",
+    "syntax": [
+      "or[.(bwl)] <source>,Dn",
+      "or[.(bwl)] Dn,<destination>"
+    ],
+    "description": "OR the source operand to the destination operand, and store the result in the destination location.",
+    "src": {
+      "dn": true,
+      "an": false,
+      "anIndirect": true,
+      "anPostInc": true,
+      "anPreDec": true,
+      "anOffset": true,
+      "anIdx": true,
+      "absW": true,
+      "absL": true,
+      "pcOffset": true,
+      "pcIdx": true,
+      "imm": true
+    },
+    "dest": {
+      "dn": true,
+      "an": false,
+      "anIndirect": true,
+      "anPostInc": true,
+      "anPreDec": true,
+      "anOffset": true,
+      "anIdx": true,
+      "absW": true,
+      "absL": true,
+      "pcOffset": false,
+      "pcIdx": false,
+      "imm": false
+    },
+    "ccr": {
+      "x": "-",
+      "n": "*",
+      "z": "*",
+      "v": "0",
+      "c": "0"
+    },
+    "procs": {
+      "mc68000": true,
+      "mc68010": true,
+      "mc68020": true,
+      "mc68030": true,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": false,
+      "mc68851": false,
+      "cpu32": true
+    }
+  },
+  "ori": {
+    "summary": "OR immediate",
+    "operation": "[destination] ← \\<literal\\> + [destination]\n[CCR] ← \\<literal\\> + [CCR]\nIF [S] = 1<br/>&nbsp;&nbsp;THEN<br/>&nbsp;&nbsp;&nbsp;&nbsp;[SR] ← \\<literal\\> + [SR]<br/>&nbsp;&nbsp;ELSE TRAP",
+    "syntax": [
+      "ori[.(bwl)] #<data>,<destination>",
+      "ori[.w] #<data>,CCR",
+      "ori[.w] #<data>,SR"
+    ],
+    "description": "OR the immediate data with the destination operand. Store the result in the destination operand.\n\n** ORI to CCR - Inclusive OR immediate to CCR **\n\nOR the immediate data with the condition code register (i.e., the least-significant byte of the status register). For example, the Z flag of the CCR can be set by `ORI #$04,CCR`.\n\n** ORI to SR - Inclusive OR immediate to status register **\nOR the immediate data to the status register and store the result in the status register. All bits of the status register are affected.\n\nUsed to set bits in the SR (i.e., the S, T, and interrupt mask bits). For example, `ORI #$8000,SR` sets bit 15 of the SR (i.e., the trace bit).",
+    "dest": {
+      "dn": true,
+      "an": false,
+      "anIndirect": true,
+      "anPostInc": true,
+      "anPreDec": true,
+      "anOffset": true,
+      "anIdx": true,
+      "absW": true,
+      "absL": true,
+      "pcOffset": false,
+      "pcIdx": false,
+      "imm": false
+    },
+    "ccr": {
+      "x": "-",
+      "n": "*",
+      "z": "*",
+      "v": "0",
+      "c": "0"
+    },
+    "procs": {
+      "mc68000": true,
+      "mc68010": true,
+      "mc68020": true,
+      "mc68030": true,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": false,
+      "mc68851": false,
+      "cpu32": true
+    }
+  },
+  "pack": {
+    "summary": "Pack BCD",
+    "procs": {
+      "mc68000": false,
+      "mc68010": false,
+      "mc68020": true,
+      "mc68030": true,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": false,
+      "mc68851": false,
+      "cpu32": false
+    }
+  },
+  "pbcc": {
+    "summary": "Branch on PMMU Condition",
+    "procs": {
+      "mc68000": false,
+      "mc68010": false,
+      "mc68020": false,
+      "mc68030": false,
+      "mc68040": false,
+      "mc68060": false,
+      "mc68881": false,
+      "mc68851": true,
+      "cpu32": false
+    }
+  },
+  "pdbcc": {
+    "summary": "Test, Decrement, and Branch on PMMU Condition",
+    "procs": {
+      "mc68000": false,
+      "mc68010": false,
+      "mc68020": false,
+      "mc68030": false,
+      "mc68040": false,
+      "mc68060": false,
+      "mc68881": false,
+      "mc68851": true,
+      "cpu32": false
+    }
+  },
+  "pea": {
+    "summary": "Push effective address",
+    "operation": "[SP] ← [SP] - 4; [M([SP])] ← \\<ea\\>",
+    "syntax": [
+      "pea[.l] <destination>"
+    ],
+    "description": "The longword effective address specified by the instruction is computed and pushed onto the stack. The difference between `PEA` and `LEA` is that `LEA` calculates an effective address and puts it in an address register, while `PEA` calculates an effective address in the same way but pushes it on the stack.",
+    "src": {
+      "dn": false,
+      "an": false,
+      "anIndirect": true,
+      "anPostInc": false,
+      "anPreDec": false,
+      "anOffset": true,
+      "anIdx": true,
+      "absW": true,
+      "absL": true,
+      "pcOffset": true,
+      "pcIdx": true,
+      "imm": false
+    },
+    "ccr": {
+      "x": "-",
+      "n": "-",
+      "z": "-",
+      "v": "-",
+      "c": "-"
+    },
+    "procs": {
+      "mc68000": true,
+      "mc68010": true,
+      "mc68020": true,
+      "mc68030": true,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": false,
+      "mc68851": false,
+      "cpu32": true
+    }
+  },
+  "pflush": {
+    "summary": "Flush Entry(ies) in the ATCs",
+    "procs": {
+      "mc68000": false,
+      "mc68010": false,
+      "mc68020": false,
+      "mc68030": true,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": true,
+      "mc68851": false,
+      "cpu32": true
+    }
+  },
+  "pflusha": {
+    "summary": "Flush Entry(ies) in the ATCs",
+    "procs": {
+      "mc68000": false,
+      "mc68010": false,
+      "mc68020": false,
+      "mc68030": true,
+      "mc68040": true,
+      "mc68060": false,
+      "mc68881": false,
+      "mc68851": false,
+      "cpu32": true
+    }
+  },
+  "pflushr": {
+    "summary": "Flush Entry(ies) in the ATCs and RPT Entries",
+    "procs": {
+      "mc68000": false,
+      "mc68010": false,
+      "mc68020": false,
+      "mc68030": false,
+      "mc68040": false,
+      "mc68060": false,
+      "mc68881": false,
+      "mc68851": true,
+      "cpu32": false
+    }
+  },
+  "pflushs": {
+    "summary": "Flush Entry(ies) in the ATCs",
+    "procs": {
+      "mc68000": false,
+      "mc68010": false,
+      "mc68020": false,
+      "mc68030": false,
+      "mc68040": false,
+      "mc68060": false,
+      "mc68881": false,
+      "mc68851": true,
+      "cpu32": false
+    }
+  },
+  "plpa": {
+    "summary": "Load Physical Address",
+    "procs": {
+      "mc68000": false,
+      "mc68010": false,
+      "mc68020": false,
+      "mc68030": false,
+      "mc68040": false,
+      "mc68060": true,
+      "mc68881": false,
+      "mc68851": false,
+      "cpu32": false
+    }
+  },
+  "pload": {
+    "summary": "Load an Entry into the ATC",
+    "procs": {
+      "mc68000": false,
+      "mc68010": false,
+      "mc68020": false,
+      "mc68030": true,
+      "mc68040": true,
+      "mc68060": false,
+      "mc68881": false,
+      "mc68851": false,
+      "cpu32": true
+    }
+  },
+  "pmove": {
+    "summary": "Move PMMU Register",
+    "procs": {
+      "mc68000": false,
+      "mc68010": false,
+      "mc68020": false,
+      "mc68030": true,
+      "mc68040": false,
+      "mc68060": false,
+      "mc68881": false,
+      "mc68851": true,
+      "cpu32": false
+    }
+  },
+  "prestore": {
+    "summary": "PMMU Restore Function",
+    "procs": {
+      "mc68000": false,
+      "mc68010": false,
+      "mc68020": false,
+      "mc68030": false,
+      "mc68040": false,
+      "mc68060": false,
+      "mc68881": false,
+      "mc68851": true,
+      "cpu32": false
+    }
+  },
+  "psave": {
+    "summary": "PMMU Save Function",
+    "procs": {
+      "mc68000": false,
+      "mc68010": false,
+      "mc68020": false,
+      "mc68030": false,
+      "mc68040": false,
+      "mc68060": false,
+      "mc68881": false,
+      "mc68851": true,
+      "cpu32": false
+    }
+  },
+  "pscc": {
+    "summary": "Set on PMMU Condition",
+    "procs": {
+      "mc68000": false,
+      "mc68010": false,
+      "mc68020": false,
+      "mc68030": false,
+      "mc68040": false,
+      "mc68060": false,
+      "mc68881": false,
+      "mc68851": true,
+      "cpu32": false
+    }
+  },
+  "ptest": {
+    "summary": "Test a Logical Address",
+    "procs": {
+      "mc68000": false,
+      "mc68010": false,
+      "mc68020": false,
+      "mc68030": true,
+      "mc68040": true,
+      "mc68060": false,
+      "mc68881": false,
+      "mc68851": true,
+      "cpu32": false
+    }
+  },
+  "ptrapcc": {
+    "summary": "Trap on PMMU Condition",
+    "procs": {
+      "mc68000": false,
+      "mc68010": false,
+      "mc68020": false,
+      "mc68030": false,
+      "mc68040": false,
+      "mc68060": false,
+      "mc68881": false,
+      "mc68851": true,
+      "cpu32": false
+    }
+  },
+  "pvalid": {
+    "summary": "Validate a Pointer",
+    "procs": {
+      "mc68000": false,
+      "mc68010": false,
+      "mc68020": false,
+      "mc68030": false,
+      "mc68040": false,
+      "mc68060": false,
+      "mc68881": false,
+      "mc68851": true,
+      "cpu32": false
+    }
+  },
+  "reset": {
+    "summary": "Reset external devices",
+    "operation": "IF [S] = 1 THEN<br/>\n&nbsp;&nbsp;Assert RESET* line<br/>\n&nbsp;ELSE TRAP",
+    "syntax": [
+      "reset"
+    ],
+    "description": "The reset line is asserted, causing all external devices connected to the 68000's RESET* output to be reset. The `RESET` instruction is privileged and has no effect on the operation of the 68000 itself. This instruction is used to perform a programmed reset of all peripherals connected to the 68000's RESET* pin.",
+    "ccr": {
+      "x": "-",
+      "n": "-",
+      "z": "-",
+      "v": "-",
+      "c": "-"
+    },
+    "procs": {
+      "mc68000": true,
+      "mc68010": true,
+      "mc68020": true,
+      "mc68030": true,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": false,
+      "mc68851": false,
+      "cpu32": true
+    }
+  },
+  "rol": {
+    "summary": "Rotate left (without extend)",
+    "operation": "[destination] ← [destination] rotated by \\<count\\>",
+    "syntax": [
+      "rol[.(bwl)] [<count>,]<destination>"
+    ],
+    "description": "Rotate the bits of the operand left. The extend bit, X, is not included in the operation. A rotate operation is circular in the sense that the bit shifted out at one end is shifted into the other end. That is, no bit is lost or destroyed by a rotate operation. The bit shifted out is also copied into the C-bit of the CCR, but not into the X-bit. The shift count may be specified in one of three ways: the count may be a literal, the contents of a data register, or the value 1. An immediate count permits a shift of 1 to 8 places. If the count is in a register, the value is modulo 64, allowing a range of 0 to 63. If no count is specified, the *word* at the effective address is rotated by one place (e.g., `ROL <destination>`).\n\n```ascii\n        ┌─────────────────────┐\n┌───┐   │  ┌──────────────┐   │\n│ C │◄──┴──┤ Operand ◄─── │◄──┘\n└───┘      └──────────────┘\n```",
+    "src": {
+      "dn": true,
+      "an": false,
+      "anIndirect": false,
+      "anPostInc": false,
+      "anPreDec": false,
+      "anOffset": false,
+      "anIdx": false,
+      "absW": false,
+      "absL": false,
+      "pcOffset": false,
+      "pcIdx": false,
+      "imm": true
+    },
+    "dest": {
+      "dn": true,
+      "an": false,
+      "anIndirect": true,
+      "anPostInc": true,
+      "anPreDec": true,
+      "anOffset": true,
+      "anIdx": true,
+      "absW": true,
+      "absL": true,
+      "pcOffset": false,
+      "pcIdx": false,
+      "imm": false
+    },
+    "ccr": {
+      "x": "-",
+      "n": "*",
+      "z": "*",
+      "v": "0",
+      "c": "*"
+    },
+    "procs": {
+      "mc68000": true,
+      "mc68010": true,
+      "mc68020": true,
+      "mc68030": true,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": false,
+      "mc68851": false,
+      "cpu32": true
+    }
+  },
+  "ror": {
+    "summary": "Rotate right (without extend)",
+    "operation": "[destination] ← [destination] rotated by \\<count\\>",
+    "syntax": [
+      "ror[.(bwl)] [<count>,]<destination>"
+    ],
+    "description": "Rotate the bits of the operand right. The extend bit, X, is not included in the operation. A rotate operation is circular in the sense that the bit shifted out at one end is shifted into the other end. That is, no bit is lost or destroyed by a rotate operation. The bit shifted out is also copied into the C-bit of the CCR, but not into the X-bit. The shift count may be specified in one of three ways: the count may be a literal, the contents of a data register, or the value 1. An immediate count permits a shift of 1 to 8 places. If the count is in a register, the value is modulo 64, allowing a range of 0 to 63. If no count is specified, the *word* at the effective address is rotated by one place (e.g., `ROR <destination>`).\n\n```ascii\n┌─────────────────────┐\n│   ┌──────────────┐  │   ┌───┐\n└──►│ Operand ───► ├──┴──►│ C │\n    └──────────────┘      └───┘\n```",
+    "src": {
+      "dn": true,
+      "an": false,
+      "anIndirect": false,
+      "anPostInc": false,
+      "anPreDec": false,
+      "anOffset": false,
+      "anIdx": false,
+      "absW": false,
+      "absL": false,
+      "pcOffset": false,
+      "pcIdx": false,
+      "imm": true
+    },
+    "dest": {
+      "dn": true,
+      "an": false,
+      "anIndirect": true,
+      "anPostInc": true,
+      "anPreDec": true,
+      "anOffset": true,
+      "anIdx": true,
+      "absW": true,
+      "absL": true,
+      "pcOffset": false,
+      "pcIdx": false,
+      "imm": false
+    },
+    "ccr": {
+      "x": "-",
+      "n": "*",
+      "z": "*",
+      "v": "0",
+      "c": "*"
+    },
+    "procs": {
+      "mc68000": true,
+      "mc68010": true,
+      "mc68020": true,
+      "mc68030": true,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": false,
+      "mc68851": false,
+      "cpu32": true
+    }
+  },
+  "roxl": {
+    "summary": "Rotate left with extend",
+    "operation": "[destination] ← [destination] rotated by \\<count\\>",
+    "syntax": [
+      "roxl[.(bwl)] [<count>,]<destination>"
+    ],
+    "description": "Rotate the bits of the operand left. The extend bit of the CCR is included in the rotation. A rotate operation is circular in the sense that the bit shifted out at one end is shifted into the other end. That is, no bit is lost or destroyed by a rotate operation. Since the X-bit is included in the rotate, the rotation is performed over 9 bits (`.B`), 17 bits (`.W`), or 33 bits (`.L`). The bit shifted out is also copied into the C-bit of the CCR as well as the X-bit. The shift count may be specified in one of three ways: the count may be a literal, the contents of a data register or the value 1. An immediate count permits a shift of 1 to 8 places. If the count is in a register, the value is modulo 64 and the range is from 0 to 63. If no count is specified, the word at the specified effective address is rotated by one place (i.e., `ROXL <destination>`).\n\n```ascii\n        ┌────────────────────────┐\n┌───┐   │  ┌──────────────┐    ┌─┴─┐\n│ C │◄──┴──┤ Operand ◄─── │◄───┤ X │\n└───┘      └──────────────┘    └───┘\n```",
+    "src": {
+      "dn": true,
+      "an": false,
+      "anIndirect": false,
+      "anPostInc": false,
+      "anPreDec": false,
+      "anOffset": false,
+      "anIdx": false,
+      "absW": false,
+      "absL": false,
+      "pcOffset": false,
+      "pcIdx": false,
+      "imm": true
+    },
+    "dest": {
+      "dn": true,
+      "an": false,
+      "anIndirect": true,
+      "anPostInc": true,
+      "anPreDec": true,
+      "anOffset": true,
+      "anIdx": true,
+      "absW": true,
+      "absL": true,
+      "pcOffset": false,
+      "pcIdx": false,
+      "imm": false
+    },
+    "ccr": {
+      "x": "*",
+      "n": "*",
+      "z": "*",
+      "v": "0",
+      "c": "*"
+    },
+    "procs": {
+      "mc68000": true,
+      "mc68010": true,
+      "mc68020": true,
+      "mc68030": true,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": false,
+      "mc68851": false,
+      "cpu32": true
+    }
+  },
+  "roxr": {
+    "summary": "Rotate right with extend",
+    "operation": "[destination] ← [destination] rotated by \\<count\\>",
+    "syntax": [
+      "roxr[.(bwl)] [<count>,]<destination>"
+    ],
+    "description": "Rotate the bits of the operand right. The extend bit of the CCR is included in the rotation. A rotate operation is circular in the sense that the bit shifted out at one end is shifted into the other end. That is, no bit is lost or destroyed by a rotate operation. Since the X-bit is included in the rotate, the rotation is performed over 9 bits (`.B`), 17 bits (`.W`), or 33 bits (`.L`). The bit shifted out is also copied into the C-bit of the CCR as well as the X-bit. The shift count may be specified in one of three ways: the count may be a literal, the contents of a data register or the value 1. An immediate count permits a shift of 1 to 8 places. If the count is in a register, the value is modulo 64 and the range is from 0 to 63. If no count is specified, the word at the specified effective address is rotated by one place (i.e., `ROXR <destination>`).\n\n```ascii\n  ┌────────────────────────┐\n┌─┴─┐    ┌──────────────┐  │   ┌───┐\n│ X │───►│ Operand ───► ├──┴──►│ C │\n└───┘    └──────────────┘      └───┘\n```",
+    "src": {
+      "dn": true,
+      "an": false,
+      "anIndirect": false,
+      "anPostInc": false,
+      "anPreDec": false,
+      "anOffset": false,
+      "anIdx": false,
+      "absW": false,
+      "absL": false,
+      "pcOffset": false,
+      "pcIdx": false,
+      "imm": true
+    },
+    "dest": {
+      "dn": true,
+      "an": false,
+      "anIndirect": true,
+      "anPostInc": true,
+      "anPreDec": true,
+      "anOffset": true,
+      "anIdx": true,
+      "absW": true,
+      "absL": true,
+      "pcOffset": false,
+      "pcIdx": false,
+      "imm": false
+    },
+    "ccr": {
+      "x": "*",
+      "n": "*",
+      "z": "*",
+      "v": "0",
+      "c": "*"
+    },
+    "procs": {
+      "mc68000": true,
+      "mc68010": true,
+      "mc68020": true,
+      "mc68030": true,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": false,
+      "mc68851": false,
+      "cpu32": true
+    }
+  },
+  "rtd": {
+    "summary": "Return and Deallocate",
+    "procs": {
+      "mc68000": false,
+      "mc68010": true,
+      "mc68020": true,
+      "mc68030": true,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": false,
+      "mc68851": false,
+      "cpu32": true
+    }
+  },
+  "rte": {
+    "summary": "Return from exception",
+    "operation": "IF [S] = 1 THEN<br/>\n&nbsp;&nbsp;[SR] ← [M([SP])]; [SP] ← [SP] + 2<br/>\n&nbsp;&nbsp;[PC] ← [M([SP])]; [SP] ← [SP] + 4<br/>\n&nbsp;ELSE TRAP\n",
+    "syntax": [
+      "rte"
+    ],
+    "description": "The status register and program counter are pulled from the stack. The previous values of the SR and PC are lost. The `RTE` is used to terminate an exception handler. Note that the behavior of the `RTE` instruction depends on the nature of both the exception and processor type. The 68010 and later models push more information on the stack following an exception than the 68000. The processor determines how much to remove from the stack.",
+    "ccr": {
+      "x": "*",
+      "n": "*",
+      "z": "*",
+      "v": "*",
+      "c": "*"
+    },
+    "procs": {
+      "mc68000": true,
+      "mc68010": true,
+      "mc68020": true,
+      "mc68030": true,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": false,
+      "mc68851": false,
+      "cpu32": true
+    }
+  },
+  "rtm": {
+    "summary": "Return from Module",
+    "procs": {
+      "mc68000": false,
+      "mc68010": false,
+      "mc68020": true,
+      "mc68030": false,
+      "mc68040": false,
+      "mc68060": false,
+      "mc68881": false,
+      "mc68851": false,
+      "cpu32": false
+    }
+  },
+  "rtr": {
+    "summary": "Return and restore condition codes",
+    "operation": "[CCR] ← [M([SP])]; [SP] ← [SP] + 2<br/>\n[PC] ← [M([SP])]; [SP] ← [SP] + 4",
+    "syntax": [
+      "rtr"
+    ],
+    "description": "The condition code and program counter are pulled from the stack. The previous condition code and program counter are lost. The supervisor portion of the status register is not affected.",
+    "ccr": {
+      "x": "*",
+      "n": "*",
+      "z": "*",
+      "v": "*",
+      "c": "*"
+    },
+    "procs": {
+      "mc68000": true,
+      "mc68010": true,
+      "mc68020": true,
+      "mc68030": true,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": false,
+      "mc68851": false,
+      "cpu32": true
+    }
+  },
+  "rts": {
+    "summary": "Return from subroutine",
+    "operation": "[PC] ← [M([SP])]; [SP] ← [SP] + 4",
+    "syntax": [
+      "rts"
+    ],
+    "description": "The program counter is pulled from the stack and the previous value of the PC is lost. `RTS` is used to terminate a subroutine.",
+    "ccr": {
+      "x": "-",
+      "n": "-",
+      "z": "-",
+      "v": "-",
+      "c": "-"
+    },
+    "procs": {
+      "mc68000": true,
+      "mc68010": true,
+      "mc68020": true,
+      "mc68030": true,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": false,
+      "mc68851": false,
+      "cpu32": true
+    }
+  },
+  "sbcd": {
+    "summary": "Subtract decimal with extend",
+    "operation": "[destination]₁₀ ← [destination]₁₀ - [source]₁₀ - [X]",
+    "syntax": [
+      "sbcd[.b] Dy,Dx",
+      "sbcd[.b] -(Ay),-(Ax)"
+    ],
+    "description": "Subtract the source operand from the destination operand together with the X-bit, and store the result in the destination. Subtraction is performed using BCD arithmetic. The only legal addressing modes are data register direct and memory to memory with address register indirect using auto-decrementing.",
+    "ccr": {
+      "x": "*",
+      "n": "U",
+      "z": "*",
+      "v": "U",
+      "c": "*"
+    },
+    "procs": {
+      "mc68000": true,
+      "mc68010": true,
+      "mc68020": true,
+      "mc68030": true,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": false,
+      "mc68851": false,
+      "cpu32": true
+    }
+  },
+  "scc": {
+    "summary": "Set on carry clear",
+    "operation": "IF C̅ THEN [destination] ← 11111111₂<br/>\n&nbsp;&nbsp;ELSE [destination] ← 00000000₂",
+    "syntax": [
+      "scc[.b] <destination>"
+    ],
+    "description": "If the carry bit is clear, the bits at the effective address are all set to one (i.e., $FF). Otherwise, the bits at the effective address are set to zeros (i.e., $00).",
+    "dest": {
+      "dn": true,
+      "an": false,
+      "anIndirect": true,
+      "anPostInc": true,
+      "anPreDec": true,
+      "anOffset": true,
+      "anIdx": true,
+      "absW": true,
+      "absL": true,
+      "pcOffset": false,
+      "pcIdx": false,
+      "imm": false
+    },
+    "ccr": {
+      "x": "-",
+      "n": "-",
+      "z": "-",
+      "v": "-",
+      "c": "-"
+    },
+    "procs": {
+      "mc68000": true,
+      "mc68010": true,
+      "mc68020": true,
+      "mc68030": true,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": false,
+      "mc68851": false,
+      "cpu32": true
+    }
+  },
+  "stop": {
+    "summary": "Load status register and stop",
+    "operation": "IF [S] = 1 THEN<br/>\n&nbsp;&nbsp;&nbsp;&nbsp;[SR] ← \\<data\\><br/>\n&nbsp;&nbsp;&nbsp;&nbsp;STOP<br/>\n&nbsp;&nbsp;ELSE TRAP",
+    "syntax": [
+      "stop #<data>"
+    ],
+    "description": "The immediate operand is copied into the entire status register (i.e., both status byte and *CCR* are modified), and the program counter advanced to point to the next instruction to be executed. The processor then suspends all further processing and halts. That is, the privileged `STOP` instruction stops the 68000.\n\nThe execution of instructions resumes when a trace, an interrupt, or a reset exception occurs. A trace exception will occur if the trace bit is set when the `STOP` instruction is encountered. If an interrupt request arrives whose priority is higher than the current processor priority, an interrupt exception occurs, otherwise the interrupt request has no effect. If the bit of the immediate data corresponding to the S-bit is clear (i.e., user mode selected), execution of the `STOP` instruction will cause a privilege violation. An external reset will always initiate reset exception processing.",
+    "ccr": {
+      "x": "*",
+      "n": "*",
+      "z": "*",
+      "v": "*",
+      "c": "*"
+    },
+    "procs": {
+      "mc68000": true,
+      "mc68010": true,
+      "mc68020": true,
+      "mc68030": true,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": false,
+      "mc68851": false,
+      "cpu32": true
+    }
+  },
+  "sub": {
+    "summary": "Subtract binary",
+    "operation": "[destination] ← [destination] - [source]",
+    "syntax": [
+      "sub[.(bwl)] <source>,Dn",
+      "sub[.(bwl)] Dn,<destination>"
+    ],
+    "description": "Subtract the source operand from the destination operand and store the result in the destination location.",
+    "src": {
+      "dn": true,
+      "an": true,
+      "anIndirect": true,
+      "anPostInc": true,
+      "anPreDec": true,
+      "anOffset": true,
+      "anIdx": true,
+      "absW": true,
+      "absL": true,
+      "pcOffset": true,
+      "pcIdx": true,
+      "imm": true
+    },
+    "dest": {
+      "dn": true,
+      "an": false,
+      "anIndirect": true,
+      "anPostInc": true,
+      "anPreDec": true,
+      "anOffset": true,
+      "anIdx": true,
+      "absW": true,
+      "absL": true,
+      "pcOffset": false,
+      "pcIdx": false,
+      "imm": false
+    },
+    "ccr": {
+      "x": "*",
+      "n": "*",
+      "z": "*",
+      "v": "*",
+      "c": "*"
+    },
+    "procs": {
+      "mc68000": true,
+      "mc68010": true,
+      "mc68020": true,
+      "mc68030": true,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": false,
+      "mc68851": false,
+      "cpu32": true
+    }
+  },
+  "suba": {
+    "summary": "Subtract address",
+    "operation": "[destination] ← [destination] - [source]",
+    "syntax": [
+      "suba[.(wl)] <source>,An"
+    ],
+    "description": "Subtract the source operand from the destination operand and store the result in the destination address register. Word operations are sign-extended to 32 bits prior to subtraction.",
+    "src": {
+      "dn": true,
+      "an": true,
+      "anIndirect": true,
+      "anPostInc": true,
+      "anPreDec": true,
+      "anOffset": true,
+      "anIdx": true,
+      "absW": true,
+      "absL": true,
+      "pcOffset": true,
+      "pcIdx": true,
+      "imm": true
+    },
+    "ccr": {
+      "x": "-",
+      "n": "-",
+      "z": "-",
+      "v": "-",
+      "c": "-"
+    },
+    "procs": {
+      "mc68000": true,
+      "mc68010": true,
+      "mc68020": true,
+      "mc68030": true,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": false,
+      "mc68851": false,
+      "cpu32": true
+    }
+  },
+  "subi": {
+    "summary": "Subtract immediate",
+    "operation": "[destination] ← [destination] - \\<literal\\>",
+    "syntax": [
+      "subi[.(bwl)] #<data>,<destination>"
+    ],
+    "description": "Subtract the immediate data from the destination operand. Store the result in the destination operand.",
+    "dest": {
+      "dn": true,
+      "an": false,
+      "anIndirect": true,
+      "anPostInc": true,
+      "anPreDec": true,
+      "anOffset": true,
+      "anIdx": true,
+      "absW": true,
+      "absL": true,
+      "pcOffset": false,
+      "pcIdx": false,
+      "imm": false
+    },
+    "ccr": {
+      "x": "*",
+      "n": "*",
+      "z": "*",
+      "v": "*",
+      "c": "*"
+    },
+    "procs": {
+      "mc68000": true,
+      "mc68010": true,
+      "mc68020": true,
+      "mc68030": true,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": false,
+      "mc68851": false,
+      "cpu32": true
+    }
+  },
+  "subq": {
+    "summary": "Subtract quick",
+    "operation": "[destination] ← [destination] - \\<literal\\>",
+    "syntax": [
+      "subq[.(bwl)] #<data>,<destination>"
+    ],
+    "description": "Subtract the immediate data from the destination operand. The immediate data must be in the range 1 to 8. Word and longword operations on address registers do not affect condition codes. A word operation on an address register affects the entire 32-bit address.",
+    "dest": {
+      "dn": true,
+      "an": true,
+      "anIndirect": true,
+      "anPostInc": true,
+      "anPreDec": true,
+      "anOffset": true,
+      "anIdx": true,
+      "absW": true,
+      "absL": true,
+      "pcOffset": false,
+      "pcIdx": false,
+      "imm": false
+    },
+    "ccr": {
+      "x": "*",
+      "n": "*",
+      "z": "*",
+      "v": "*",
+      "c": "*"
+    },
+    "procs": {
+      "mc68000": true,
+      "mc68010": true,
+      "mc68020": true,
+      "mc68030": true,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": false,
+      "mc68851": false,
+      "cpu32": true
+    }
+  },
+  "subx": {
+    "summary": "Subtract extended",
+    "operation": "[destination] ← [destination] - [source] - [X]",
+    "syntax": [
+      "subx[.(bwl)] Dx,Dy",
+      "subx[.(bwl)] -(Ax),-(Ay)"
+    ],
+    "description": "Subtract the source operand from the destination operand along with the extend bit, and store the result in the destination location. The only legal addressing modes are data register direct and memory to memory with address register indirect using auto-decrementing.",
+    "ccr": {
+      "x": "*",
+      "n": "*",
+      "z": "*",
+      "v": "*",
+      "c": "*"
+    },
+    "procs": {
+      "mc68000": true,
+      "mc68010": true,
+      "mc68020": true,
+      "mc68030": true,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": false,
+      "mc68851": false,
+      "cpu32": true
+    }
+  },
+  "swap": {
+    "summary": "Swap register halves",
+    "operation": "[Register(16:31)] ← [Register(0:15)];<br/>\n[Register(0:15)] ← [Register(16:31]",
+    "syntax": [
+      "swap[.w] Dn"
+    ],
+    "description": "Exchange the upper and lower 16-bit words of a data register.",
+    "ccr": {
+      "x": "-",
+      "n": "*",
+      "z": "*",
+      "v": "0",
+      "c": "0"
+    },
+    "procs": {
+      "mc68000": true,
+      "mc68010": true,
+      "mc68020": true,
+      "mc68030": true,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": false,
+      "mc68851": false,
+      "cpu32": true
+    }
+  },
+  "tas": {
+    "summary": "Test and set an operand",
+    "operation": "[CCR] ← tested([operand]); [destination(7)] ← 1",
+    "syntax": [
+      "tas[.b] <destination>"
+    ],
+    "description": "Test and set the byte operand addressed by the effective address field. The N- and Z-bits of the *CCR* are updated accordingly. The high-order bit of the operand (i.e., bit 7) is set. This operation is *indivisible* and uses a read-modify-write cycle. Its principal application is in multiprocessor systems.",
+    "src": {
+      "dn": true,
+      "an": false,
+      "anIndirect": true,
+      "anPostInc": true,
+      "anPreDec": true,
+      "anOffset": true,
+      "anIdx": true,
+      "absW": true,
+      "absL": true,
+      "pcOffset": false,
+      "pcIdx": false,
+      "imm": false
+    },
+    "ccr": {
+      "x": "-",
+      "n": "*",
+      "z": "*",
+      "v": "0",
+      "c": "0"
+    },
+    "procs": {
+      "mc68000": true,
+      "mc68010": true,
+      "mc68020": true,
+      "mc68030": true,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": false,
+      "mc68851": false,
+      "cpu32": true
+    }
+  },
+  "tbls": {
+    "summary": "Signed Table Lookup with Interpolate",
+    "procs": {
+      "mc68000": false,
+      "mc68010": false,
+      "mc68020": false,
+      "mc68030": false,
+      "mc68040": false,
+      "mc68060": false,
+      "mc68881": false,
+      "mc68851": false,
+      "cpu32": true
+    }
+  },
+  "tblsn": {
+    "summary": "Signed Table Lookup with Interpolate",
+    "procs": {
+      "mc68000": false,
+      "mc68010": false,
+      "mc68020": false,
+      "mc68030": false,
+      "mc68040": false,
+      "mc68060": false,
+      "mc68881": false,
+      "mc68851": false,
+      "cpu32": true
+    }
+  },
+  "tblu": {
+    "summary": "Unsigned Table Lookup with Interpolate",
+    "procs": {
+      "mc68000": false,
+      "mc68010": false,
+      "mc68020": false,
+      "mc68030": false,
+      "mc68040": false,
+      "mc68060": false,
+      "mc68881": false,
+      "mc68851": false,
+      "cpu32": true
+    }
+  },
+  "tblun": {
+    "summary": "Unsigned Table Lookup with Interpolate",
+    "procs": {
+      "mc68000": false,
+      "mc68010": false,
+      "mc68020": false,
+      "mc68030": false,
+      "mc68040": false,
+      "mc68060": false,
+      "mc68881": false,
+      "mc68851": false,
+      "cpu32": true
+    }
+  },
+  "trap": {
+    "summary": "Trap",
+    "operation": "S ← 1;<br/>\n[SSP] ← [SSP] - 4;[M([SSP])] ← [PC];<br/>\n[SSP] ← [SSP] - 2;[M([SSP])] ← [SR];<br/>\n[PC] ← vector",
+    "syntax": [
+      "trap #<vector>"
+    ],
+    "description": "This instruction forces the processor to initiate exception processing. The vector number used by the `TRAP` instruction is in the range 0 to 15 and therefore, supports 16 traps (i.e., `TRAP #0` to `TRAP #15`).",
+    "ccr": {
+      "x": "-",
+      "n": "-",
+      "z": "-",
+      "v": "-",
+      "c": "-"
+    },
+    "procs": {
+      "mc68000": true,
+      "mc68010": true,
+      "mc68020": true,
+      "mc68030": true,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": false,
+      "mc68851": false,
+      "cpu32": true
+    }
+  },
+  "trapcc": {
+    "summary": "Trap Conditionally",
+    "procs": {
+      "mc68000": false,
+      "mc68010": false,
+      "mc68020": true,
+      "mc68030": true,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": false,
+      "mc68851": false,
+      "cpu32": true
+    }
+  },
+  "trapv": {
+    "summary": "Trap on overflow",
+    "operation": "IF V = 1 THEN:<br/>\n&nbsp;&nbsp;[SSP] ← [SSP] - 4; [M([SSP])] ← [PC];<br/>\n&nbsp;&nbsp;[SSP] ← [SSP] - 2; [M([SSP])] ← [SR];<br/>\n&nbsp;&nbsp;[PC] ← [M($01C)]<br/>\n&nbsp;&nbsp;ELSE no action",
+    "syntax": [
+      "trapv"
+    ],
+    "description": "If the V-bit in the *CCR* is set, then initiate exception processing.\nThe exception vector is located at address 01C₁₆. This instruction\nis used in arithmetic operations to call the operating system if\noverflow occurs.",
+    "ccr": {
+      "x": "-",
+      "n": "-",
+      "z": "-",
+      "v": "-",
+      "c": "-"
+    },
+    "procs": {
+      "mc68000": true,
+      "mc68010": true,
+      "mc68020": true,
+      "mc68030": true,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": false,
+      "mc68851": false,
+      "cpu32": true
+    }
+  },
+  "tst": {
+    "summary": "Test an operand",
+    "operation": "[CCR] ← tested([operand])<br/>\n***i.e.,*** [operand] - 0; update CCR",
+    "syntax": [
+      "tst[.(bwl)] <destination>"
+    ],
+    "description": "The operand is compared with zero. No result is saved, but the contents of the *CCR* are set according to the result. The effect of `TST <destination>` is the same as `CMPI #0,<destination>` except that the `CMPI` instruction also sets/clears the V- and C-bits of the *CCR*.\n",
+    "src": {
+      "dn": true,
+      "an": false,
+      "anIndirect": true,
+      "anPostInc": true,
+      "anPreDec": true,
+      "anOffset": true,
+      "anIdx": true,
+      "absW": true,
+      "absL": true,
+      "pcOffset": true,
+      "pcIdx": true,
+      "imm": false
+    },
+    "ccr": {
+      "x": "-",
+      "n": "*",
+      "z": "*",
+      "v": "0",
+      "c": "0"
+    },
+    "procs": {
+      "mc68000": true,
+      "mc68010": true,
+      "mc68020": true,
+      "mc68030": true,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": false,
+      "mc68851": false,
+      "cpu32": true
+    }
+  },
+  "unlk": {
+    "summary": "Unlink",
+    "operation": "[SP] ← [An]; [An] ← [M([SP])]; [SP] ← [SP] + 4",
+    "syntax": [
+      "unlk An"
+    ],
+    "description": "The stack pointer is loaded from the specified address register and the old contents of the stack pointer are lost (this has the effect of collapsing the stack frame). The address register is then loaded with the longword pulled off the stack.",
+    "ccr": {
+      "x": "-",
+      "n": "-",
+      "z": "-",
+      "v": "-",
+      "c": "-"
+    },
+    "procs": {
+      "mc68000": true,
+      "mc68010": true,
+      "mc68020": true,
+      "mc68030": true,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": false,
+      "mc68851": false,
+      "cpu32": true
+    }
+  },
+  "unpk": {
+    "summary": "Unpack BC",
+    "procs": {
+      "mc68000": false,
+      "mc68010": false,
+      "mc68020": true,
+      "mc68030": true,
+      "mc68040": true,
+      "mc68060": true,
+      "mc68881": false,
+      "mc68851": false,
+      "cpu32": false
+    }
+  }
+}

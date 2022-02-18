@@ -1,0 +1,11 @@
+.vscode/**
+**/*.ts
+**/*.map
+**/tsconfig.json
+.gitignore
+.eslintignore
+.eslintrc.js
+server/docs/**
+client/node_modules/**
+server/node_modules/**
+!server/node_modules/web-tree-sitter/**
