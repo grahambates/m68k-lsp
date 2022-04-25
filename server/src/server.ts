@@ -10,7 +10,8 @@ connection.onInitialize(async (params) => {
   const ctx = await createContext(
     params.workspaceFolders ?? [],
     connection.console,
-    connection
+    connection,
+    params.initializationOptions
   );
 
   const capabilities = registerProviders(connection, ctx);

@@ -22,10 +22,123 @@
   "contributes": {
     "configuration": {
       "type": "object",
-      "title": "M68k configuration",
+      "title": "M68k",
       "properties": {
+        "m68k.format.align.mnemonic": {
+          "type": "number",
+          "default": 20,
+          "minium": 0,
+          "maximum": 120,
+          "description": "Indent position of instruction/directive element"
+        },
+        "m68k.format.align.operands": {
+          "type": "number",
+          "default": 30,
+          "minium": 0,
+          "maximum": 120,
+          "description": "Indent position of operands element"
+        },
+        "m68k.format.align.comment": {
+          "type": "number",
+          "default": 45,
+          "minium": 0,
+          "maximum": 120,
+          "description": "Indent position of comment element"
+        },
+        "m68k.format.align.indentStyle": {
+          "type": "string",
+          "enum": [
+            "space",
+            "tab"
+          ],
+          "default": "space",
+          "description": "Indent character"
+        },
+        "m68k.format.case.instruction": {
+          "type": "string",
+          "enum": [
+            "upper",
+            "lower",
+            "any"
+          ],
+          "default": "lower",
+          "description": "Instruction mnemonic case"
+        },
+        "m68k.format.case.directive": {
+          "type": "string",
+          "enum": [
+            "upper",
+            "lower",
+            "any"
+          ],
+          "default": "lower",
+          "description": "Directive mnemonic case"
+        },
+        "m68k.format.case.control": {
+          "type": "string",
+          "enum": [
+            "upper",
+            "lower",
+            "any"
+          ],
+          "default": "upper",
+          "markdownDescription": "Control mnemonic case (e.g. `IFEQ`/`ENDC`, `REPT`/`ENDR`)"
+        },
+        "m68k.format.case.register": {
+          "type": "string",
+          "enum": [
+            "upper",
+            "lower",
+            "any"
+          ],
+          "default": "lower",
+          "description": "Register case"
+        },
+        "m68k.format.case.sectionType": {
+          "type": "string",
+          "enum": [
+            "upper",
+            "lower",
+            "any"
+          ],
+          "default": "lower",
+          "markdownDescription": "Section type case (e.g. `BSS`)"
+        },
+        "m68k.format.quotes": {
+          "type": "string",
+          "enum": [
+            "any",
+            "single",
+            "double"
+          ],
+          "default": "any",
+          "description": "Quote style for strings"
+        },
+        "m68k.format.labelColon.global": {
+          "type": "string",
+          "enum": [
+            "on",
+            "off",
+            "notInline",
+            "onlyInline",
+            "any"
+          ],
+          "default": "any",
+          "markdownDescription": "Include colon suffix for global labels (e.g. `MyLabel:`)"
+        },
+        "m68k.format.labelColon.local": {
+          "type": "string",
+          "enum": [
+            "on",
+            "off",
+            "notInline",
+            "onlyInline",
+            "any"
+          ],
+          "default": "any",
+          "markdownDescription": "Include colon suffix for local labels (e.g. `.MyLabel`)"
+        },
         "m68k.trace.server": {
-          "scope": "window",
           "type": "string",
           "enum": [
             "off",

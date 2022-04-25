@@ -1,4 +1,5 @@
 {
+  "name": "m68k-lsp",
   "private": true,
   "scripts": {
     "check": "npm run lint && npm run tsc && npm run test",

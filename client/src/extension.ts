@@ -1,5 +1,5 @@
 import * as path from "path";
-import { ExtensionContext } from "vscode";
+import { ExtensionContext, workspace } from "vscode";
 
 import {
   LanguageClient,
@@ -30,9 +30,17 @@ export function activate(context: ExtensionContext): void {
     },
   };
 
+  const config = workspace.getConfiguration("m68k");
+
   const clientOptions: LanguageClientOptions = {
-    documentSelector: [{ scheme: "file", language: "vasmmot" }],
+    documentSelector: [
+      { scheme: "file", language: "vasmmot" },
+      { scheme: "file", language: "m68k" },
+    ],
     synchronize: {},
+    initializationOptions: {
+      ...config,
+    },
   };
 
   client = new LanguageClient(

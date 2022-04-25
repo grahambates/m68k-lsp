@@ -2,7 +2,9 @@ import { Connection, ServerCapabilities } from "vscode-languageserver";
 import { Context } from "../context";
 
 import CompletionProvider from "./CompletionProvider";
+import ConfiguratonProvider from "./ConfigurationProvider";
 import DefinitionProvider from "./DefinitionProvider";
+import DocumentFormattingProvider from "./DocumentFormatttingProvider";
 import DocumentHighlightProvider from "./DocumentHighlightProvider";
 import DocumentLinkProvider from "./DocumentLinkProvider";
 import DocumentSymbolProvider from "./DocumentSymbolProvider";
@@ -21,7 +23,9 @@ export interface Provider {
 }
 const providers = [
   CompletionProvider,
+  ConfiguratonProvider,
   DefinitionProvider,
+  DocumentFormattingProvider,
   DocumentHighlightProvider,
   DocumentLinkProvider,
   DocumentSymbolProvider,

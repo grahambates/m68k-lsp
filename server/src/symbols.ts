@@ -267,7 +267,7 @@ export function definitionAtPosition(
   }
 }
 
-function isLocalLabel(label: string): boolean {
+export function isLocalLabel(label: string): boolean {
   return label.startsWith(".") || label.endsWith("$");
 }
 
