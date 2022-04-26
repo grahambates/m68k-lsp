@@ -99,6 +99,13 @@ describe("files", () => {
       const result = await files.resolveInclude(uri, "b.s", ctx);
       expect(result).toBe(__dirname + "/fixtures/a/b.s");
     });
+
+    it("resolves an include relative to an include dir in settings", async () => {
+      const ctx = await createTestContext({ includePaths: ["a"] });
+      const uri = ctx.workspaceFolders[0].uri + "/example.s";
+      const result = await files.resolveInclude(uri, "b.s", ctx);
+      expect(result).toBe(__dirname + "/fixtures/a/b.s");
+    });
   });
 
   describe("#getDependencies()", () => {

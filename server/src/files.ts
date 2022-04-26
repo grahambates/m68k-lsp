@@ -30,7 +30,7 @@ export async function readDocumentFromUri(
   return TextDocument.create(uri, "vasmmot", 0, content);
 }
 
-type ResolveContext = Pick<Context, "workspaceFolders" | "store">;
+type ResolveContext = Pick<Context, "workspaceFolders" | "store" | "config">;
 
 /**
  * Resolve include file/dir path to first matching absolute file path.
@@ -61,6 +61,10 @@ export async function* resolveIncludesGen(
   const incDirs = Array.from(ctx.store.values())
     .flatMap((v) => v.symbols.incDirs)
     .map((dir) => dir.text);
+
+  if (ctx.config.includePaths) {
+    incDirs.push(...ctx.config.includePaths);
+  }
 
   for (const root of roots) {
     const candidate = path ? resolve(root, path) : root;

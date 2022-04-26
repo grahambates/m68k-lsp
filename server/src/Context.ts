@@ -7,6 +7,7 @@ import { FormatterOptions } from "./formatter/DocumentFormatter";
 
 export interface Config {
   format?: FormatterOptions;
+  includePaths?: string[];
 }
 
 export interface Context {

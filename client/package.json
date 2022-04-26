@@ -16,7 +16,8 @@
     "multi-root ready"
   ],
   "activationEvents": [
-    "onLanguage:vasmmot"
+    "onLanguage:vasmmot",
+    "onLanguage:m68k"
   ],
   "main": "./out/extension",
   "contributes": {
@@ -137,6 +138,14 @@
           ],
           "default": "any",
           "markdownDescription": "Include colon suffix for local labels (e.g. `.MyLabel`)"
+        },
+        "m68k.includePaths": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "description": "Additional paths to resolve includes"
         },
         "m68k.trace.server": {
           "type": "string",
