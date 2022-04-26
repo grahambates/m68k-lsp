@@ -3,6 +3,7 @@ import * as lsp from "vscode-languageserver";
 
 import registerProviders from "./providers";
 import { createContext } from "./Context";
+import { Config } from "./config";
 
 const connection = createConnection(lsp.ProposedFeatures.all);
 

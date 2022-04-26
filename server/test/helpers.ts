@@ -4,7 +4,8 @@ import { TextDocument } from "vscode-languageserver-textdocument";
 import Parser from "web-tree-sitter";
 import path from "path";
 
-import { Config, createContext } from "../src/context";
+import { createContext } from "../src/context";
+import { Config } from "../src/config";
 
 export class NullLogger implements lsp.Logger {
   info() {
@@ -21,7 +22,7 @@ export class NullLogger implements lsp.Logger {
   }
 }
 
-export function createTestContext(config: Config = {}) {
+export function createTestContext(config: Partial<Config> = {}) {
   const workspaceDir = __dirname + "/fixtures";
   const workspaceUri = pathToFileURL(workspaceDir).toString();
   const logger = new NullLogger();

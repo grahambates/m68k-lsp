@@ -3,12 +3,7 @@ import Parser from "web-tree-sitter";
 import path from "path";
 
 import { ProcessedDocumentStore } from "./DocumentProcessor";
-import { FormatterOptions } from "./formatter/DocumentFormatter";
-
-export interface Config {
-  format?: FormatterOptions;
-  includePaths?: string[];
-}
+import { Config, defaultConfig } from "./config";
 
 export interface Context {
   store: ProcessedDocumentStore;
@@ -25,7 +20,7 @@ export async function createContext(
   workspaceFolders: lsp.WorkspaceFolder[],
   logger: lsp.Logger,
   connection: lsp.Connection,
-  config: Config
+  config: Partial<Config>
 ): Promise<Context> {
   if (!language) {
     await Parser.init();
@@ -40,6 +35,9 @@ export async function createContext(
     language,
     logger,
     connection,
-    config,
+    config: {
+      ...defaultConfig,
+      ...config,
+    },
   };
 }

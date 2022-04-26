@@ -1,32 +1,7 @@
 import * as lsp from "vscode-languageserver";
 import { Provider } from ".";
 import { Context } from "../context";
-import DocumentFormatter, {
-  FormatterOptions,
-} from "../formatter/DocumentFormatter";
-
-const defaultConfig: FormatterOptions = {
-  case: {
-    directive: "lower",
-    instruction: "lower",
-    sectionType: "lower",
-  },
-  labelColon: {
-    global: "on",
-    local: "off",
-  },
-  quotes: "double",
-  align: {
-    mnemonic: 2,
-    operands: 3,
-    comment: 5,
-    indentStyle: "tab",
-    tabSize: 8,
-  },
-  trimWhitespace: false,
-  finalNewLine: true,
-  endOfLine: "lf",
-};
+import DocumentFormatter from "../formatter/DocumentFormatter";
 
 export default class DocumentFormattingProvider implements Provider {
   constructor(protected readonly ctx: Context) {}
@@ -41,7 +16,7 @@ export default class DocumentFormattingProvider implements Provider {
     }
 
     // Defaults
-    const config = this.ctx.config.format ?? defaultConfig;
+    const config = this.ctx.config.format;
 
     // Override defaults with passed options
     if (config.align) {
