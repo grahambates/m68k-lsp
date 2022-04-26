@@ -12,6 +12,4 @@ LSP server for 68k assembly based on [tree-sitter-m68k](https://github.com/graha
   - Check allowed instructions for processor?
   - Linter rules?
 - Full documentation for 68010+ instructions
-- Settings for:
-  - Supported Processor(s) to limit instruction completions
 - Amiga or other platform specific docs?

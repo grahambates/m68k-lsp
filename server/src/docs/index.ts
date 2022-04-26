@@ -1,5 +1,5 @@
-import instructions from "./instructions.json";
-import directives from "./directives.json";
+import instructionsJson from "./instructions.json";
+import directivesJson from "./directives.json";
 import { AddressingMode, RegisterName, Size } from "../syntax";
 
 export type ConditionCode = "x" | "n" | "z" | "v" | "c";
@@ -28,8 +28,8 @@ export interface MnemonicDoc {
 }
 
 export interface InstructionDoc extends MnemonicDoc {
-  operation: string;
-  ccr: ConditionCodes;
+  operation?: string;
+  ccr?: ConditionCodes;
   conditionCodeDescription?: string;
   // sampleSyntax?: string[];
   // example?: string;
@@ -55,9 +55,15 @@ export type Processors = Record<Processor, boolean>;
 export const isInstructionDoc = (doc: MnemonicDoc): doc is InstructionDoc =>
   (doc as InstructionDoc).operation !== undefined;
 
-export const mnemonicDocs: Record<string, MnemonicDoc> = {
-  ...(instructions as Record<string, MnemonicDoc>),
-  ...(directives as Record<string, MnemonicDoc>),
+export const instructionDocs = instructionsJson as Record<
+  string,
+  InstructionDoc
+>;
+export const directiveDocs = directivesJson as Record<string, MnemonicDoc>;
+
+export const mnemonicDocs = {
+  ...instructionDocs,
+  ...directiveDocs,
 };
 
 export const sizeDocs: Record<Size, string> = {

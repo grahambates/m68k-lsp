@@ -5,7 +5,13 @@ import { fileURLToPath } from "url";
 
 import { Provider } from ".";
 import * as syntax from "../syntax";
-import { mnemonicDocs, registerDocs, sizeDocs } from "../docs/index";
+import {
+  directiveDocs,
+  instructionDocs,
+  mnemonicDocs,
+  registerDocs,
+  sizeDocs,
+} from "../docs/index";
 import { isAsmExt, resolveIncludesGen, getDirectory } from "../files";
 import {
   Definition,
@@ -47,40 +53,12 @@ export default class CompletionProvider implements Provider {
   ];
   private namedRegs: lsp.CompletionItem[];
 
-  private mnemonics: lsp.CompletionItem[];
-
   constructor(protected readonly ctx: Context) {
-    const instructions = syntax.instructions.map((label) => {
-      const item: lsp.CompletionItem = {
-        label,
-        detail: "(instruction)",
-        kind: lsp.CompletionItemKind.Function,
-      };
-      const doc = mnemonicDocs[label.toLowerCase()];
-      if (doc) {
-        item.detail = doc.summary;
-        item.data = true;
-      }
-      return item;
-    });
-
-    const directives = Object.keys(mnemonicDocs).map((label) => {
-      const doc = mnemonicDocs[label];
-      return {
-        label,
-        detail: doc.summary,
-        kind: lsp.CompletionItemKind.Keyword,
-        data: true,
-      };
-    });
-
     this.namedRegs = syntax.registerNames.map((label) => ({
       label,
       detail: registerDocs[label],
       kind: lsp.CompletionItemKind.Keyword,
     }));
-
-    this.mnemonics = [...instructions, ...directives];
   }
 
   async onCompletion({
@@ -259,10 +237,35 @@ export default class CompletionProvider implements Provider {
     processed: ProcessedDocument,
     position: lsp.Position
   ): Promise<lsp.CompletionItem[]> {
+    const instructions = Object.values(instructionDocs)
+      .filter((doc) =>
+        this.ctx.config.processors.some((proc) => doc.procs[proc])
+      )
+      .map((doc) => {
+        const item: lsp.CompletionItem = {
+          label: isUpperCase
+            ? doc.title.toUpperCase()
+            : doc.title.toLowerCase(),
+          detail: doc.summary,
+          kind: lsp.CompletionItemKind.Function,
+        };
+        item.data = true;
+        return item;
+      });
+
+    const directives = Object.values(directiveDocs).map((doc) => {
+      return {
+        label: isUpperCase ? doc.title.toUpperCase() : doc.title.toLowerCase(),
+        detail: doc.summary,
+        kind: lsp.CompletionItemKind.Keyword,
+        data: true,
+      };
+    });
+
     const symbols = await this.completeAllDefinitions(processed, position);
     const macros = symbols.filter(this.isMacro);
-    const mnemonics = this.ucItems(this.mnemonics, isUpperCase);
-    return [...mnemonics, ...macros];
+
+    return [...instructions, ...directives, ...macros];
   }
 
   completeDefinitions(

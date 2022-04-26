@@ -52,6 +52,40 @@ describe("CompletionProvider", () => {
       );
     });
 
+    it("excludes unsupported mnemonics", async () => {
+      const textDocument = await createDoc("example.s", "  mov");
+
+      const completions = await provider.onCompletion({
+        position: lsp.Position.create(0, 4),
+        textDocument,
+      });
+
+      expect(completions).not.toContainEqual(
+        expect.objectContaining({ label: "movec" })
+      );
+    });
+
+    it("includes supported mnemonics", async () => {
+      const textDocument = await createDoc("example.s", "  mov");
+      const ctx020: Context = {
+        ...ctx,
+        config: {
+          ...ctx.config,
+          processors: ["mc68000", "mc68020"],
+        },
+      };
+      const provider020 = new CompletionProvider(ctx020);
+
+      const completions = await provider020.onCompletion({
+        position: lsp.Position.create(0, 4),
+        textDocument,
+      });
+
+      expect(completions).toContainEqual(
+        expect.objectContaining({ label: "movec" })
+      );
+    });
+
     it("matches case on mnemonics", async () => {
       const textDocument = await createDoc("example.s", "  MOV");
 

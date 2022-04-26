@@ -1,8 +1,10 @@
+import { Processor } from "./docs";
 import { FormatterOptions } from "./formatter/DocumentFormatter";
 
 export interface Config {
   format: FormatterOptions;
   includePaths: string[];
+  processors: Processor[];
 }
 
 export const defaultConfig: Config = {
@@ -29,4 +31,5 @@ export const defaultConfig: Config = {
     endOfLine: "lf",
   },
   includePaths: [],
+  processors: ["mc68000"],
 };

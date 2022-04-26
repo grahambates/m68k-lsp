@@ -147,6 +147,27 @@
           "default": [],
           "description": "Additional paths to resolve includes"
         },
+        "m68k.processors": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "mc68000",
+              "mc68010",
+              "mc68020",
+              "mc68030",
+              "mc68040",
+              "mc68060",
+              "mc68881",
+              "mc68851",
+              "cpu32"
+            ]
+          },
+          "default": [
+            "mc68000"
+          ],
+          "description": "Additional paths to resolve includes"
+        },
         "m68k.trace.server": {
           "type": "string",
           "enum": [
