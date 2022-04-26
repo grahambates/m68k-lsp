@@ -81,7 +81,8 @@ export default class CompletionProvider implements Provider {
     let type = info?.type;
     const mnemonic = line.mnemonic?.value.toLowerCase();
     const doc = mnemonic && mnemonicDocs[mnemonic];
-    const signature = doc ? parseSignature(doc.syntax[0]) : null; // TODO: find active
+    const signature =
+      doc && doc.syntax.length ? parseSignature(doc.syntax[0]) : null; // TODO: find active
 
     const isUpperCase = value.length > 0 && value.toUpperCase() === value;
 

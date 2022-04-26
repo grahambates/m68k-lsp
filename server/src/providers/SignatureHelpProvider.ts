@@ -37,6 +37,9 @@ export default class SignatureHelpProvider implements Provider {
       return null;
     }
     const signatures = doc.syntax.map(parseSignature);
+    if (!signatures.length) {
+      return null;
+    }
 
     const activeSignature = 0; // TODO
     let activeParameter = null;
