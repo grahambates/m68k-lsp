@@ -9,7 +9,6 @@ LSP server for 68k assembly based on [tree-sitter-m68k](https://github.com/graha
 
 - Diagnostics
   - Check instruction syntax?
-  - Check allowed instructions for processor?
   - Linter rules?
 - Full documentation for 68010+ instructions
 - Amiga or other platform specific docs?

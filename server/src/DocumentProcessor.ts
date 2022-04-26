@@ -6,6 +6,7 @@ import { readDocumentFromUri, resolveReferencedUris } from "./files";
 import { processSymbols, Symbols } from "./symbols";
 import { Context } from "./context";
 import { nodeAsRange } from "./geometry";
+import { instructionDocs } from "./docs";
 
 export interface ProcessedDocument {
   document: TextDocument;
@@ -20,11 +21,15 @@ export type ProcessedDocumentStore = Map<string, ProcessedDocument>;
 export default class DocumentProcessor {
   private parser: Parser;
   private errorsQuery: Parser.Query;
+  private instructionQuery: Parser.Query;
 
   constructor(protected readonly ctx: Context) {
     this.parser = new Parser();
     this.parser.setLanguage(ctx.language);
     this.errorsQuery = ctx.language.query(`(ERROR) @error`);
+    this.instructionQuery = ctx.language.query(
+      `(instruction_mnemonic) @instruction`
+    );
   }
 
   async process(
@@ -67,10 +72,25 @@ export default class DocumentProcessor {
   }
 
   private captureDiagnostics(tree: Parser.Tree): Diagnostic[] {
-    const captures = this.errorsQuery.captures(tree.rootNode);
-    return captures.map(({ node }) => ({
-      range: nodeAsRange(node),
-      message: "Parser error",
-    }));
+    const parseErrors = this.errorsQuery
+      .captures(tree.rootNode)
+      .map(({ node }) => ({
+        range: nodeAsRange(node),
+        message: "Parser error",
+      }));
+
+    const unsupported = this.instructionQuery
+      .captures(tree.rootNode)
+      .filter(({ node }) => {
+        const mnemonic = node.text.toLowerCase();
+        const doc = instructionDocs[mnemonic];
+        return !this.ctx.config.processors.some((proc) => doc.procs[proc]);
+      })
+      .map(({ node }) => ({
+        range: nodeAsRange(node),
+        message: "Unsupported on selected processor(s)",
+      }));
+
+    return [...parseErrors, ...unsupported];
   }
 }
