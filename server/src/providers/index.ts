@@ -13,7 +13,6 @@ import FoldingRangeProvider from "./FoldingRangeProvider";
 import HoverProvider from "./HoverProvider";
 import ReferencesProvider from "./ReferencesProvider";
 import RenameProvider from "./RenameProvider";
-// import SemanticTokensProvider from "./SemanticTokensProvider";
 import SignatureHelpProvider from "./SignatureHelpProvider";
 import TextDocumentSyncProvider from "./TextDocumentSyncProvider";
 import WorkspaceSymbolProvider from "./WorkspaceSymbolProvider";
@@ -34,7 +33,6 @@ const providers = [
   HoverProvider,
   ReferencesProvider,
   RenameProvider,
-  // SemanticTokensProvider,
   SignatureHelpProvider,
   TextDocumentSyncProvider,
   WorkspaceSymbolProvider,
