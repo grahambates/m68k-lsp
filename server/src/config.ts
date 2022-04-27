@@ -9,15 +9,8 @@ export interface Config {
 
 export const defaultConfig: Config = {
   format: {
-    case: {
-      directive: "lower",
-      instruction: "lower",
-      sectionType: "lower",
-    },
-    labelColon: {
-      global: "on",
-      local: "off",
-    },
+    case: "lower",
+    labelColon: "on",
     quotes: "double",
     align: {
       mnemonic: 2,
