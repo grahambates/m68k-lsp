@@ -19,7 +19,7 @@ import {
   labelBeforePosition,
   processPath,
 } from "../symbols";
-import { Context } from "../Context";
+import { Context } from "../context";
 import {
   componentAtIndex,
   ComponentType,

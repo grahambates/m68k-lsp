@@ -3,7 +3,7 @@ import { FileOperationFilter } from "vscode-languageserver-protocol/lib/common/p
 import { basename } from "path";
 
 import { Provider } from ".";
-import { Context } from "../Context";
+import { Context } from "../context";
 import { getAsmFilesInDir, isAsmExt, isDir } from "../files";
 import { TextDocument } from "vscode-languageserver-textdocument";
 
