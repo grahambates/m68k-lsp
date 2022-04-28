@@ -153,7 +153,7 @@ Can be set for all labels:
 }
 ```
 
-or individually for global and local lobels:
+or individually for global and local labels:
 
 ```json
 {
@@ -170,8 +170,8 @@ or individually for global and local lobels:
 | ------------ | ---------------------------------------------------- |
 | `on`         | Add colon                                            |
 | `off`        | Remove colon                                         |
-| `notInline`  | No colon for labels on same line as intruction       |
-| `onlyInline` | Only add colon for labels on same line as intruction |
+| `notInline`  | No colon for labels on same line as instruction      |
+| `onlyInline` | Only add colon for labels on same line as instruction| 
 | `any`        | Do not change                                        |
 
 Default: `"on"`
