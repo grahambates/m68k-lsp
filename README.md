@@ -166,13 +166,13 @@ or individually for global and local labels:
 }
 ```
 
-| Option       | Behaviour                                            |
-| ------------ | ---------------------------------------------------- |
-| `on`         | Add colon                                            |
-| `off`        | Remove colon                                         |
-| `notInline`  | No colon for labels on same line as instruction      |
-| `onlyInline` | Only add colon for labels on same line as instruction| 
-| `any`        | Do not change                                        |
+| Option       | Behaviour                                             |
+| ------------ | ----------------------------------------------------- |
+| `on`         | Add colon                                             |
+| `off`        | Remove colon                                          |
+| `notInline`  | No colon for labels on same line as instruction       |
+| `onlyInline` | Only add colon for labels on same line as instruction |
+| `any`        | Do not change                                         |
 
 Default: `"on"`
 
@@ -221,6 +221,8 @@ Indents elements to align by type.
 | `mnemonic`    | Position of instruction/directive mnemonic and size e.g. `move.w`,`include`.                            |
 | `operands`    | Position of operands e.g. `d0,d1`.                                                                      |
 | `comment`     | Position of comment following statement. Comments on their own line are not affected.                   |
+| `operand`     | Position of `=` character in constant assignment                                                        |
+| `value`       | Position of value in constant assignment                                                                |
 | `indentStyle` | Character to use for indent - `tab` or `space`. Values for the properties above are based on this unit. |
 | `tabSize`     | Width of tab character to calculate positions when using `tab` indent style.                            |
 

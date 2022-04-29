@@ -16,6 +16,7 @@ export const defaultConfig: Config = {
       mnemonic: 2,
       operands: 3,
       comment: 5,
+      operator: 2,
       indentStyle: "tab",
       tabSize: 8,
     },

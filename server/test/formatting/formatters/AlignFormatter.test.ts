@@ -56,6 +56,25 @@ describe("AlignFormatter", () => {
     expect(result).toBe("foobar: move        d1,d2");
   });
 
+  it("inserts a minimum of one space", async () => {
+    const result = await doFormat(`foobar:  move   d1,d2       ; foo`, {
+      mnemonic: 0,
+      operands: 0,
+      comment: 0,
+    });
+    expect(result).toBe("foobar: move d1,d2 ; foo");
+  });
+
+  it("always uses spaces for min indent", async () => {
+    const result = await doFormat(`foobar:  move d1,d2`, {
+      mnemonic: 0,
+      operands: 0,
+      comment: 0,
+      indentStyle: "tab",
+    });
+    expect(result).toBe("foobar: move d1,d2");
+  });
+
   it("formats an instruction with tabs", async () => {
     const result = await doFormat(`foobarbaz: move d1,d2; foo`, {
       mnemonic: 2,
@@ -65,5 +84,26 @@ describe("AlignFormatter", () => {
       tabSize: 8,
     });
     expect(result).toBe("foobarbaz:\tmove\t\td1,d2\t\t; foo");
+  });
+
+  it("formats a constant assignment without indent by default", async () => {
+    const result = await doFormat(`foobarbaz        =     123`, {
+      mnemonic: 2,
+      operands: 4,
+      comment: 6,
+    });
+    expect(result).toBe("foobarbaz = 123");
+  });
+
+  it("formats a constant assignment with indents", async () => {
+    const result = await doFormat(`foobarbaz        =     123`, {
+      mnemonic: 2,
+      operands: 4,
+      comment: 6,
+      tabSize: 8,
+      operator: 12,
+      value: 16,
+    });
+    expect(result).toBe("foobarbaz   =   123");
   });
 });

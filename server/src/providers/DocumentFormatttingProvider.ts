@@ -24,9 +24,10 @@ export default class DocumentFormattingProvider implements Provider {
         const { tabSize, indentStyle } = config.align;
         if (indentStyle === "tab") {
           // Convert tab positions to spaces
-          config.align.mnemonic *= tabSize ?? 8;
-          config.align.operands *= tabSize ?? 8;
-          config.align.comment *= tabSize ?? 8;
+          let i: keyof typeof config.align;
+          for (i in config.align) {
+            (config.align[i] as number) *= tabSize ?? 8;
+          }
         }
         config.align.indentStyle = "space";
       }

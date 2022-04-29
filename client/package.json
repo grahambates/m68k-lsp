@@ -27,24 +27,38 @@
       "properties": {
         "m68k.format.align.mnemonic": {
           "type": "number",
-          "default": 20,
+          "default": 2,
           "minium": 0,
           "maximum": 120,
           "description": "Indent position of instruction/directive element"
         },
         "m68k.format.align.operands": {
           "type": "number",
-          "default": 30,
+          "default": 3,
           "minium": 0,
           "maximum": 120,
           "description": "Indent position of operands element"
         },
         "m68k.format.align.comment": {
           "type": "number",
-          "default": 45,
+          "default": 5,
           "minium": 0,
           "maximum": 120,
           "description": "Indent position of comment element"
+        },
+        "m68k.format.align.operator": {
+          "type": "number",
+          "default": 2,
+          "minium": 0,
+          "maximum": 120,
+          "description": "Indent position of '=' for constant"
+        },
+        "m68k.format.align.value": {
+          "type": "number",
+          "default": 0,
+          "minium": 0,
+          "maximum": 120,
+          "description": "Indent position of value for constant assignment"
         },
         "m68k.format.align.indentStyle": {
           "type": "string",
@@ -52,7 +66,7 @@
             "space",
             "tab"
           ],
-          "default": "space",
+          "default": "tab",
           "description": "Indent character"
         },
         "m68k.format.case.instruction": {
@@ -82,7 +96,7 @@
             "lower",
             "any"
           ],
-          "default": "upper",
+          "default": "lower",
           "markdownDescription": "Control mnemonic case (e.g. `IFEQ`/`ENDC`, `REPT`/`ENDR`)"
         },
         "m68k.format.case.register": {

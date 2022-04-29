@@ -5,9 +5,11 @@ import { parseLine } from "../../parse";
 import { Formatter } from "../DocumentFormatter";
 
 export type AlignOptions = {
-  mnemonic: number;
-  operands: number;
-  comment: number;
+  mnemonic?: number;
+  operands?: number;
+  comment?: number;
+  operator?: number;
+  value?: number;
   indentStyle?: "space" | "tab";
   tabSize?: number;
 };
@@ -15,7 +17,6 @@ export type AlignOptions = {
 // TODO:
 // label posiiton?
 // auto align?
-// alternate assignment for const definition?
 // indent conditional blocks?
 
 class AlignFormatter implements Formatter {
@@ -47,12 +48,16 @@ class AlignFormatter implements Formatter {
         const desiredCount = position - offset;
         const count = Math.max(desiredCount, min);
 
+        // ALways use spaces for min whitespace
+        const newText =
+          desiredCount > 0 ? char.repeat(count) : " ".repeat(count);
+
         edits.push({
           range: {
             start: { character: previousEnd, line },
             end: { character: start, line },
           },
-          newText: char.repeat(count),
+          newText,
         });
 
         previousEnd = end;
@@ -68,20 +73,28 @@ class AlignFormatter implements Formatter {
         addIndent(0, label.start, end, 0);
       }
 
+      // Is that statement a constant definition?
+      // TODO: should this include EQU, EQUR, FEQ etc?
+      const isOp = mnemonic?.value === "=";
+
       if (mnemonic) {
+        const position = isOp
+          ? this.options.operator ?? 0
+          : this.options.mnemonic ?? 0;
         // Extend element to end of size
         const end = size?.end ?? mnemonic.end;
-        addIndent(this.options.mnemonic, mnemonic.start, end);
+        addIndent(position, mnemonic.start, end);
       }
 
       if (operands) {
+        const position = isOp ? this.options.value ?? 0 : this.options.operands;
         // Extend to all operands
         const end = operands[operands.length - 1].end;
-        addIndent(this.options.operands, operands[0].start, end);
+        addIndent(position ?? 0, operands[0].start, end);
       }
 
-      if (comment && comment.start > 0 && this.options.comment) {
-        addIndent(this.options.comment, comment.start, comment.end);
+      if (comment && comment.start > 0) {
+        addIndent(this.options.comment ?? 0, comment.start, comment.end);
       }
     }
 
