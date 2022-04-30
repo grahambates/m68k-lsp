@@ -45,4 +45,9 @@ describe("CaseFormatter", () => {
     const result = await doFormat(` section foo,BSS`, { sectionType: "lower" });
     expect(result).toBe(" section foo,bss");
   });
+
+  it("converts hex literals to lower case", async () => {
+    const result = await doFormat(` dc.w $AB12`, { hex: "lower" });
+    expect(result).toBe(" dc.w $ab12");
+  });
 });

@@ -10,7 +10,8 @@ type CaseType =
   | "directive"
   | "control"
   | "register"
-  | "sectionType";
+  | "sectionType"
+  | "hex";
 
 class CaseFormatter implements Formatter {
   private query: Parser.Query;
@@ -25,6 +26,7 @@ class CaseFormatter implements Formatter {
         (named_register) @register
         (float_register) @register
         (section_type) @sectionType
+        (hexadecimal_literal) @hex
       `);
   }
 
@@ -42,6 +44,7 @@ class CaseFormatter implements Formatter {
       control: defaultCase,
       register: defaultCase,
       sectionType: defaultCase,
+      hex: defaultCase,
     };
 
     if (typeof options !== "string") {

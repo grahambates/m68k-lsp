@@ -123,7 +123,8 @@ or per element type
       "directive": "lower",
       "control": "upper",
       "sectionType": "lower",
-      "register": "lower"
+      "register": "lower",
+      "hex": "lower"
     }
   }
 }
@@ -136,6 +137,7 @@ or per element type
 | `control`     | Assembler control keywords e.g. `ifeq`/`endc`         |
 | `sectionType` | Section type e.g. `bss`                               |
 | `register`    | Register name e.g. `d0`,`sr`                          |
+| `hex`         | Hexadecimal number literal                            |
 
 Default: `"lower"`
 

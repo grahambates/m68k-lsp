@@ -119,6 +119,16 @@
           "default": "lower",
           "markdownDescription": "Section type case (e.g. `BSS`)"
         },
+        "m68k.format.case.hex": {
+          "type": "string",
+          "enum": [
+            "upper",
+            "lower",
+            "any"
+          ],
+          "default": "lower",
+          "markdownDescription": "Hexadecimal number literals"
+        },
         "m68k.format.quotes": {
           "type": "string",
           "enum": [
