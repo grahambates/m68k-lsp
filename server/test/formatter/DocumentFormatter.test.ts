@@ -34,4 +34,26 @@ foo:      move.w    d0,d1          ; example
 ; comment
 `);
   });
+
+  it.skip("accounts for added colons in alignment", async () => {
+    const src = `
+foo     MOVE.W D0,D1 ; example
+bar:    MOVE.W D0,D1 ; example
+`;
+
+    const result = await doFormat(src, {
+      case: "lower",
+      labelColon: "on",
+      align: {
+        mnemonic: 10,
+        operands: 20,
+        comment: 35,
+      },
+    });
+
+    expect(result).toBe(`
+foo:      move.w    d0,d1          ; example
+bar:      move.w    d0,d1          ; example
+`);
+  });
 });
