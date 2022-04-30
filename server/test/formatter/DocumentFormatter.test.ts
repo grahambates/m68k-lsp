@@ -35,7 +35,7 @@ foo:      move.w    d0,d1          ; example
 `);
   });
 
-  it.skip("accounts for added colons in alignment", async () => {
+  it("accounts for added colons in alignment", async () => {
     const src = `
 foo     MOVE.W D0,D1 ; example
 bar:    MOVE.W D0,D1 ; example

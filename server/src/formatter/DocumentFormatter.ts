@@ -30,7 +30,7 @@ export interface FormatterOptions {
 }
 
 export interface Formatter {
-  format(tree: Parser.Tree): TextEdit[];
+  format(tree: Parser.Tree, prevEdits: TextEdit[]): TextEdit[];
 }
 
 class DocumentFormatter {
@@ -65,7 +65,7 @@ class DocumentFormatter {
     const edits: TextEdit[] = [];
 
     for (const formatter of this.formatters) {
-      edits.push(...formatter.format(tree));
+      edits.push(...formatter.format(tree, edits));
     }
 
     return edits;
