@@ -20,17 +20,6 @@ export default class DocumentFormattingProvider implements Provider {
 
     // Override defaults with passed options
     if (config.align) {
-      if (options.insertSpaces) {
-        const { tabSize, indentStyle } = config.align;
-        if (indentStyle === "tab") {
-          // Convert tab positions to spaces
-          let i: keyof typeof config.align;
-          for (i in config.align) {
-            (config.align[i] as number) *= tabSize ?? 8;
-          }
-        }
-        config.align.indentStyle = "space";
-      }
       if (options.tabSize) {
         config.align.tabSize = options.tabSize;
       }
