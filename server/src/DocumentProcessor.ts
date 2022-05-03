@@ -84,7 +84,9 @@ export default class DocumentProcessor {
       .filter(({ node }) => {
         const mnemonic = node.text.toLowerCase();
         const doc = instructionDocs[mnemonic];
-        return !this.ctx.config.processors.some((proc) => doc.procs[proc]);
+        return (
+          doc && !this.ctx.config.processors.some((proc) => doc.procs[proc])
+        );
       })
       .map(({ node }) => ({
         range: nodeAsRange(node),

@@ -1,4 +1,8 @@
-import { Connection, ServerCapabilities } from "vscode-languageserver";
+import {
+  ClientCapabilities,
+  Connection,
+  ServerCapabilities,
+} from "vscode-languageserver";
 import { Context } from "../context";
 
 import CompletionProvider from "./CompletionProvider";
@@ -18,7 +22,10 @@ import TextDocumentSyncProvider from "./TextDocumentSyncProvider";
 import WorkspaceSymbolProvider from "./WorkspaceSymbolProvider";
 
 export interface Provider {
-  register(connection: Connection): ServerCapabilities;
+  register(
+    connection: Connection,
+    clientCapabilities: ClientCapabilities
+  ): ServerCapabilities;
 }
 const providers = [
   CompletionProvider,
@@ -40,11 +47,12 @@ const providers = [
 
 export default function registerProviders(
   connection: Connection,
-  ctx: Context
+  ctx: Context,
+  clientCapabilities: ClientCapabilities
 ): ServerCapabilities {
   return providers.reduce((acc, P) => {
     const p = new P(ctx);
-    const c = p.register(connection);
+    const c = p.register(connection, clientCapabilities);
     return Object.assign(acc, c);
   }, {});
 }

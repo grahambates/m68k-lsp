@@ -14,7 +14,7 @@ connection.onInitialize(async (params) => {
     params.initializationOptions
   );
 
-  const capabilities = registerProviders(connection, ctx);
+  const capabilities = registerProviders(connection, ctx, params.capabilities);
 
   return { capabilities };
 });

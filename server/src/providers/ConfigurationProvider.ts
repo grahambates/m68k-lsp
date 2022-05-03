@@ -17,16 +17,20 @@ export default class ConfiguratonProvider implements Provider {
     };
   }
 
-  register(connection: lsp.Connection) {
+  register(connection: lsp.Connection, capabilities: lsp.ClientCapabilities) {
     connection.onDidChangeConfiguration(
       this.onDidChangeConfiguration.bind(this)
     );
-    connection.onInitialized(() => {
-      connection.client.register(
-        DidChangeConfigurationNotification.type,
-        undefined
-      );
-    });
+    const supportsDynamic =
+      capabilities.workspace?.didChangeConfiguration?.dynamicRegistration;
+    if (supportsDynamic) {
+      connection.onInitialized(() => {
+        connection.client.register(
+          DidChangeConfigurationNotification.type,
+          undefined
+        );
+      });
+    }
     return {};
   }
 }
