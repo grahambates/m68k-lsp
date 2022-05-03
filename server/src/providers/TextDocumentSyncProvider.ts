@@ -37,7 +37,13 @@ export default class TextDocumentSyncProvider implements Provider {
     );
 
     if (tree && allIncremental) {
-      contentChanges.forEach((c) => tree.edit(this.changeToEdit(document, c)));
+      contentChanges
+        .sort(
+          (a, b) =>
+            b.range.start.line - a.range.start.line ||
+            b.range.start.character - a.range.start.character
+        )
+        .forEach((c) => tree.edit(this.changeToEdit(document, c)));
     }
 
     const updatedDoc = TextDocument.update(document, contentChanges, version);
