@@ -6,6 +6,9 @@ import EndOfLineFormatter from "./formatters/EndOfLineFormatter";
 import LabelColonFormatter, {
   LabelColonOptions,
 } from "./formatters/LabelColonFormatter";
+import OperandSpaceFormatter, {
+  OperandSpaceOptions,
+} from "./formatters/OperandSpaceFormatter";
 import QuotesFormatter, { QuotesOptions } from "./formatters/QuotesFormatter";
 import TrimWhitespaceFormatter from "./formatters/TrimWhitespaceFormatter";
 
@@ -17,10 +20,10 @@ export interface FormatterOptions {
   labelColon?: LabelColonOptions;
   quotes?: QuotesOptions;
   trimWhitespace?: boolean;
+  operandSpace?: OperandSpaceOptions;
   // TODO:
   // mnemonic aliases? equ vs =
   // multiple line breaks?
-  // operand spacing?
   // number format?
   // fix mnemononic at start of line?
   // require size qualifier?
@@ -47,6 +50,11 @@ class DocumentFormatter {
     }
     if (options.quotes) {
       this.formatters.push(new QuotesFormatter(language, options.quotes));
+    }
+    if (options.operandSpace) {
+      this.formatters.push(
+        new OperandSpaceFormatter(language, options.operandSpace)
+      );
     }
     if (options.align) {
       this.formatters.push(new AlignFormatter(options.align));

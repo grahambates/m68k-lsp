@@ -19,11 +19,6 @@ export default class DocumentFormattingProvider implements Provider {
     const config = this.ctx.config.format;
 
     // Override defaults with passed options
-    if (config.align) {
-      if (options.tabSize) {
-        config.align.tabSize = options.tabSize;
-      }
-    }
     if (options.trimFinalNewlines) {
       config.finalNewLine = false;
     }

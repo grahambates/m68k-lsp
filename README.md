@@ -178,6 +178,18 @@ or individually for global and local labels:
 
 Default: `"on"`
 
+#### Operand space
+
+Include space between operands e.g. ` move d0, d1`. VASM needs `-spaces` or `-phxass` option to support this.
+
+| Option | Behaviour     |
+| ------ | ------------- |
+| `on`   | Add space     |
+| `off`  | Remove space  |
+| `any`  | Do not change |
+
+Default: `"on"`
+
 #### Quotes
 
 Quote style to use for strings and paths.
@@ -206,10 +218,12 @@ Indents elements to align by type.
 {
   "format": {
     "align": {
-      "mnemonic": 2,
-      "operands": 3,
-      "comment": 5,
-      "indentStyle": "tab",
+      "mnemonic": 12,
+      "operands": 22,
+      "comment": 48,
+      "operator": 0,
+      "value": 0,
+      "indentStyle": "space",
       "tabSize": 8
     }
   }
@@ -218,12 +232,14 @@ Indents elements to align by type.
 
 (defaults)
 
+A value of `0` essentially means don't align.
+
 | Property      | Description                                                                                             |
 | ------------- | ------------------------------------------------------------------------------------------------------- |
 | `mnemonic`    | Position of instruction/directive mnemonic and size e.g. `move.w`,`include`.                            |
 | `operands`    | Position of operands e.g. `d0,d1`.                                                                      |
 | `comment`     | Position of comment following statement. Comments on their own line are not affected.                   |
-| `operand`     | Position of `=` character in constant assignment                                                        |
+| `operator`    | Position of `=` character in constant assignment                                                        |
 | `value`       | Position of value in constant assignment                                                                |
 | `indentStyle` | Character to use for indent - `tab` or `space`. Values for the properties above are based on this unit. |
 | `tabSize`     | Width of tab character to calculate positions when using `tab` indent style.                            |

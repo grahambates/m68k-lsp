@@ -27,28 +27,28 @@
       "properties": {
         "m68k.format.align.mnemonic": {
           "type": "number",
-          "default": 2,
+          "default": 12,
           "minium": 0,
           "maximum": 120,
           "description": "Indent position of instruction/directive element"
         },
         "m68k.format.align.operands": {
           "type": "number",
-          "default": 3,
+          "default": 22,
           "minium": 0,
           "maximum": 120,
           "description": "Indent position of operands element"
         },
         "m68k.format.align.comment": {
           "type": "number",
-          "default": 5,
+          "default": 48,
           "minium": 0,
           "maximum": 120,
           "description": "Indent position of comment element"
         },
         "m68k.format.align.operator": {
           "type": "number",
-          "default": 2,
+          "default": 0,
           "minium": 0,
           "maximum": 120,
           "description": "Indent position of '=' for constant"
@@ -66,7 +66,7 @@
             "space",
             "tab"
           ],
-          "default": "tab",
+          "default": "space",
           "description": "Indent character"
         },
         "m68k.format.case.instruction": {
@@ -162,6 +162,16 @@
           ],
           "default": "any",
           "markdownDescription": "Include colon suffix for local labels (e.g. `.MyLabel`)"
+        },
+        "m68k.format.operandSpace": {
+          "type": "string",
+          "enum": [
+            "on",
+            "off",
+            "any"
+          ],
+          "default": "off",
+          "markdownDescription": "Include space between operands? VASM needs `-spaces` or `-phxass` option to support this."
         },
         "m68k.includePaths": {
           "type": "array",
