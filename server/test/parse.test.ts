@@ -193,6 +193,43 @@ describe("parse", () => {
         ],
       });
     });
+
+    it("parses an operand containing spaces in double quotes", () => {
+      const line = parseLine(' dc.b "foo bar baz" ; comment');
+      expect(line).toEqual({
+        mnemonic: { start: 1, end: 3, value: "dc" },
+        size: { start: 4, end: 5, value: "b" },
+        operands: [{ start: 6, end: 19, value: '"foo bar baz"' }],
+        comment: {
+          end: 29,
+          start: 20,
+          value: "; comment",
+        },
+      });
+    });
+
+    it("parses an operand containing spaces with in single quotes", () => {
+      const line = parseLine(" dc.b 'foo bar baz' ; comment");
+      expect(line).toEqual({
+        mnemonic: { start: 1, end: 3, value: "dc" },
+        size: { start: 4, end: 5, value: "b" },
+        operands: [{ start: 6, end: 19, value: "'foo bar baz'" }],
+        comment: {
+          end: 29,
+          start: 20,
+          value: "; comment",
+        },
+      });
+    });
+
+    it("parses an operand containing spaces with unbalanced quotes", () => {
+      const line = parseLine(" dc.b 'foo bar baz");
+      expect(line).toEqual({
+        mnemonic: { start: 1, end: 3, value: "dc" },
+        size: { start: 4, end: 5, value: "b" },
+        operands: [{ start: 6, end: 18, value: "'foo bar baz" }],
+      });
+    });
   });
 
   describe("#componentAtIndex()", () => {

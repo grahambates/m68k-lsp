@@ -48,19 +48,18 @@ export interface ComponentInfo {
 //     )
 //     |
 //     (                                 Any other mnemonic:
-//       (?<mnemonic>\.?([a-z0-9_]+|=))   - Mnemonic
-//       (?<size>\.[a-z0-9_.]*)?          - Size qualifier
-//       (\s*(?<operands>                 - Operand list:
-//         [^\s;,]+                         - first operand
-//         (,\s*[^\s;,]*)*                  - additional comma separated operands
-//       ))?
+//       (?<mnemonic>\.?([a-z0-9_]+|=))             - Mnemonic
+//       (?<size>\.[a-z0-9_.]*)?                    - Size qualifier
+//       (\s*(?<operands>                           - Operand list:
+//         ([^\s;"',]+|"([^"]*)"?|'([^']*)'?)         - first operand
+//         (,\s*[^\s;"',]*|"([^"]*)"?|'([^']*)'?)*    - additional comma separated operands
 //     )
 //   )
 // )?
 // (\s*(?<comment>.+))?                Comment (any trailing text)
 // $
 const pattern =
-  /^(?<label>([a-z0-9_.$\\]+:?)|(\s*[a-z0-9_.$\\]+:))?(\s*(((?<mnemonic1>\.?(nop|reset|rte|rtr|rts|trapv|illegal|clrfo|clrso|comment|einline|even|inline|list|mexit|nolist|nopage|odd|page|popsection|pushsection|rsreset|endif|endc|else|elseif|endm|endr|erem))(?<size1>\.[a-z0-9_.]*)?)|((?<mnemonic>\.?([a-z0-9_]+|=))(?<size>\.[a-z0-9_.]*)?(\s*(?<operands>[^\s;,]+(,\s*[^\s;,]*)*))?)))?(\s*(?<comment>.+))?$/i;
+  /^(?<label>([a-z0-9_.$\\]+:?)|(\s*[a-z0-9_.$\\]+:))?(\s*(((?<mnemonic1>\.?(nop|reset|rte|rtr|rts|trapv|illegal|clrfo|clrso|comment|einline|even|inline|list|mexit|nolist|nopage|odd|page|popsection|pushsection|rsreset|endif|endc|else|elseif|endm|endr|erem))(?<size1>\.[a-z0-9_.]*)?)|((?<mnemonic>\.?([a-z0-9_]+|=))(?<size>\.[a-z0-9_.]*)?(\s*(?<operands>([^\s;"',]+|"([^"]*)"?|'([^']*)'?)(,\s*[^\s;"',]*|"([^"]*)"?|'([^']*)'?)*))?)))?(\s*(?<comment>.+))?$/i;
 
 /**
  * Parse a single line of source code into positional components
