@@ -203,13 +203,13 @@ export function processSymbols(
 export function processPath(path: string): string {
   if (path.startsWith('"') && path.endsWith('"')) {
     return path
-      .substr(1, path.length - 2)
+      .substring(1, path.length - 1)
       .replace(/""/g, '"')
       .replace('\\"', '"');
   }
   if (path.startsWith("'") && path.endsWith("'")) {
     return path
-      .substr(1, path.length - 2)
+      .substring(1, path.length - 1)
       .replace(/''/g, "'")
       .replace("\\'", "'");
   }

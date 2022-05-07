@@ -14,13 +14,13 @@ function processMd(mnemonic) {
   }
   const data = fs.readFileSync(file, "utf-8");
   const parts = data.split("\n\n*From MOTOROLA")[0].split(/\n\n## /);
-  const [title, summary] = parts.shift().substr(2).split(" - ");
+  const [title, summary] = parts.shift().substring(2).split(" - ");
 
   return parts.reduce(
     (acc, part) => {
       const lines = part.split("\n");
       let prop = lines.shift();
-      prop = prop[0].toLowerCase() + prop.substr(1); // lcfirst
+      prop = prop[0].toLowerCase() + prop.substring(1); // lcfirst
 
       if (prop === "syntax") {
         acc.syntax = lines.slice(1, -1).map((s) => {
@@ -103,7 +103,7 @@ const csv = fs.readFileSync(
   __dirname + "/../server/docs/inst-proc-xref-single.csv"
 );
 
-const lines = csv.toString().substr(1).split("\r\n");
+const lines = csv.toString().substring(1).split("\r\n");
 
 const out = {};
 

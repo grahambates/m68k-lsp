@@ -76,7 +76,7 @@ export function parseLine(text: string): ParsedLine {
     if (groups.label) {
       let value = groups.label.trim();
       if (value.endsWith(":")) {
-        value = value.substr(0, value.length - 1);
+        value = value.substring(0, value.length - 1);
       }
       const start = text.indexOf(value);
       end = start + value.length;
@@ -85,15 +85,15 @@ export function parseLine(text: string): ParsedLine {
 
     if (groups.mnemonic || groups.mnemonic1) {
       const value = groups.mnemonic || groups.mnemonic1;
-      const start = end + text.substr(end).indexOf(value);
+      const start = end + text.substring(end).indexOf(value);
       end = start + value.length;
       line.mnemonic = { start, end, value };
     }
 
     if (groups.size || groups.size1) {
       let value = groups.size || groups.size1;
-      const start = end + text.substr(end).indexOf(value) + 1;
-      value = value.substr(1);
+      const start = end + text.substring(end).indexOf(value) + 1;
+      value = value.substring(1);
       end = start + value.length;
       line.size = { start, end, value };
     }
@@ -104,7 +104,9 @@ export function parseLine(text: string): ParsedLine {
 
       const operands: Component[] = [];
       for (const value of values) {
-        const start = value ? end + text.substr(end).indexOf(value) : end + 1;
+        const start = value
+          ? end + text.substring(end).indexOf(value)
+          : end + 1;
         end = start + value.length;
         operands.push({ start, end, value });
       }
@@ -114,7 +116,7 @@ export function parseLine(text: string): ParsedLine {
 
     if (groups.comment && groups.comment.trim()) {
       const value = groups.comment;
-      const start = end + text.substr(end).indexOf(value);
+      const start = end + text.substring(end).indexOf(value);
       end = start + value.length;
       line.comment = { start, end, value };
     }
@@ -192,7 +194,7 @@ export function parseSignature(text: string): SignatureInfo {
   const [, size] = inst.split(".");
   if (size) {
     const value = size.replace(/[\]]/g, "");
-    const start = end + text.substr(end).indexOf(value);
+    const start = end + text.substring(end).indexOf(value);
     end = start + value.length;
     info.size = { start, end, value };
     info.sizes = <Size[]>value.replace(/[().]/g, "").split("");
@@ -201,7 +203,7 @@ export function parseSignature(text: string): SignatureInfo {
   if (opList) {
     for (const op of opList.split(",")) {
       const value = op.replace(/[[\]]/g, "");
-      const start = end + text.substr(end).indexOf(value);
+      const start = end + text.substring(end).indexOf(value);
       end = start + value.length;
       info.operands.push({ start, end, value });
     }
