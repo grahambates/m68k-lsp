@@ -14,7 +14,7 @@ export type AlignOptions = {
   value?: number;
   indentStyle?: "space" | "tab";
   tabSize?: number;
-  autoExtend?: "line" | "file"; // TODO: block
+  autoExtend?: "line" | "file" | "block";
 };
 
 type ElementRange = { start: number; end: number };
@@ -27,6 +27,7 @@ interface ElementInfo {
 interface LineInfo {
   text: string;
   label?: ElementInfo;
+  block: number;
   mnemonic?: ElementInfo;
   operands?: ElementInfo;
   operator?: ElementInfo;
@@ -37,11 +38,12 @@ interface LineInfo {
 // TODO:
 // label posiiton?
 // indent conditional blocks?
-// disable autoExtend per component
+// disable autoExtend per component?
 
 class AlignFormatter implements Formatter {
   private shiftWidth: number;
   private char: string;
+  private block = 0;
 
   constructor(private options: AlignOptions) {
     const useTab = options.indentStyle === "tab";
@@ -52,93 +54,116 @@ class AlignFormatter implements Formatter {
 
   format(tree: Parser.Tree, prevEdits: TextEdit[] = []): TextEdit[] {
     const edits: TextEdit[] = [];
+    this.block = 0;
 
-    const lines = tree.rootNode.text
-      .split(/\r\n?|\n/)
-      .map((text, i) => processLine(text, i, prevEdits));
-
-    const labelPosition = 0;
+    const { autoExtend } = this.options;
     let mnemonicPosition = this.options.mnemonic ?? 0;
     let operandsPosition = this.options.operands ?? 0;
     let commentPosition = this.options.comment ?? 0;
     let operatorPosition = this.options.operator ?? 0;
     let valuePosition = this.options.value ?? 0;
 
-    if (this.options.autoExtend === "file") {
-      const max = (values: number[]) =>
-        Math.ceil((Math.max(...values) + 1) / this.shiftWidth);
+    const lines = tree.rootNode.text
+      .split(/\r\n?|\n/)
+      .map((text, i) => this.processLine(text, i, prevEdits));
 
-      const maxLabelToMnemonic = max(
-        lines
-          .filter((l) => l.label && l.mnemonic)
-          .map((l) => elementLength(l.label))
-      );
-      const maxMnemonicToOperands = max(
-        lines
-          .filter((l) => l.mnemonic && l.operands)
-          .map((l) => elementLength(l.mnemonic))
-      );
-      const maxLabelToOperator = max(
-        lines
-          .filter((l) => l.label && l.operator)
-          .map((l) => elementLength(l.label))
-      );
-      // Should always be 1?
-      const maxOperatorToValue = max(
-        lines
-          .filter((l) => l.operator && l.value)
-          .map((l) => elementLength(l.operator))
-      );
-      const maxOperandsToComment = max(
-        lines
-          .filter((l) => l.operands && l.comment)
-          .map((l) => elementLength(l.operands))
-      );
-      const maxMnemonicToComment = max(
-        lines
-          .filter((l) => l.mnemonic && !l.operands && l.comment)
-          .map((l) => elementLength(l.mnemonic))
-      );
-      const maxLabelToComment = max(
-        lines
-          .filter((l) => l.label && !l.mnemonic && l.comment)
-          .map((l) => elementLength(l.label))
-      );
-      const maxValueToComment = max(
-        lines
-          .filter((l) => l.value && l.comment)
-          .map((l) => elementLength(l.value))
-      );
-
-      mnemonicPosition = Math.max(
-        labelPosition + maxLabelToMnemonic,
-        mnemonicPosition
-      );
-      operandsPosition = Math.max(
-        mnemonicPosition + maxMnemonicToOperands,
-        operandsPosition
-      );
-      // TODO: should operator and mnemonic be merged if no specific config?
-      operatorPosition = Math.max(
-        labelPosition + maxLabelToOperator,
-        operatorPosition
-      );
-      valuePosition = Math.max(
-        operatorPosition + maxOperatorToValue,
-        valuePosition
-      );
-      commentPosition = Math.max(
-        operandsPosition + maxOperandsToComment,
-        mnemonicPosition + maxMnemonicToComment,
-        labelPosition + maxLabelToComment,
-        valuePosition + maxValueToComment,
-        commentPosition
-      );
-    }
+    // For files we only need to calculate adjustments once
+    let autoExtended = false;
 
     for (let line = 0; line < lines.length; line++) {
-      const { label, mnemonic, operands, operator, value, comment, text } =
-        lines[line];
+      const {
+        label,
+        mnemonic,
+        operands,
+        operator,
+        value,
+        comment,
+        text,
+        block,
+      } = lines[line];
+
+      const labelPosition = 0;
+
+      if (autoExtend === "block" || (autoExtend === "file" && !autoExtended)) {
+        let compareLines = lines;
+        if (autoExtend === "file") {
+          // Flag to avoid reporocessing on each iteration for file mode
+          autoExtended = true;
+        } else {
+          // In block mode limit lines for comparison to those in the same block
+          compareLines = lines.filter((l) => l.block === block);
+        }
+
+        const max = (values: number[]) =>
+          Math.ceil((Math.max(...values) + 1) / this.shiftWidth);
+
+        const maxLabelToMnemonic = max(
+          compareLines
+            .filter((l) => l.label && l.mnemonic)
+            .map((l) => elementLength(l.label))
+        );
+        const maxMnemonicToOperands = max(
+          compareLines
+            .filter((l) => l.mnemonic && l.operands)
+            .map((l) => elementLength(l.mnemonic))
+        );
+        const maxLabelToOperator = max(
+          compareLines
+            .filter((l) => l.label && l.operator)
+            .map((l) => elementLength(l.label))
+        );
+        // Currently always 1
+        const maxOperatorToValue = max(
+          compareLines
+            .filter((l) => l.operator && l.value)
+            .map((l) => elementLength(l.operator))
+        );
+        const maxOperandsToComment = max(
+          compareLines
+            .filter((l) => l.operands && l.comment)
+            .map((l) => elementLength(l.operands))
+        );
+        const maxMnemonicToComment = max(
+          compareLines
+            .filter((l) => l.mnemonic && !l.operands && l.comment)
+            .map((l) => elementLength(l.mnemonic))
+        );
+        const maxLabelToComment = max(
+          compareLines
+            .filter((l) => l.label && !l.mnemonic && l.comment)
+            .map((l) => elementLength(l.label))
+        );
+        const maxValueToComment = max(
+          compareLines
+            .filter((l) => l.value && l.comment)
+            .map((l) => elementLength(l.value))
+        );
+
+        mnemonicPosition = Math.max(
+          labelPosition + maxLabelToMnemonic,
+          this.options.mnemonic ?? 0
+        );
+        operandsPosition = Math.max(
+          mnemonicPosition + maxMnemonicToOperands,
+          this.options.operands ?? 0
+        );
+        // TODO: should operator and mnemonic be merged if no specific config?
+        operatorPosition = Math.max(
+          labelPosition + maxLabelToOperator,
+          this.options.operator ?? 0
+        );
+        valuePosition = Math.max(
+          operatorPosition + maxOperatorToValue,
+          this.options.value ?? 0
+        );
+        commentPosition = Math.max(
+          operandsPosition + maxOperandsToComment,
+          mnemonicPosition + maxMnemonicToComment,
+          labelPosition + maxLabelToComment,
+          valuePosition + maxValueToComment,
+          this.options.comment ?? 0
+        );
+      }
 
       const editor = new LineEditor(text, line, this.shiftWidth, this.char);
 
@@ -165,6 +190,77 @@ class AlignFormatter implements Formatter {
     }
 
     return edits;
+  }
+
+  processLine(text: string, line: number, prevEdits: TextEdit[]): LineInfo {
+    if (text.match(/^\s*$/)) {
+      this.block++;
+      return { text, block: this.block };
+    }
+
+    const lineInfo: LineInfo = { text, block: this.block };
+    const parsed = parseLine(text);
+
+    // Need to look at edits to this line in case the length of any elements has changed:
+    const lineEdits = prevEdits
+      // Find edits that apply exclusively to this line
+      .filter(
+        ({ range: { start, end } }) => start.line === line && end.line === line
+      )
+      // Convert them to apply to line 0
+      .map((e) => ({
+        ...e,
+        range: {
+          start: { ...e.range.start, line: 0 },
+          end: { ...e.range.end, line: 0 },
+        },
+      }));
+
+    let lineTextFinal = text;
+    let parsedFinal = parsed;
+    // If there are edits, store and parse the updated version of the line so we can adjust lengths/offsets.
+    if (lineEdits.length) {
+      // Create a single line document and apply changes
+      const editDoc = TextDocument.create("file:///", "m68k", 1, text);
+      lineTextFinal = TextDocument.applyEdits(editDoc, lineEdits);
+      parsedFinal = parseLine(lineTextFinal);
+    }
+
+    const labelRange = getLabelRange(parsed, text);
+    if (labelRange) {
+      const edited = getLabelRange(parsedFinal, lineTextFinal);
+      lineInfo.label = { range: labelRange, edited };
+    }
+
+    // Is that statement a constant definition?
+    // TODO: should this include EQU, EQUR, FEQ etc?
+    const isOp = parsed.mnemonic?.value === "=";
+
+    const mnemonicRange = getMnemonicRange(parsed);
+    if (mnemonicRange) {
+      const edited = getMnemonicRange(parsedFinal);
+      if (isOp) {
+        lineInfo.operator = { range: mnemonicRange, edited };
+      } else {
+        lineInfo.mnemonic = { range: mnemonicRange, edited };
+      }
+    }
+
+    const operandsRange = getOperandsRange(parsed);
+    if (operandsRange) {
+      const edited = getOperandsRange(parsedFinal);
+      if (isOp) {
+        lineInfo.value = { range: operandsRange, edited };
+      } else {
+        lineInfo.operands = { range: operandsRange, edited };
+      }
+    }
+
+    if (parsed.comment && parsed.comment.start > 0) {
+      lineInfo.comment = { range: parsed.comment };
+    }
+
+    return lineInfo;
   }
 }
 
@@ -233,76 +329,6 @@ function elementLength(info?: ElementInfo) {
     return info.edited.end - info.edited.start;
   }
   return 0;
-}
-
-function processLine(
-  text: string,
-  line: number,
-  prevEdits: TextEdit[]
-): LineInfo {
-  const lineInfo: LineInfo = { text };
-  const parsed = parseLine(text);
-
-  // Need to look at edits to this line in case the length of any elements has changed:
-  const lineEdits = prevEdits
-    // Find edits that apply exclusively to this line
-    .filter(
-      ({ range: { start, end } }) => start.line === line && end.line === line
-    )
-    // Convert them to apply to line 0
-    .map((e) => ({
-      ...e,
-      range: {
-        start: { ...e.range.start, line: 0 },
-        end: { ...e.range.end, line: 0 },
-      },
-    }));
-
-  let lineTextFinal = text;
-  let parsedFinal = parsed;
-  // If there are edits, store and parse the updated version of the line so we can adjust lengths/offsets.
-  if (lineEdits.length) {
-    // Create a single line document and apply changes
-    const editDoc = TextDocument.create("file:///", "m68k", 1, text);
-    lineTextFinal = TextDocument.applyEdits(editDoc, lineEdits);
-    parsedFinal = parseLine(lineTextFinal);
-  }
-
-  const labelRange = getLabelRange(parsed, text);
-  if (labelRange) {
-    const edited = getLabelRange(parsedFinal, lineTextFinal);
-    lineInfo.label = { range: labelRange, edited };
-  }
-
-  // Is that statement a constant definition?
-  // TODO: should this include EQU, EQUR, FEQ etc?
-  const isOp = parsed.mnemonic?.value === "=";
-
-  const mnemonicRange = getMnemonicRange(parsed);
-  if (mnemonicRange) {
-    const edited = getMnemonicRange(parsedFinal);
-    if (isOp) {
-      lineInfo.operator = { range: mnemonicRange, edited };
-    } else {
-      lineInfo.mnemonic = { range: mnemonicRange, edited };
-    }
-  }
-
-  const operandsRange = getOperandsRange(parsed);
-  if (operandsRange) {
-    const edited = getOperandsRange(parsedFinal);
-    if (isOp) {
-      lineInfo.value = { range: operandsRange, edited };
-    } else {
-      lineInfo.operands = { range: operandsRange, edited };
-    }
-  }
-
-  if (parsed.comment && parsed.comment.start > 0) {
-    lineInfo.comment = { range: parsed.comment };
-  }
-
-  return lineInfo;
 }
 
 function getLabelRange(

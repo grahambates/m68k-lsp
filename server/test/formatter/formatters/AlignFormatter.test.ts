@@ -311,4 +311,29 @@ label:\t\t\trts`
       );
     });
   });
+
+  describe("autoExtend block", () => {
+    it("limits adjustments to blocks separated by multiple line breaks", async () => {
+      const result = await doFormat(
+        `
+label: reallylongmnemonic d0,d1
+label: move.w d0,d1
+
+label: move.w d0,d1 ; comment`,
+        {
+          mnemonic: 12,
+          operands: 24,
+          comment: 32,
+          autoExtend: "block",
+        }
+      );
+      expect(result).toBe(
+        `
+label:      reallylongmnemonic d0,d1
+label:      move.w             d0,d1
+
+label:      move.w      d0,d1   ; comment`
+      );
+    });
+  });
 });
