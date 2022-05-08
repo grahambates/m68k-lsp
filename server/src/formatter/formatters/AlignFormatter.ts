@@ -1,4 +1,5 @@
 import { TextEdit } from "vscode-languageserver";
+
 import { TextDocument } from "vscode-languageserver-textdocument";
 import Parser from "web-tree-sitter";
 
@@ -15,6 +16,23 @@ export type AlignOptions = {
   tabSize?: number;
 };
 
+type ElementRange = { start: number; end: number };
+
+interface ElementInfo {
+  range: ElementRange;
+  edited?: ElementRange;
+}
+
+interface LineInfo {
+  text: string;
+  label?: ElementInfo;
+  mnemonic?: ElementInfo;
+  operands?: ElementInfo;
+  operator?: ElementInfo;
+  value?: ElementInfo;
+  comment?: ElementInfo;
+}
+
 // TODO:
 // label posiiton?
 // auto align?
@@ -26,119 +44,182 @@ class AlignFormatter implements Formatter {
   format(tree: Parser.Tree, prevEdits: TextEdit[] = []): TextEdit[] {
     const edits: TextEdit[] = [];
 
-    const useTab = this.options.indentStyle === "tab";
-    const tabSize = this.options.tabSize ?? 8;
-    const shiftWidth = useTab ? tabSize : 1;
-    const char = useTab ? "\t" : " ";
+    const lines = tree.rootNode.text
+      .split(/\r\n?|\n/)
+      .map((text, i) => processLine(text, i, prevEdits));
 
-    // Using the line parser to get elements by position, rather than the document parse tree.
-    // Get an array of lines to process:
-    const lines = tree.rootNode.text.split(/\r\n?|\n/);
+    const mnemonicPosition = this.options.mnemonic ?? 0;
+    const operatorPosition = this.options.operator ?? 0;
+    const operandsPosition = this.options.operands ?? 0;
+    const valuePosition = this.options.value ?? 0;
+    const commentPosition = this.options.comment ?? 0;
 
     for (let line = 0; line < lines.length; line++) {
-      // Track position and character offset as we apply indents
-      let previousEnd = 0;
-      let offset = 0;
+      const { label, mnemonic, operands, operator, value, comment, text } =
+        lines[line];
 
-      const addIndent = (
-        position: number,
-        range: ElementRange,
-        edited: ElementRange = { start: 0, end: 0 },
-        min = 1
-      ) => {
-        const positionOffset = position - offset;
-        // There's a chance the offset might be negative if the previous element is too long to position where we want.
-        // In this case insert a minimum number of spaces, or none at all.
-        const count = Math.max(positionOffset, min);
+      const editor = new LineEditor(text, this.options);
 
-        // Always use spaces for min whitespace
-        const newText =
-          positionOffset > 0 ? char.repeat(count) : " ".repeat(count);
-
-        edits.push({
-          range: {
-            start: { character: previousEnd, line },
-            end: { character: range.start, line },
-          },
-          newText,
-        });
-
-        // Update end position
-        previousEnd = range.end;
-
-        // Update offset:
-        // Use the length of the element with previous edits applied.
-        // This handles cases where other formatters have changed its length e.g. adding/removing label colon, which
-        // would otherwise shift the alignment of subsequent elements.
-        const elementLength = edited.end - edited.start;
-        offset += count + Math.floor(elementLength / shiftWidth);
-      };
-
-      const lineText = lines[line];
-      const parsed = parseLine(lineText);
-
-      // Need to look at edits to this line in case the length of any elements has changed:
-      const lineEdits = prevEdits
-        // Find edits that apply exclusively to this line
-        .filter(
-          ({ range: { start, end } }) =>
-            start.line === line && end.line === line
-        )
-        // Convert them to apply to line 0
-        .map((e) => ({
-          ...e,
-          range: {
-            start: { ...e.range.start, line: 0 },
-            end: { ...e.range.end, line: 0 },
-          },
-        }));
-
-      let lineTextFinal = lineText;
-      let parsedFinal = parsed;
-      // If there are edits, store and parse the updated version of the line so we can adjust lengths/offsets.
-      if (lineEdits.length) {
-        // Create a single line document and apply changes
-        const editDoc = TextDocument.create("file:///", "m68k", 1, lineText);
-        lineTextFinal = TextDocument.applyEdits(editDoc, lineEdits);
-        parsedFinal = parseLine(lineTextFinal);
+      if (label) {
+        editor.addIndent(line, 0, label, 0);
+      }
+      if (mnemonic) {
+        editor.addIndent(line, mnemonicPosition, mnemonic);
+      }
+      if (operands) {
+        editor.addIndent(line, operandsPosition, operands);
+      }
+      if (operator) {
+        editor.addIndent(line, operatorPosition, operator);
+      }
+      if (value) {
+        editor.addIndent(line, valuePosition, value);
+      }
+      if (comment) {
+        editor.addIndent(line, commentPosition, comment);
       }
 
-      const labelRange = getLabelRange(parsed, lineText);
-      if (labelRange) {
-        const edited = getLabelRange(parsedFinal, lineTextFinal);
-        addIndent(0, labelRange, edited, 0);
-      }
-
-      // Is that statement a constant definition?
-      // TODO: should this include EQU, EQUR, FEQ etc?
-      const isOp = parsed.mnemonic?.value === "=";
-
-      const mnemonicRange = getMnemonicRange(parsed);
-      if (mnemonicRange) {
-        const position = isOp
-          ? this.options.operator ?? 0
-          : this.options.mnemonic ?? 0;
-        const edited = getMnemonicRange(parsedFinal);
-        addIndent(position, mnemonicRange, edited);
-      }
-
-      const operandsRange = getOperandsRange(parsed);
-      if (operandsRange) {
-        const position = isOp ? this.options.value ?? 0 : this.options.operands;
-        const edited = getOperandsRange(parsedFinal);
-        addIndent(position ?? 0, operandsRange, edited);
-      }
-
-      if (parsed.comment && parsed.comment.start > 0) {
-        addIndent(this.options.comment ?? 0, parsed.comment);
-      }
+      edits.push(...editor.edits);
     }
 
     return edits;
   }
 }
 
-type ElementRange = { start: number; end: number };
+class LineEditor {
+  readonly edits: TextEdit[] = [];
+
+  private shiftWidth: number;
+  private char: string;
+
+  // Tracks position and character offset as we apply indents
+  private previousEnd = 0;
+  private offset = 0;
+
+  constructor(private lineText: string, options: AlignOptions) {
+    const useTab = options.indentStyle === "tab";
+    const tabSize = options.tabSize ?? 8;
+    this.shiftWidth = useTab ? tabSize : 1;
+    this.char = useTab ? "\t" : " ";
+  }
+
+  /**
+   * Creates edits to adjust indent and align element at desired position
+   *
+   * @param line Current line index for edit positions
+   * @param position Desired column/tab position for element
+   * @param elementInfo Ranges of element before and after previous edits
+   * @param min Minimum space from previous element
+   */
+  addIndent(
+    line: number,
+    position: number,
+    { range, edited = { start: 0, end: 0 } }: ElementInfo,
+    min = 1
+  ) {
+    const positionOffset = position - this.offset;
+    // There's a chance the offset might be negative if the previous element is too long to position where we want.
+    // In this case insert a minimum number of spaces, or none at all.
+    const count = Math.max(positionOffset, min);
+
+    // Always use spaces for min whitespace
+    const newText =
+      positionOffset > 0 ? this.char.repeat(count) : " ".repeat(count);
+
+    const editRequired =
+      newText !== this.lineText.substring(this.previousEnd, range.start);
+
+    if (editRequired) {
+      this.edits.push({
+        range: {
+          start: { character: this.previousEnd, line },
+          end: { character: range.start, line },
+        },
+        newText,
+      });
+    }
+
+    // Update end position
+    this.previousEnd = range.end;
+
+    // Update offset:
+    // Use the length of the element with previous edits applied.
+    // This handles cases where other formatters have changed its length e.g. adding/removing label colon, which
+    // would otherwise shift the alignment of subsequent elements.
+    const elementLength = edited.end - edited.start;
+    this.offset += count + Math.floor(elementLength / this.shiftWidth);
+  }
+}
+
+function processLine(
+  text: string,
+  line: number,
+  prevEdits: TextEdit[]
+): LineInfo {
+  const lineInfo: LineInfo = { text };
+  const parsed = parseLine(text);
+
+  // Need to look at edits to this line in case the length of any elements has changed:
+  const lineEdits = prevEdits
+    // Find edits that apply exclusively to this line
+    .filter(
+      ({ range: { start, end } }) => start.line === line && end.line === line
+    )
+    // Convert them to apply to line 0
+    .map((e) => ({
+      ...e,
+      range: {
+        start: { ...e.range.start, line: 0 },
+        end: { ...e.range.end, line: 0 },
+      },
+    }));
+
+  let lineTextFinal = text;
+  let parsedFinal = parsed;
+  // If there are edits, store and parse the updated version of the line so we can adjust lengths/offsets.
+  if (lineEdits.length) {
+    // Create a single line document and apply changes
+    const editDoc = TextDocument.create("file:///", "m68k", 1, text);
+    lineTextFinal = TextDocument.applyEdits(editDoc, lineEdits);
+    parsedFinal = parseLine(lineTextFinal);
+  }
+
+  const labelRange = getLabelRange(parsed, text);
+  if (labelRange) {
+    const edited = getLabelRange(parsedFinal, lineTextFinal);
+    lineInfo.label = { range: labelRange, edited };
+  }
+
+  // Is that statement a constant definition?
+  // TODO: should this include EQU, EQUR, FEQ etc?
+  const isOp = parsed.mnemonic?.value === "=";
+
+  const mnemonicRange = getMnemonicRange(parsed);
+  if (mnemonicRange) {
+    const edited = getMnemonicRange(parsedFinal);
+    if (isOp) {
+      lineInfo.operator = { range: mnemonicRange, edited };
+    } else {
+      lineInfo.mnemonic = { range: mnemonicRange, edited };
+    }
+  }
+
+  const operandsRange = getOperandsRange(parsed);
+  if (operandsRange) {
+    const edited = getOperandsRange(parsedFinal);
+    if (isOp) {
+      lineInfo.value = { range: operandsRange, edited };
+    } else {
+      lineInfo.operands = { range: operandsRange, edited };
+    }
+  }
+
+  if (parsed.comment && parsed.comment.start > 0) {
+    lineInfo.comment = { range: parsed.comment };
+  }
+
+  return lineInfo;
+}
 
 function getLabelRange(
   { label }: ParsedLine,
