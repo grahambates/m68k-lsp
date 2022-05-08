@@ -95,15 +95,220 @@ describe("AlignFormatter", () => {
     expect(result).toBe("foobarbaz = 123");
   });
 
-  it("formats a constant assignment with indents", async () => {
-    const result = await doFormat(`foobarbaz        =     123`, {
-      mnemonic: 2,
-      operands: 4,
-      comment: 6,
-      tabSize: 8,
-      operator: 12,
-      value: 16,
+  describe("autoExtend file", () => {
+    it("uses desired position if possible", async () => {
+      const result = await doFormat(`label: move.w d0,d1 ; comment`, {
+        mnemonic: 12,
+        operands: 24,
+        comment: 32,
+        autoExtend: "file",
+      });
+      expect(result).toBe("label:      move.w      d0,d1   ; comment");
     });
-    expect(result).toBe("foobarbaz   =   123");
+
+    it("adjusts mnemonic position", async () => {
+      const result = await doFormat(
+        `
+reallyreallylonglabel: rts
+label: rts`,
+        {
+          mnemonic: 12,
+          autoExtend: "file",
+        }
+      );
+      expect(result).toBe(
+        `
+reallyreallylonglabel: rts
+label:                 rts`
+      );
+    });
+
+    it("isn't affected by stand-alone labels", async () => {
+      const result = await doFormat(
+        `
+reallyreallylonglabel:
+  rts
+label: rts`,
+        {
+          mnemonic: 12,
+          operands: 24,
+          autoExtend: "file",
+        }
+      );
+      expect(result).toBe(
+        `
+reallyreallylonglabel:
+            rts
+label:      rts`
+      );
+    });
+
+    it("adjusts operands position for mnemonic overflow", async () => {
+      const result = await doFormat(
+        `
+label: reallylongmnemonic d0,d1
+label: move.w d0,d1`,
+        {
+          mnemonic: 12,
+          operands: 24,
+          autoExtend: "file",
+        }
+      );
+      expect(result).toBe(
+        `
+label:      reallylongmnemonic d0,d1
+label:      move.w             d0,d1`
+      );
+    });
+
+    it("adjusts operands position for label overflow", async () => {
+      const result = await doFormat(
+        `
+reallyreallylonglabel: reallylongmnemonic d0,d1
+label: move.w d0,d1`,
+        {
+          mnemonic: 12,
+          operands: 24,
+          autoExtend: "file",
+        }
+      );
+      expect(result).toBe(
+        `
+reallyreallylonglabel: reallylongmnemonic d0,d1
+label:                 move.w             d0,d1`
+      );
+    });
+
+    it("adjusts operator position for label overflow", async () => {
+      const result = await doFormat(
+        `
+foo = 1
+reallyreallylonglabel = 2`,
+        {
+          operator: 12,
+          value: 0,
+          autoExtend: "file",
+        }
+      );
+      expect(result).toBe(
+        `
+foo                   = 1
+reallyreallylonglabel = 2`
+      );
+    });
+
+    it("adjusts comment position for operands overflow", async () => {
+      const result = await doFormat(
+        `
+label: move.w #reallylongeroperand,d1 ; comment
+label: move.w d0,d1 ; comment`,
+        {
+          mnemonic: 12,
+          operands: 24,
+          comment: 32,
+          autoExtend: "file",
+        }
+      );
+      expect(result).toBe(
+        `
+label:      move.w      #reallylongeroperand,d1 ; comment
+label:      move.w      d0,d1                   ; comment`
+      );
+    });
+
+    it("adjusts comment position for mnemonic overflow", async () => {
+      const result = await doFormat(
+        `
+label: reallylongmnemonic #reallylongeroperand,d1 ; comment
+label: move.w d0,d1 ; comment`,
+        {
+          mnemonic: 12,
+          operands: 24,
+          comment: 32,
+          autoExtend: "file",
+        }
+      );
+      expect(result).toBe(
+        `
+label:      reallylongmnemonic #reallylongeroperand,d1 ; comment
+label:      move.w             d0,d1                   ; comment`
+      );
+    });
+
+    it("adjusts comment position for mnemonic with no operands", async () => {
+      const result = await doFormat(
+        `
+label: reallyreallyreallylongmnemonic ; comment
+label: move.w d0,d1 ; comment`,
+        {
+          mnemonic: 12,
+          operands: 24,
+          comment: 32,
+          autoExtend: "file",
+        }
+      );
+      expect(result).toBe(
+        `
+label:      reallyreallyreallylongmnemonic ; comment
+label:      move.w      d0,d1              ; comment`
+      );
+    });
+
+    it("adjusts comment position for label with no mnemonic", async () => {
+      const result = await doFormat(
+        `
+reallyreallyreallyreallyreallyreallylonglabel ; comment
+label: move.w d0,d1 ; comment`,
+        {
+          mnemonic: 12,
+          operands: 24,
+          comment: 32,
+          autoExtend: "file",
+        }
+      );
+      expect(result).toBe(
+        `
+reallyreallyreallyreallyreallyreallylonglabel ; comment
+label:      move.w      d0,d1                 ; comment`
+      );
+    });
+
+    it("adjusts comment position for label operator / value", async () => {
+      const result = await doFormat(
+        `
+reallyreallyreallyreallyreallyreallylonglabel = 1; comment
+label: move.w d0,d1 ; comment`,
+        {
+          mnemonic: 12,
+          operands: 24,
+          comment: 32,
+          autoExtend: "file",
+        }
+      );
+      expect(result).toBe(
+        `
+reallyreallyreallyreallyreallyreallylonglabel = 1 ; comment
+label:      move.w      d0,d1                     ; comment`
+      );
+    });
+
+    it("adjusts position with tabs", async () => {
+      const result = await doFormat(
+        `
+reallyreallylonglabel: rts
+label: rts`,
+        {
+          mnemonic: 2,
+          indentStyle: "tab",
+          tabSize: 8,
+          autoExtend: "file",
+        }
+      );
+      expect(result).toBe(
+        `
+reallyreallylonglabel:\trts
+label:\t\t\trts`
+      );
+    });
   });
 });

@@ -21,6 +21,7 @@ export const defaultConfig: Config = {
       value: 0,
       indentStyle: "space",
       tabSize: 8,
+      autoExtend: "line",
     },
     trimWhitespace: false,
     finalNewLine: true,

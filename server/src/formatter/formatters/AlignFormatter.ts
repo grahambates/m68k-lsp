@@ -14,6 +14,7 @@ export type AlignOptions = {
   value?: number;
   indentStyle?: "space" | "tab";
   tabSize?: number;
+  autoExtend?: "line" | "file"; // TODO: block
 };
 
 type ElementRange = { start: number; end: number };
@@ -35,11 +36,19 @@ interface LineInfo {
 
 // TODO:
 // label posiiton?
-// auto align?
 // indent conditional blocks?
+// disable autoExtend per component
 
 class AlignFormatter implements Formatter {
-  constructor(private options: AlignOptions) {}
+  private shiftWidth: number;
+  private char: string;
+
+  constructor(private options: AlignOptions) {
+    const useTab = options.indentStyle === "tab";
+    const tabSize = options.tabSize ?? 8;
+    this.shiftWidth = useTab ? tabSize : 1;
+    this.char = useTab ? "\t" : " ";
+  }
 
   format(tree: Parser.Tree, prevEdits: TextEdit[] = []): TextEdit[] {
     const edits: TextEdit[] = [];
@@ -48,35 +57,108 @@ class AlignFormatter implements Formatter {
       .split(/\r\n?|\n/)
       .map((text, i) => processLine(text, i, prevEdits));
 
-    const mnemonicPosition = this.options.mnemonic ?? 0;
-    const operatorPosition = this.options.operator ?? 0;
-    const operandsPosition = this.options.operands ?? 0;
-    const valuePosition = this.options.value ?? 0;
-    const commentPosition = this.options.comment ?? 0;
+    const labelPosition = 0;
+    let mnemonicPosition = this.options.mnemonic ?? 0;
+    let operandsPosition = this.options.operands ?? 0;
+    let commentPosition = this.options.comment ?? 0;
+    let operatorPosition = this.options.operator ?? 0;
+    let valuePosition = this.options.value ?? 0;
+
+    if (this.options.autoExtend === "file") {
+      const max = (values: number[]) =>
+        Math.ceil((Math.max(...values) + 1) / this.shiftWidth);
+
+      const maxLabelToMnemonic = max(
+        lines
+          .filter((l) => l.label && l.mnemonic)
+          .map((l) => elementLength(l.label))
+      );
+      const maxMnemonicToOperands = max(
+        lines
+          .filter((l) => l.mnemonic && l.operands)
+          .map((l) => elementLength(l.mnemonic))
+      );
+      const maxLabelToOperator = max(
+        lines
+          .filter((l) => l.label && l.operator)
+          .map((l) => elementLength(l.label))
+      );
+      // Should always be 1?
+      const maxOperatorToValue = max(
+        lines
+          .filter((l) => l.operator && l.value)
+          .map((l) => elementLength(l.operator))
+      );
+      const maxOperandsToComment = max(
+        lines
+          .filter((l) => l.operands && l.comment)
+          .map((l) => elementLength(l.operands))
+      );
+      const maxMnemonicToComment = max(
+        lines
+          .filter((l) => l.mnemonic && !l.operands && l.comment)
+          .map((l) => elementLength(l.mnemonic))
+      );
+      const maxLabelToComment = max(
+        lines
+          .filter((l) => l.label && !l.mnemonic && l.comment)
+          .map((l) => elementLength(l.label))
+      );
+      const maxValueToComment = max(
+        lines
+          .filter((l) => l.value && l.comment)
+          .map((l) => elementLength(l.value))
+      );
+
+      mnemonicPosition = Math.max(
+        labelPosition + maxLabelToMnemonic,
+        mnemonicPosition
+      );
+      operandsPosition = Math.max(
+        mnemonicPosition + maxMnemonicToOperands,
+        operandsPosition
+      );
+      // TODO: should operator and mnemonic be merged if no specific config?
+      operatorPosition = Math.max(
+        labelPosition + maxLabelToOperator,
+        operatorPosition
+      );
+      valuePosition = Math.max(
+        operatorPosition + maxOperatorToValue,
+        valuePosition
+      );
+      commentPosition = Math.max(
+        operandsPosition + maxOperandsToComment,
+        mnemonicPosition + maxMnemonicToComment,
+        labelPosition + maxLabelToComment,
+        valuePosition + maxValueToComment,
+        commentPosition
+      );
+    }
 
     for (let line = 0; line < lines.length; line++) {
       const { label, mnemonic, operands, operator, value, comment, text } =
         lines[line];
 
-      const editor = new LineEditor(text, this.options);
+      const editor = new LineEditor(text, line, this.shiftWidth, this.char);
 
       if (label) {
-        editor.addIndent(line, 0, label, 0);
+        editor.addIndent(labelPosition, label, 0);
       }
       if (mnemonic) {
-        editor.addIndent(line, mnemonicPosition, mnemonic);
+        editor.addIndent(mnemonicPosition, mnemonic);
       }
       if (operands) {
-        editor.addIndent(line, operandsPosition, operands);
+        editor.addIndent(operandsPosition, operands);
       }
       if (operator) {
-        editor.addIndent(line, operatorPosition, operator);
+        editor.addIndent(operatorPosition, operator);
       }
       if (value) {
-        editor.addIndent(line, valuePosition, value);
+        editor.addIndent(valuePosition, value);
       }
       if (comment) {
-        editor.addIndent(line, commentPosition, comment);
+        editor.addIndent(commentPosition, comment);
       }
 
       edits.push(...editor.edits);
@@ -89,30 +171,25 @@ class AlignFormatter implements Formatter {
 class LineEditor {
   readonly edits: TextEdit[] = [];
 
-  private shiftWidth: number;
-  private char: string;
-
   // Tracks position and character offset as we apply indents
   private previousEnd = 0;
   private offset = 0;
 
-  constructor(private lineText: string, options: AlignOptions) {
-    const useTab = options.indentStyle === "tab";
-    const tabSize = options.tabSize ?? 8;
-    this.shiftWidth = useTab ? tabSize : 1;
-    this.char = useTab ? "\t" : " ";
-  }
+  constructor(
+    private text: string,
+    private line: number,
+    private shiftWidth: number,
+    private char: string
+  ) {}
 
   /**
    * Creates edits to adjust indent and align element at desired position
    *
-   * @param line Current line index for edit positions
    * @param position Desired column/tab position for element
    * @param elementInfo Ranges of element before and after previous edits
    * @param min Minimum space from previous element
    */
   addIndent(
-    line: number,
     position: number,
     { range, edited = { start: 0, end: 0 } }: ElementInfo,
     min = 1
@@ -127,13 +204,13 @@ class LineEditor {
       positionOffset > 0 ? this.char.repeat(count) : " ".repeat(count);
 
     const editRequired =
-      newText !== this.lineText.substring(this.previousEnd, range.start);
+      newText !== this.text.substring(this.previousEnd, range.start);
 
     if (editRequired) {
       this.edits.push({
         range: {
-          start: { character: this.previousEnd, line },
-          end: { character: range.start, line },
+          start: { character: this.previousEnd, line: this.line },
+          end: { character: range.start, line: this.line },
         },
         newText,
       });
@@ -149,6 +226,13 @@ class LineEditor {
     const elementLength = edited.end - edited.start;
     this.offset += count + Math.floor(elementLength / this.shiftWidth);
   }
+}
+
+function elementLength(info?: ElementInfo) {
+  if (info?.edited) {
+    return info.edited.end - info.edited.start;
+  }
+  return 0;
 }
 
 function processLine(
