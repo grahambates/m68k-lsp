@@ -69,6 +69,16 @@
           "default": "space",
           "description": "Indent character"
         },
+        "m68k.format.align.autoExtend": {
+          "type": "string",
+          "enum": [
+            "line",
+            "block",
+            "file"
+          ],
+          "default": "line",
+          "description": "Behaviour when a component exceeds the available space between positions."
+        },
         "m68k.format.case.instruction": {
           "type": "string",
           "enum": [

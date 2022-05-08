@@ -225,14 +225,13 @@ Indents elements to align by type.
       "value": 0,
       "indentStyle": "space",
       "tabSize": 8
+      "autoExtend": "line"
     }
   }
 }
 ```
 
 (defaults)
-
-A value of `0` essentially means don't align.
 
 | Property      | Description                                                                                             |
 | ------------- | ------------------------------------------------------------------------------------------------------- |
@@ -243,6 +242,15 @@ A value of `0` essentially means don't align.
 | `value`       | Position of value in constant assignment                                                                |
 | `indentStyle` | Character to use for indent - `tab` or `space`. Values for the properties above are based on this unit. |
 | `tabSize`     | Width of tab character to calculate positions when using `tab` indent style.                            |
+| `autoExtend`  | Behaviour when a component exceeds the available space between positions. See below.                    |
+
+Options for `autoExtend`:
+
+| Option  | Behaviour                                                                                                                     |
+| ------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `line`  | Adjust the position for the affected line only                                                                                |
+| `block` | Adjust the position, maintaining alignment for all lines within the same block i.e. code separated by two or more line breaks |
+| `file`  | Adjust the position, maintaining alignment for all lines in the source file                                                   |
 
 #### Trim whitespace
 
