@@ -11,6 +11,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - VASM diagnostics
 
+### Changed
+
+- Incremental tree-sitter updates not working correctly in neovim - disabled for now.
+- Better merging of config with defaults
+
 ## [0.5.0] - 2022-05-08
 
 ### Added

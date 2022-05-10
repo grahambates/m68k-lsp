@@ -36,8 +36,11 @@ export default class TextDocumentSyncProvider implements Provider {
     if (!existing) {
       return;
     }
-    const { document, tree } = existing;
+    const { document } = existing;
 
+    // Disable incremental changes in tree-sitter for now
+    // Seeing issues in neovim. Order dependent?
+    /*
     const allIncremental = contentChanges.every(
       lsp.TextDocumentContentChangeEvent.isIncremental
     );
@@ -51,10 +54,11 @@ export default class TextDocumentSyncProvider implements Provider {
         )
         .forEach((c) => tree.edit(this.changeToEdit(document, c)));
     }
+    */
 
     const updatedDoc = TextDocument.update(document, contentChanges, version);
 
-    this.processor.process(updatedDoc, tree).then(({ tree }) => {
+    this.processor.process(updatedDoc).then(({ tree }) => {
       // Send just local parser diagnostics - can't get vasm errors until save
       const diagnostics = this.diagnostics.parserDiagnostics(tree);
       this.connection.sendDiagnostics({
