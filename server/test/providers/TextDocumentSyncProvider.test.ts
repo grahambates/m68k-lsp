@@ -18,6 +18,7 @@ describe("TextDocumentSyncProvider", () => {
       const conn = {
         onDidOpenTextDocument: jest.fn(),
         onDidChangeTextDocument: jest.fn(),
+        onDidSaveTextDocument: jest.fn(),
       };
       const capabilities = provider.register(conn as unknown as lsp.Connection);
       expect(conn.onDidOpenTextDocument).toBeCalled();

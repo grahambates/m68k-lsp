@@ -23,7 +23,7 @@ export class NullLogger implements lsp.Logger {
 }
 
 export function createTestContext(config: Partial<Config> = {}) {
-  const workspaceDir = __dirname + "/fixtures";
+  const workspaceDir = path.join(__dirname, "fixtures");
   const workspaceUri = pathToFileURL(workspaceDir).toString();
   const logger = new NullLogger();
 
@@ -40,9 +40,9 @@ export function createTestContext(config: Partial<Config> = {}) {
 }
 
 export const range = (
-  startLine,
-  startChar,
-  endLine,
+  startLine: number,
+  startChar: number,
+  endLine: number,
   endChar: number
 ): lsp.Range => ({
   start: { line: startLine, character: startChar },
@@ -52,7 +52,7 @@ export const range = (
 export async function parseTree(src: string) {
   await Parser.init();
   const language = await Parser.Language.load(
-    path.join(__dirname, "..", "tree-sitter-m68k.wasm")
+    path.join(__dirname, "..", "wasm", "tree-sitter-m68k.wasm")
   );
   const parser = new Parser();
   parser.setLanguage(language);

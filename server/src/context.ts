@@ -3,7 +3,7 @@ import Parser from "web-tree-sitter";
 import path from "path";
 
 import { ProcessedDocumentStore } from "./DocumentProcessor";
-import { Config, defaultConfig } from "./config";
+import { Config, mergeDefaults } from "./config";
 
 export interface Context {
   store: ProcessedDocumentStore;
@@ -25,7 +25,7 @@ export async function createContext(
   if (!language) {
     await Parser.init();
     language = await Parser.Language.load(
-      path.join(__dirname, "..", "tree-sitter-m68k.wasm")
+      path.join(__dirname, "..", "wasm", "tree-sitter-m68k.wasm")
     );
   }
 
@@ -35,9 +35,6 @@ export async function createContext(
     language,
     logger,
     connection,
-    config: {
-      ...defaultConfig,
-      ...config,
-    },
+    config: mergeDefaults(config),
   };
 }

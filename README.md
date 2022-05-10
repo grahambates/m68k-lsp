@@ -6,7 +6,7 @@
 [Language Server Protocol](https://github.com/Microsoft/language-server-protocol) implementation for Motorola 68000
 family assembly, based on [tree-sitter-m68k](https://github.com/grahambates/tree-sitter-m68k)
 
-- Suitable for use with other LSP supporting editors e.g. [Neovim](https://neovim.io/)
+- Suitable for use with LSP supporting editors e.g. [Neovim](https://neovim.io/)
 - Includes VS Code extension (not yet published)
 
 ## Features
@@ -88,6 +88,34 @@ include anything you pass to vasm `-I` arguments. Can be absolute or relative.
 ```
 
 Default: `[]`
+
+### vasm diagnostics:
+
+The server can use [vasm](http://www.compilers.de/vasm.html) to provide diagnostic messages. When enabled it will assemble source files on save/open and display any errors or warnings.
+
+The server will use a local `vasmm68k_mot` executable if one exists in your path or is configured in `vasm.binPath`, otherwise it will default to a bundled version complied in Web Assembly.
+
+```json
+{
+  "vasm": {
+    "provideDiagnostics": true,
+    "binPath": "vasmm68k_mot",
+    "args": [],
+    "preferWasm": false,
+    "exclude": []
+  }
+}
+```
+
+(defaults)
+
+| Property             | Description                                                                                                     |
+| -------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `provideDiagnostics` | Enable vasm diagnostics                                                                                         |
+| `binPath`            | Filename or full path of vasm executable binary                                                                 |
+| `args`               | Custom arguments to pass to vasm. Include paths and processor(s) from server config will automatically be added |
+| `preferWasm`         | Always use bundled Web Assembly vasm                                                                            |
+| `exclude`            | File patterns to ignore and not build directly e.g. `["*.i"]`                                                   |
 
 ### Formatting:
 
@@ -266,7 +294,7 @@ Remove trailing whitespace from lines?
 
 default: `true`
 
-### Final new line
+#### Final new line
 
 Require line break on final line?
 
@@ -278,7 +306,7 @@ Require line break on final line?
 }
 ```
 
-### End-of-line character
+#### End-of-line character
 
 New line type: `lf`, `cr`, `crlf`
 

@@ -1,7 +1,7 @@
 import * as lsp from "vscode-languageserver";
 import { DidChangeConfigurationNotification } from "vscode-languageserver";
 import { Provider } from ".";
-import { defaultConfig } from "../config";
+import { mergeDefaults } from "../config";
 import { Context } from "../context";
 
 export default class ConfiguratonProvider implements Provider {
@@ -11,10 +11,7 @@ export default class ConfiguratonProvider implements Provider {
     const newConfig = await this.ctx.connection.workspace.getConfiguration(
       "m68k"
     );
-    this.ctx.config = {
-      ...defaultConfig,
-      ...newConfig,
-    };
+    this.ctx.config = mergeDefaults(newConfig);
   }
 
   register(connection: lsp.Connection, capabilities: lsp.ClientCapabilities) {

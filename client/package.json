@@ -212,6 +212,37 @@
           ],
           "description": "Additional paths to resolve includes"
         },
+        "m68k.vasm.provideDiagnostics": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable vasm diagnostics"
+        },
+        "m68k.vasm.binPath": {
+          "type": "string",
+          "default": "vasmm68k_mot",
+          "description": "Filename or full path of vasm executable binary"
+        },
+        "m68k.vasm.args": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "description": "Custom arguments to pass to vasm. Include paths and processor(s) from server config will automatically be added"
+        },
+        "m68k.vasm.preferWasm": {
+          "type": "boolean",
+          "default": false,
+          "description": "Always use bundled Web Assembly vasm"
+        },
+        "m68k.vasm.exclude": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "description": "File patterns to ignore and not build directly e.g. `*.i`"
+        },
         "m68k.trace.server": {
           "type": "string",
           "enum": [
