@@ -3,7 +3,7 @@
   "description": "VSCode client for m68k language server",
   "author": "Graham Bates",
   "license": "MIT",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "repository": {
     "type": "git",
     "url": "https://github.com/grahambates/m68k-lsp"
