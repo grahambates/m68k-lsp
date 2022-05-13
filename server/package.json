@@ -22,11 +22,11 @@
     "which": "^2.0.2"
   },
   "scripts": {
-    "build-wasm": "npx tree-sitter build-wasm node_modules/tree-sitter-m68k"
+    "build-wasm": "npx tree-sitter build-wasm --docker node_modules/tree-sitter-m68k; mv -f tree-sitter-m68k.wasm wasm/"
   },
   "devDependencies": {
     "@types/minimatch": "^3.0.5",
     "@types/which": "^2.0.1",
-    "tree-sitter-m68k": "^0.1.2"
+    "tree-sitter-m68k": "^0.2.0"
   }
 }
