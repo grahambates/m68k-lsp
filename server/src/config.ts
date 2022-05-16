@@ -47,15 +47,15 @@ export function mergeDefaults(config: Partial<Config>): Config {
     ...config,
     format: {
       ...defaultConfig.format,
-      ...config.format,
+      ...config?.format,
       align: {
         ...defaultConfig.format.align,
-        ...config.format?.align,
+        ...config?.format?.align,
       },
     },
     vasm: {
       ...defaultConfig.vasm,
-      ...config.vasm,
+      ...config?.vasm,
     },
   };
 }
