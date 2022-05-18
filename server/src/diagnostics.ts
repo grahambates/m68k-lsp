@@ -46,9 +46,9 @@ export default class DiagnosticProcessor {
 
     // Get path of file relative to workspace
     const workspace =
-      this.ctx.workspaceFolders.find((ws) => uri.startsWith(ws.uri)) ??
+      this.ctx.workspaceFolders.find((ws) => uri.startsWith(ws?.uri)) ??
       this.ctx.workspaceFolders[0];
-    const wsPath = URI.parse(workspace.uri).fsPath;
+    const wsPath = URI.parse(workspace?.uri)?.fsPath;
     const wsRelative = relative(wsPath, srcPath);
 
     // Does path match any exclude patterns?
