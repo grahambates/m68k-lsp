@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.3] - 2022-06-18
+
+### Fixed
+
+- Handle macro arguments in labels, mnemonics, sizes and operands [#4](https://github.com/grahambates/m68k-lsp/issues/4)
+
 ## [0.6.2] - 2022-05-18
 
 ### Fixed
