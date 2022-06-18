@@ -230,6 +230,64 @@ describe("parse", () => {
         operands: [{ start: 6, end: 18, value: "'foo bar baz" }],
       });
     });
+
+    it("parses a label containing a numeric macro parameter", () => {
+      const line = parseLine("foo\\1bar: rts");
+      expect(line).toEqual({
+        label: { start: 0, end: 8, value: "foo\\1bar" },
+        mnemonic: { start: 10, end: 13, value: "rts" },
+      });
+    });
+
+    it("parses a label containing a special char macro parameter", () => {
+      const line = parseLine("foo\\@bar: rts");
+      expect(line).toEqual({
+        label: { start: 0, end: 8, value: "foo\\@bar" },
+        mnemonic: { start: 10, end: 13, value: "rts" },
+      });
+    });
+
+    it("parses a label containing a quoted macro parameter", () => {
+      const line = parseLine("foo\\<reptn>bar: rts");
+      expect(line).toEqual({
+        label: { start: 0, end: 14, value: "foo\\<reptn>bar" },
+        mnemonic: { start: 16, end: 19, value: "rts" },
+      });
+    });
+
+    it("parses a mnemonic containing a macro parameter", () => {
+      const line = parseLine(" b\\1 d0,d1");
+      expect(line).toEqual({
+        mnemonic: { start: 1, end: 4, value: "b\\1" },
+        operands: [
+          { start: 5, end: 7, value: "d0" },
+          { start: 8, end: 10, value: "d1" },
+        ],
+      });
+    });
+
+    it("parses a size containing a macro parameter", () => {
+      const line = parseLine(" move.\\1 d0,d1");
+      expect(line).toEqual({
+        mnemonic: { start: 1, end: 5, value: "move" },
+        size: { start: 6, end: 8, value: "\\1" },
+        operands: [
+          { start: 9, end: 11, value: "d0" },
+          { start: 12, end: 14, value: "d1" },
+        ],
+      });
+    });
+
+    it("parses an operand containing a macro parameter", () => {
+      const line = parseLine(" move \\1,d0");
+      expect(line).toEqual({
+        mnemonic: { start: 1, end: 5, value: "move" },
+        operands: [
+          { start: 6, end: 8, value: "\\1" },
+          { start: 9, end: 11, value: "d0" },
+        ],
+      });
+    });
   });
 
   describe("#componentAtIndex()", () => {

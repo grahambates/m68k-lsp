@@ -31,9 +31,9 @@ export interface ComponentInfo {
 // Regex to match line components:
 // ^
 // (?<label>                           Label:
-//   ([a-z0-9_.]+:?)                   - anything at start of line - optional colon
+//   ([^:\s;*=]+:?)                    - anything at start of line - optional colon
 //   |                                   or...
-//   (\s+[a-z0-9_.]+:)                 - can have leading whitespace with colon present
+//   (\s+[^:\s;*=]+:)                  - can have leading whitespace with colon present
 // )?
 // (\s*                                Instruction or directive:
 //   (
@@ -48,8 +48,8 @@ export interface ComponentInfo {
 //     )
 //     |
 //     (                                 Any other mnemonic:
-//       (?<mnemonic>\.?([a-z0-9_]+|=))             - Mnemonic
-//       (?<size>\.[a-z0-9_.]*)?                    - Size qualifier
+//       (?<mnemonic>([^\s.,;*=]+|=))               - Mnemonic
+//       (?<size>\.[^\s.,;*]*)?                     - Size qualifier
 //       (\s*(?<operands>                           - Operand list:
 //         ([^\s;"',]+|"([^"]*)"?|'([^']*)'?)         - first operand
 //         (,\s*[^\s;"',]*|"([^"]*)"?|'([^']*)'?)*    - additional comma separated operands
@@ -59,7 +59,7 @@ export interface ComponentInfo {
 // (\s*(?<comment>.+))?                Comment (any trailing text)
 // $
 const pattern =
-  /^(?<label>([a-z0-9_.$\\]+:?)|(\s*[a-z0-9_.$\\]+:))?(\s*(((?<mnemonic1>\.?(nop|reset|rte|rtr|rts|trapv|illegal|clrfo|clrso|comment|einline|even|inline|list|mexit|nolist|nopage|odd|page|popsection|pushsection|rsreset|endif|endc|else|elseif|endm|endr|erem))(?<size1>\.[a-z0-9_.]*)?)|((?<mnemonic>\.?([a-z0-9_]+|=))(?<size>\.[a-z0-9_.]*)?(\s*(?<operands>([^\s;"',]+|"([^"]*)"?|'([^']*)'?)(,\s*[^\s;"',]*|"([^"]*)"?|'([^']*)'?)*))?)))?(\s*(?<comment>.+))?$/i;
+  /^(?<label>([^:\s;*=]+:?)|(\s+[^:\s;*=]+:))?(\s*(((?<mnemonic1>\.?(nop|reset|rte|rtr|rts|trapv|illegal|clrfo|clrso|comment|einline|even|inline|list|mexit|nolist|nopage|odd|page|popsection|pushsection|rsreset|endif|endc|else|elseif|endm|endr|erem))(?<size1>\.[a-z0-9_.]*)?)|((?<mnemonic>([^\s.,;*=]+|=))(?<size>\.[^\s.,;*]*)?(\s*(?<operands>([^\s;"',]+|"([^"]*)"?|'([^']*)'?)(,\s*[^\s;"',]*|"([^"]*)"?|'([^']*)'?)*))?)))?(\s*(?<comment>.+))?$/i;
 
 /**
  * Parse a single line of source code into positional components
