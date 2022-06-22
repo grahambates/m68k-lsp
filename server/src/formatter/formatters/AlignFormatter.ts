@@ -12,6 +12,16 @@ export type AlignOptions = {
   comment?: number;
   operator?: number;
   value?: number;
+  standaloneComment?:
+    | "ignore"
+    | "nearest"
+    | "label"
+    | "mnemonic"
+    | "operands"
+    | "comment"
+    | "operator"
+    | "value"
+    | number;
   indentStyle?: "space" | "tab";
   tabSize?: number;
   autoExtend?: "line" | "file" | "block";
@@ -36,7 +46,7 @@ interface LineInfo {
 }
 
 // TODO:
-// label posiiton?
+// label position?
 // indent conditional blocks?
 // disable autoExtend per component?
 
@@ -62,6 +72,7 @@ class AlignFormatter implements Formatter {
     let commentPosition = this.options.comment ?? 0;
     let operatorPosition = this.options.operator ?? 0;
     let valuePosition = this.options.value ?? 0;
+    const standaloneComment = this.options.standaloneComment ?? "nearest";
 
     const lines = tree.rootNode.text
       .split(/\r\n?|\n/)
@@ -183,7 +194,43 @@ class AlignFormatter implements Formatter {
         editor.addIndent(valuePosition, value);
       }
       if (comment) {
-        editor.addIndent(commentPosition, comment);
+        if (!label && !mnemonic && !operands && !operator && !value) {
+          if (standaloneComment) {
+            if (typeof standaloneComment === "number") {
+              // Literal position
+              editor.addIndent(standaloneComment, comment, 0);
+            } else if (standaloneComment === "nearest") {
+              // Find nearest position:
+              const possiblePositions = [
+                labelPosition,
+                mnemonicPosition,
+                operandsPosition,
+                commentPosition,
+                operatorPosition,
+                valuePosition,
+              ];
+              // Calculate absolute delta from each position
+              const positionDeltas = possiblePositions.map((o) =>
+                Math.abs(o - comment.range.start)
+              );
+              // Use index of smallest delta
+              const minDelta = Math.min(...positionDeltas);
+              const minDeltaIndex = positionDeltas.indexOf(minDelta);
+              editor.addIndent(possiblePositions[minDeltaIndex], comment, 0);
+            } else if (typeof standaloneComment === "string") {
+              // Named position
+              const indent =
+                this.options[standaloneComment as keyof AlignOptions];
+              if (typeof indent === "number") {
+                editor.addIndent(indent, comment, 0);
+              } else {
+                editor.addIndent(0, comment, 0);
+              }
+            }
+          }
+        } else {
+          editor.addIndent(commentPosition, comment);
+        }
       }
 
       edits.push(...editor.edits);

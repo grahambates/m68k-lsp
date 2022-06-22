@@ -38,13 +38,96 @@ describe("AlignFormatter", () => {
     expect(result).toBe("          rts                      ; foo");
   });
 
-  it("handles a comment-only line", async () => {
+  it("handles a comment at start of line", async () => {
     const result = await doFormat(`; foo`, {
       mnemonic: 10,
       operands: 20,
       comment: 35,
     });
     expect(result).toBe("; foo");
+  });
+
+  it("positions a stand-alone comment at nearest position", async () => {
+    const result = await doFormat(
+      `
+  ; foo
+          move.w    d0,d1     ; comment
+        ; foo
+          move.w    d0,d1     ; comment
+            ; foo
+          move.w    d0,d1     ; comment
+                  ; foo
+          move.w    d0,d1     ; comment
+                      ; foo
+          move.w    d0,d1     ; comment
+                           ; foo
+          move.w    d0,d1     ; comment
+                                 ; foo
+          move.w    d0,d1     ; comment`,
+      {
+        mnemonic: 10,
+        operands: 20,
+        comment: 30,
+        standaloneComment: "nearest",
+      }
+    );
+    expect(result).toBe(`
+; foo
+          move.w    d0,d1     ; comment
+          ; foo
+          move.w    d0,d1     ; comment
+          ; foo
+          move.w    d0,d1     ; comment
+                    ; foo
+          move.w    d0,d1     ; comment
+                    ; foo
+          move.w    d0,d1     ; comment
+                              ; foo
+          move.w    d0,d1     ; comment
+                              ; foo
+          move.w    d0,d1     ; comment`);
+  });
+
+  it("positions a stand-alone comment at a named position", async () => {
+    const result = await doFormat(
+      `
+  ; foo
+          move.w    d0,d1     ; comment
+                                 ; foo
+          move.w    d0,d1     ; comment`,
+      {
+        mnemonic: 10,
+        operands: 20,
+        comment: 30,
+        standaloneComment: "mnemonic",
+      }
+    );
+    expect(result).toBe(`
+          ; foo
+          move.w    d0,d1     ; comment
+          ; foo
+          move.w    d0,d1     ; comment`);
+  });
+
+  it("positions a stand-alone comment at a numeric position", async () => {
+    const result = await doFormat(
+      `
+  ; foo
+          move.w    d0,d1     ; comment
+                                 ; foo
+          move.w    d0,d1     ; comment`,
+      {
+        mnemonic: 10,
+        operands: 20,
+        comment: 30,
+        standaloneComment: 10,
+      }
+    );
+    expect(result).toBe(`
+          ; foo
+          move.w    d0,d1     ; comment
+          ; foo
+          move.w    d0,d1     ; comment`);
   });
 
   it("inserts a minimum of one space", async () => {

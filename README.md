@@ -251,6 +251,7 @@ Indents elements to align by type.
       "comment": 48,
       "operator": 0,
       "value": 0,
+      "standAloneComment": "nearest",
       "indentStyle": "space",
       "tabSize": 8
       "autoExtend": "line"
@@ -261,16 +262,26 @@ Indents elements to align by type.
 
 (defaults)
 
-| Property      | Description                                                                                             |
-| ------------- | ------------------------------------------------------------------------------------------------------- |
-| `mnemonic`    | Position of instruction/directive mnemonic and size e.g. `move.w`,`include`.                            |
-| `operands`    | Position of operands e.g. `d0,d1`.                                                                      |
-| `comment`     | Position of comment following statement. Comments on their own line are not affected.                   |
-| `operator`    | Position of `=` character in constant assignment                                                        |
-| `value`       | Position of value in constant assignment                                                                |
-| `indentStyle` | Character to use for indent - `tab` or `space`. Values for the properties above are based on this unit. |
-| `tabSize`     | Width of tab character to calculate positions when using `tab` indent style.                            |
-| `autoExtend`  | Behaviour when a component exceeds the available space between positions. See below.                    |
+| Property            | Description                                                                                             |
+| ------------------- | ------------------------------------------------------------------------------------------------------- |
+| `mnemonic`          | Position of instruction/directive mnemonic and size e.g. `move.w`,`include`.                            |
+| `operands`          | Position of operands e.g. `d0,d1`.                                                                      |
+| `comment`           | Position of comment following statement. Comments on their own line are not affected.                   |
+| `operator`          | Position of `=` character in constant assignment                                                        |
+| `value`             | Position of value in constant assignment                                                                |
+| `standaloneComment` | Position / behaviour of comment with no other elements on the same line.                                         |
+| `indentStyle`       | Character to use for indent - `tab` or `space`. Values for the properties above are based on this unit. |
+| `tabSize`           | Width of tab character to calculate positions when using `tab` indent style.                            |
+| `autoExtend`        | Behaviour when a component exceeds the available space between positions. See below.                    |
+
+Options for `standaloneComment`:
+
+| Option        | Behaviour                                                                                                            |
+| ------------- | -------------------------------------------------------------------------------------------------------------------- |
+| `"nearest"`   | Align to nearest element position (default). E.g. if current position is closest to mnemonic it snaps to that column |
+| `"ignore"`    | Don't align                                                                                                          |
+| `elementName` | Align to named element position e.g. `"label"`, `"mnemonic"`, `"operands"`                                           |
+| `number`      | Numeric literal position                                                                                             |
 
 Options for `autoExtend`:
 

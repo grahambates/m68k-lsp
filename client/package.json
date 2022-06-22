@@ -60,6 +60,21 @@
           "maximum": 120,
           "description": "Indent position of value for constant assignment"
         },
+        "m68k.format.align.standaloneComment": {
+          "type": "string",
+          "enum": [
+            "nearest",
+            "ignore",
+            "label",
+            "mnemonic",
+            "operands",
+            "comment",
+            "operator",
+            "value"
+          ],
+          "default": "nearest",
+          "description": "Position / behaviour of comment with no other elements on the same line."
+        },
         "m68k.format.align.indentStyle": {
           "type": "string",
           "enum": [
