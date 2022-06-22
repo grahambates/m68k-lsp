@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.0] - 2022-06-22
+
 ### Changed
 
 - More control over standalone comment position [#5](https://github.com/grahambates/m68k-lsp/issues/5)
