@@ -1,0 +1,87 @@
+{
+  "name": "m68k",
+  "scopeName": "source.asm.m68k",
+  "fileTypes": [
+    "s",
+    "i",
+    "asm"
+  ],
+  "patterns": [
+    {
+      "name": "comment.line.semicolon.m68k",
+      "match": ";.*"
+    },
+    {
+      "name": "comment.line.asterisk.m68k",
+      "match": "(?<=^|\\s)\\*.*"
+    },
+    {
+      "name": "comment.line.positional.operands.m68k",
+      "match": "(?<=^([^\\s:=]+\\s+|\\s*[^\\s]+:\\s*|\\s+)([^\\s.=:]+)(\\.[^\\s]+)?(\\s+)((,\\s+|[^\\s])+)[^,]\\s+)[^\\s].*"
+    },
+    {
+      "name": "comment.line.positional.nooperands.m68k",
+      "match": "(?i)(?<=^([^\\s:=]+\\s+|\\s*[^\\s]+:\\s*|\\s+)(nop|reset|rte|rtr|rts|trapv|illegal|clrfo|clrso|comment|einline|even|inline|list|mexit|nolist|nopage|odd|page|popsection|pushsection|rsreset)(\\.[^\\s]+)?(\\s+))[^\\s].*"
+    },
+    {
+      "name": "constant.character.escape.macro.m68k",
+      "match": "(?i)\\\\(\\??[0-9]|@[!?@]?|[#.+-]|<[^>]+>|\\$?\\.?[a-z]\\w+)"
+    },
+    {
+      "name": "keyword.control.mnemonic.m68k",
+      "match": "(?<=^([^\\s:=]+\\s+|\\s*[^\\s]+:\\s*|\\s+))[^\\s.=:]+(?=([\\s.]|$))"
+    },
+    {
+      "name": "keyword.control.qualifier.m68k",
+      "match": "(?<=^([^\\s:=]+\\s+|\\s*[^\\s]+:\\s*|\\s+)[^\\s.=:]+\\.)[^\\s]+(?=([\\s.]|$))"
+    },
+    {
+      "name": "keyword.other.register.m68k",
+      "match": "(?i)(?<=^([^\\s:=]+\\s+|\\s*[^\\s]+:\\s*|\\s+)([^\\s.=:]+)(\\.[^\\s]+)?\\s+.*)\\b((d|a|fp)[0-7]|pc|sp|sr|ccr|usp|vbr)\\b"
+    },
+    {
+      "name": "storage.type.sectionType.m68k",
+      "match": "(?i)(?<=section\\s.*)\\b(bss|bss_c|bss_f|bss_p|text|text_c|text_f|text_p|code|code_c|code_f|code_p|cseg|data|data_c|data_f|data_p|dseg)\\b"
+    },
+    {
+      "name": "storage.type.memoryType.m68k",
+      "match": "(?i)(?<=section\\s.*)\\b(chip|fast)\\b"
+    },
+    {
+      "name": "keyword.other.option.m68k",
+      "match": "(?i)(?<=opt\\s.*)\\b[a-z0-9+-=/]+\\b"
+    },
+    {
+      "name": "variable.parameter.m68k",
+      "match": "(?i)\b(reptn|carg|narg)\b"
+    },
+    {
+      "name": "string.quoted.double.m68k",
+      "match": "\"([^\"]|\\\")*\""
+    },
+    {
+      "name": "string.quoted.single.m68k",
+      "match": "'([^']|\\')*'"
+    },
+    {
+      "name": "constant.numeric.hex.m68k",
+      "match": "(?<!\\w)[+-]?\\$[0-9A-Fa-f]+\\b"
+    },
+    {
+      "name": "constant.numeric.octal.m68k",
+      "match": "(?<!\\w)[+-]?@[0-7]+\\b"
+    },
+    {
+      "name": "constant.numeric.binary.m68k",
+      "match": "(?<!\\w)%[01]+\\b"
+    },
+    {
+      "name": "constant.numeric.decimal.m68k",
+      "match": "(?<!\\w)[+-]?[0-9]+\\b"
+    },
+    {
+      "name": "variable.other.symbol.m68k",
+      "match": "[a-zA-Z0-9_]+"
+    }
+  ]
+}

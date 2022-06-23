@@ -1,0 +1,41 @@
+{
+  "comments": {
+    "lineComment": ";"
+  },
+  "brackets": [
+    ["{", "}"],
+    ["[", "]"],
+    ["(", ")"],
+    ["macro", "endm"],
+    ["rept", "endr"],
+    ["rem", "erem"],
+    ["if", "endc"],
+    ["if", "endif"],
+    ["ifeq", "endc"],
+    ["ifne", "endc"],
+    ["ifgt", "endc"],
+    ["ifge", "endc"],
+    ["iflt", "endc"],
+    ["ifle", "endc"],
+    ["ifd", "endc"],
+    ["ifnd", "endc"],
+    ["ifmacrod", "endc"],
+    ["ifmacrond", "endc"],
+    ["ifc", "endc"],
+    ["ifnc", "endc"]
+  ],
+  "autoClosingPairs": [
+    ["{", "}"],
+    ["[", "]"],
+    ["(", ")"],
+    ["\"", "\""],
+    ["'", "'"]
+  ],
+  "surroundingPairs": [
+    ["{", "}"],
+    ["[", "]"],
+    ["(", ")"],
+    ["\"", "\""],
+    ["'", "'"]
+  ]
+}

@@ -1,6 +1,6 @@
 {
-  "name": "m68k-lsp-client",
-  "description": "VSCode client for m68k language server",
+  "name": "m68k",
+  "description": "VSCode client for m68k",
   "author": "Graham Bates",
   "license": "MIT",
   "version": "0.7.0",
@@ -11,16 +11,49 @@
   "engines": {
     "vscode": "^1.52.0"
   },
-  "categories": [],
+  "categories": [
+    "Formatters",
+    "Programming Languages"
+  ],
   "keywords": [
     "multi-root ready"
   ],
   "activationEvents": [
+    "onLanguage:m68k",
     "onLanguage:vasmmot",
-    "onLanguage:m68k"
+    "workspaceContains:**/*.{s,S,asm,ASM}"
   ],
   "main": "./out/extension",
   "contributes": {
+    "snippets": [
+      {
+        "language": "m68k",
+        "path": "./snippets.json"
+      }
+    ],
+    "languages": [
+      {
+        "id": "m68k",
+        "aliases": [
+          "M68k-Assembly",
+          "asm68k",
+          "m68k"
+        ],
+        "extensions": [
+          ".s",
+          ".i",
+          ".asm"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "m68k",
+        "scopeName": "source.asm.m68k",
+        "path": "./syntaxes/M68k-Assembly.tmLanguage.json"
+      }
+    ],
     "configuration": {
       "type": "object",
       "title": "M68k",
@@ -277,8 +310,5 @@
   },
   "devDependencies": {
     "@types/vscode": "^1.52.0"
-  },
-  "extensionDependencies": [
-    "clcxce.motorola-68k-assembly"
-  ]
+  }
 }

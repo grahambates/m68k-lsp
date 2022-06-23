@@ -1,0 +1,97 @@
+{
+  "Define macro": {
+    "prefix": "macro",
+    "body": ["macro $1", "$2", "endm"],
+    "description": "Define a macro"
+  },
+  "Repeat": {
+    "prefix": "rept",
+    "body": ["rept ${1:count}", "$2", "endr"],
+    "description": "Repeating block"
+  },
+  "Rem": {
+    "prefix": "rem",
+    "body": ["rem", "$1", "erem"],
+    "description": "Rem comment block"
+  },
+  "If condition": {
+    "prefix": "if",
+    "body": ["if ${1:condition}", "$2", "endc"],
+    "description": "'If' conditional block"
+  },
+  "If/else condition": {
+    "prefix": "ifelse",
+    "body": ["if ${1:condition}", "$2", "else", "$3", "endc"],
+    "description": "'If/else' conditional blocks"
+  },
+  "If zero": {
+    "prefix": "ifeq",
+    "body": ["ifeq ${1:expression}", "$2", "endc"],
+    "description": "'If zero' conditional block"
+  },
+  "If not zero": {
+    "prefix": "ifne",
+    "body": ["ifne ${1:expression}", "$2", "endc"],
+    "description": "'If not zero' conditional block"
+  },
+  "If defined": {
+    "prefix": "ifd",
+    "body": ["ifd ${1:symbol}", "$2", "endc"],
+    "description": "'If defined' conditional block"
+  },
+  "If not defined": {
+    "prefix": "ifnd",
+    "body": ["ifnd ${1:symbol}", "$2", "endc"],
+    "description": "'If not defined' conditional block"
+  },
+  "If macro defined": {
+    "prefix": "ifmacrod",
+    "body": ["ifmacrod ${1:macro}", "$2", "endc"],
+    "description": "'If macro defined' conditional block"
+  },
+  "If macro not defined": {
+    "prefix": "ifmacrond",
+    "body": ["ifmacrond ${1:symbol}", "$2", "endc"],
+    "description": "'If macro not defined' conditional block"
+  },
+  "If strings same": {
+    "prefix": "ifc",
+    "body": ["ifc ${1:a},${2:b}", "$3", "endc"],
+    "description": "'If strings same' conditional block"
+  },
+  "If strings not same": {
+    "prefix": "ifnc",
+    "body": ["ifnc ${1:a},${2:b}", "$3", "endc"],
+    "description": "'If strings not same' conditional block"
+  },
+  "If blank": {
+    "prefix": "ifb",
+    "body": ["ifb ${1:symbol}", "$2", "endc"],
+    "description": "'If blank' conditional block"
+  },
+  "If not blank": {
+    "prefix": "ifnb",
+    "body": ["ifnb ${1:symbol}", "$2", "endc"],
+    "description": "'If not blank' conditional block"
+  },
+  "If greater than": {
+    "prefix": "ifgt",
+    "body": ["ifgt ${1:expression}", "$2", "endc"],
+    "description": "'If greater than zero' conditional block"
+  },
+  "If greater than or equal": {
+    "prefix": "ifge",
+    "body": ["ifge ${1:expression}", "$2", "endc"],
+    "description": "'If greater than or equal to zero' conditional block"
+  },
+  "If less than": {
+    "prefix": "iflt",
+    "body": ["iflt ${1:expression}", "$2", "endc"],
+    "description": "'If less than zero' conditional block"
+  },
+  "If less than or equal": {
+    "prefix": "ifle",
+    "body": ["ifle ${1:expression}", "$2", "endc"],
+    "description": "'If less than or equal to zero' conditional block"
+  }
+}
