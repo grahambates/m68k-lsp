@@ -1,11 +1,7 @@
 {
   "name": "m68k",
   "scopeName": "source.asm.m68k",
-  "fileTypes": [
-    "s",
-    "i",
-    "asm"
-  ],
+  "fileTypes": ["s", "i", "asm"],
   "patterns": [
     {
       "name": "comment.line.semicolon.m68k",
@@ -40,6 +36,10 @@
       "match": "(?i)(?<=^([^\\s:=]+\\s+|\\s*[^\\s]+:\\s*|\\s+)([^\\s.=:]+)(\\.[^\\s]+)?\\s+.*)\\b((d|a|fp)[0-7]|pc|sp|sr|ccr|usp|vbr)\\b"
     },
     {
+      "name": "keyword.other.builtin.m68k",
+      "match": "(?i)(?<=^([^\\s:=]+\\s+|\\s*[^\\s]+:\\s*|\\s+)([^\\s.=:]+)(\\.[^\\s]+)?\\s+.*)\\b(reptn|carg|narg)\\b"
+    },
+    {
       "name": "storage.type.sectionType.m68k",
       "match": "(?i)(?<=section\\s.*)\\b(bss|bss_c|bss_f|bss_p|text|text_c|text_f|text_p|code|code_c|code_f|code_p|cseg|data|data_c|data_f|data_p|dseg)\\b"
     },
@@ -52,10 +52,6 @@
       "match": "(?i)(?<=opt\\s.*)\\b[a-z0-9+-=/]+\\b"
     },
     {
-      "name": "variable.parameter.m68k",
-      "match": "(?i)\b(reptn|carg|narg)\b"
-    },
-    {
       "name": "string.quoted.double.m68k",
       "match": "\"([^\"]|\\\")*\""
     },
@@ -65,11 +61,11 @@
     },
     {
       "name": "constant.numeric.hex.m68k",
-      "match": "(?<!\\w)[+-]?\\$[0-9A-Fa-f]+\\b"
+      "match": "(?<!\\w)\\$[0-9A-Fa-f]+\\b"
     },
     {
       "name": "constant.numeric.octal.m68k",
-      "match": "(?<!\\w)[+-]?@[0-7]+\\b"
+      "match": "(?<!\\w)@[0-7]+\\b"
     },
     {
       "name": "constant.numeric.binary.m68k",
@@ -77,7 +73,7 @@
     },
     {
       "name": "constant.numeric.decimal.m68k",
-      "match": "(?<!\\w)[+-]?[0-9]+\\b"
+      "match": "(?<!\\w)[0-9]+\\b"
     },
     {
       "name": "variable.other.symbol.m68k",
