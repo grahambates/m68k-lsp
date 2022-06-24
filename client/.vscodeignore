@@ -1,0 +1,5 @@
+src
+examples
+node_modules
+!node_modules/m68k-lsp-server
+!node_modules/web-tree-sitter

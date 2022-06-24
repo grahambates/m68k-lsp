@@ -1,22 +1,39 @@
 {
-  "name": "m68k",
-  "description": "VSCode client for m68k",
+  "name": "m68k-lsp",
+  "displayName": "Motorola 68000 Assembly",
+  "description": "Motorola 68000 family Assembly language support",
   "author": "Graham Bates",
   "license": "MIT",
-  "version": "0.7.0",
+  "version": "0.7.1",
+  "scripts": {
+    "package": "vsce package",
+    "publish": "vsce publish"
+  },
+  "homepage": "https://github.com/grahambates/m68k-lsp",
+  "bugs": {
+    "url": "https://github.com/grahambates/m68k-lsp/issues"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/grahambates/m68k-lsp"
   },
+  "publisher": "gigabates",
+  "icon": "icon.png",
   "engines": {
     "vscode": "^1.52.0"
   },
   "categories": [
     "Formatters",
+    "Snippets",
     "Programming Languages"
   ],
   "keywords": [
-    "multi-root ready"
+    "68000",
+    "assembly",
+    "asm",
+    "retro",
+    "amiga",
+    "atarist"
   ],
   "activationEvents": [
     "onLanguage:m68k",
@@ -305,7 +322,7 @@
     }
   },
   "dependencies": {
-    "m68k-lsp-server": "^0.1.0",
+    "m68k-lsp-server": "^0.7.0",
     "vscode-languageclient": "^7.0.0"
   },
   "devDependencies": {
