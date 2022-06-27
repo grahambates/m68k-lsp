@@ -7,7 +7,7 @@
 family assembly, based on [tree-sitter-m68k](https://github.com/grahambates/tree-sitter-m68k)
 
 - Suitable for use with LSP supporting editors e.g. [Neovim](https://neovim.io/)
-- Includes VS Code extension (not yet published)
+- Includes [VS Code extension](https://marketplace.visualstudio.com/items?itemName=gigabates.m68k-lsp)
 
 ## Features
 
@@ -269,7 +269,7 @@ Indents elements to align by type.
 | `comment`           | Position of comment following statement. Comments on their own line are not affected.                   |
 | `operator`          | Position of `=` character in constant assignment                                                        |
 | `value`             | Position of value in constant assignment                                                                |
-| `standaloneComment` | Position / behaviour of comment with no other elements on the same line.                                         |
+| `standaloneComment` | Position / behaviour of comment with no other elements on the same line.                                |
 | `indentStyle`       | Character to use for indent - `tab` or `space`. Values for the properties above are based on this unit. |
 | `tabSize`           | Width of tab character to calculate positions when using `tab` indent style.                            |
 | `autoExtend`        | Behaviour when a component exceeds the available space between positions. See below.                    |
