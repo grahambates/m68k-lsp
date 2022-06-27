@@ -322,7 +322,7 @@
     }
   },
   "dependencies": {
-    "m68k-lsp-server": "^0.7.0",
+    "m68k-lsp-server": "^0.7.2",
     "vscode-languageclient": "^7.0.0"
   },
   "devDependencies": {
