@@ -18,6 +18,14 @@ label2      move.w    d0,d1                     positional comment with label no
             move.w    d0,d1                     positional comment operand spaces
             rts                                 positional comment no operand
 
+            rem
+Lorem ipsum dolor sit amet, 
+consectetur adipiscing elit. 
+Curabitur aliquet non velit sit amet condimentum. 
+Donec aliquam felis vel fermentum scelerisque. 
+Mauris sit amet velit sit amet dui rhoncus tincidunt.
+            erem
+
 ;---------------------------------------------
 ; Instructions
 ;---------------------------------------------

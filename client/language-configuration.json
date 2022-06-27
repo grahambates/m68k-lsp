@@ -1,6 +1,7 @@
 {
   "comments": {
-    "lineComment": ";"
+    "lineComment": ";",
+    "blockComment": ["\trem\n", "\n\terem"]
   },
   "brackets": [
     ["{", "}"],

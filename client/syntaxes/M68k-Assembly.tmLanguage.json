@@ -20,6 +20,11 @@
       "match": "(?i)(?<=^([^\\s:=]+\\s+|\\s*[^\\s]+:\\s*|\\s+)(nop|reset|rte|rtr|rts|trapv|illegal|clrfo|clrso|comment|einline|even|inline|list|mexit|nolist|nopage|odd|page|popsection|pushsection|rsreset)(\\.[^\\s]+)?(\\s+))[^\\s].*"
     },
     {
+      "name": "comment.block.rem.m68k",
+      "begin": "(?i)(?<=^\\s+rem)",
+      "end": "(?i)(?=^\\s+erem)"
+    },
+    {
       "name": "constant.character.escape.macro.m68k",
       "match": "(?i)\\\\(\\??[0-9]|@[!?@]?|[#.+-]|<[^>]+>|\\$?\\.?[a-z]\\w+)"
     },
