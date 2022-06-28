@@ -25,6 +25,10 @@
       "end": "(?i)(?=^\\s+erem)"
     },
     {
+      "name": "comment.block.end.m68k",
+      "begin": "(?i)(?<=^\\s+end)"
+    },
+    {
       "name": "constant.character.escape.macro.m68k",
       "match": "(?i)\\\\(\\??[0-9]|@[!?@]?|[#.+-]|<[^>]+>|\\$?\\.?[a-z]\\w+)"
     },
