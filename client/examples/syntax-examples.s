@@ -15,7 +15,7 @@
 label1:     move.w    d0,d1                     positional comment with label
 label2      move.w    d0,d1                     positional comment with label no colon
   label3:   move.w    d0,d1                     positional comment with label leading whitespace
-            move.w    d0,d1                     positional comment operand spaces
+            move.w    d0, d1                    positional comment with operand spaces (-spaces option in vasm)
             rts                                 positional comment no operand
 
             rem
@@ -36,7 +36,9 @@ Mauris sit amet velit sit amet dui rhoncus tincidunt.
 label4:     move.w    d0,d1                     ; label
 label5      move.w    d0,d1                     ; label no colon
   label6:   move.w    d0,d1                     ; label leading whitespace
-.label7:    move.w    d0,d1                     ; local label
+.label7:    move.w    d0,d1                     ; local label prefix
+label7$:    move.w    d0,d1                     ; local label suffix
+label7::    move.w    d0,d1                     ; external label
 label8:                                         ; Standalone label
 
 ;---------------------------------------------
@@ -129,11 +131,12 @@ label8:       move.w        foo\2bar+\3,d1            ; numbered args in operand
             dc.b    $1f                         ; hexadecimal
             dc.b    -$1f                        ; hexadecimal signed
             dc.b    'some text'                 ; string single quotes
-            incdir  'some '' text'              ; string single quotes escape
-            incdir  'some \' text'              ; string single quotes escape
+            incdir  'some '' text'              ; string single quotes repeat escape
+            incdir  'some \' \n\b \xf9 \@ text' ; string single quotes backslash escape (-esc option in vasm)
             dc.b    "some text"                 ; string double quotes
-            incdir  "some "" text"              ; string double quotes escape
-            incdir  "some \" text"              ; string double quotes escape
+            incdir  "some "" text"              ; string double quotes repeat escape
+            incdir  "some \" \n\b \xf9 \@ text" ; string double quotes backslash escape (-esc option in vasm)
+            incdir  some/path/file.s            ; unquoted path
 
 ;---------------------------------------------
 ; Sections

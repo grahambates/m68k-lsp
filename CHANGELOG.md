@@ -7,9 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Syntax support for escape chars in strings and unquoted paths
+
 ## [0.7.2] - 2022-06-27
 
-## Fixed
+### Fixed
 
 - Parser errors on REM and empty blocks
 
