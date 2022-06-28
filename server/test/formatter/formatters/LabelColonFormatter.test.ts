@@ -26,6 +26,11 @@ describe("LabelColonFormatter", () => {
     expect(result).toBe("foo move d0,d1\n.bar add d0,d1");
   });
 
+  it("always keeps double colons for external labels", async () => {
+    const result = await doFormat(`foo:: move d0,d1\n.bar: add d0,d1`, "off");
+    expect(result).toBe("foo:: move d0,d1\n.bar add d0,d1");
+  });
+
   it("adds colons to global labels", async () => {
     const result = await doFormat(`foo move d0,d1\n.bar add d0,d1`, {
       global: "on",
