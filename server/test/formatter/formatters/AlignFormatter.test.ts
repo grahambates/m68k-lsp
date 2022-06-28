@@ -419,4 +419,56 @@ label:      move.w      d0,d1   ; comment`
       );
     });
   });
+
+  it("ignores text inside REM", async () => {
+    const result = await doFormat(
+      `
+foo:  move d1,d2
+  REM
+Lorem ipsum dolor sit amet, 
+consectetur adipiscing elit. 
+Curabitur aliquet non velit sit amet condimentum. 
+  EREM
+foo:  move d1,d2
+`,
+      {
+        mnemonic: 10,
+        operands: 20,
+        comment: 35,
+      }
+    );
+    expect(result).toBe(`
+foo:      move      d1,d2
+          REM
+Lorem ipsum dolor sit amet, 
+consectetur adipiscing elit. 
+Curabitur aliquet non velit sit amet condimentum. 
+          EREM
+foo:      move      d1,d2
+`);
+  });
+
+  it("ignores text after END", async () => {
+    const result = await doFormat(
+      `
+foo:  move d1,d2
+  END
+Lorem ipsum dolor sit amet, 
+consectetur adipiscing elit. 
+Curabitur aliquet non velit sit amet condimentum. 
+`,
+      {
+        mnemonic: 10,
+        operands: 20,
+        comment: 35,
+      }
+    );
+    expect(result).toBe(`
+foo:      move      d1,d2
+          END
+Lorem ipsum dolor sit amet, 
+consectetur adipiscing elit. 
+Curabitur aliquet non velit sit amet condimentum. 
+`);
+  });
 });

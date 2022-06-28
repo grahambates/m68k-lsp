@@ -8,10 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+
 - Syntax support for escape chars in strings and unquoted paths
 
 ### Fixed
+
 - Handle double colon for external labels in line parser
+- Don't format text inside REM or after END
 
 ## [0.7.2] - 2022-06-27
 

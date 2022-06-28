@@ -74,12 +74,16 @@ class AlignFormatter implements Formatter {
     let valuePosition = this.options.value ?? 0;
     const standaloneComment = this.options.standaloneComment ?? "nearest";
 
-    const lines = tree.rootNode.text
-      .split(/\r\n?|\n/)
-      .map((text, i) => this.processLine(text, i, prevEdits));
+    const lineText = tree.rootNode.text.split(/\r\n?|\n/);
+    const lines = lineText.map((text, i) =>
+      this.processLine(text, i, prevEdits)
+    );
 
     // For files we only need to calculate adjustments once
     let autoExtended = false;
+
+    // Ignore lines inside REM or after END mnemonic
+    let inComment = false;
 
     for (let line = 0; line < lines.length; line++) {
       const {
@@ -92,6 +96,24 @@ class AlignFormatter implements Formatter {
         text,
         block,
       } = lines[line];
+
+      // Check for mnemonics which take us in or out of comment mode:
+
+      const mnemonicText =
+        mnemonic &&
+        lineText[line]
+          .substring(mnemonic.range.start, mnemonic.range.end)
+          .toLowerCase();
+
+      if (inComment) {
+        if (mnemonicText === "erem") {
+          inComment = false;
+        } else {
+          continue;
+        }
+      } else if (mnemonicText === "rem" || mnemonicText === "end") {
+        inComment = true;
+      }
 
       const labelPosition = 0;
 
