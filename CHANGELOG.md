@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Syntax support for escape chars in strings and unquoted paths
 
+### Fixed
+- Handle double colon for external labels in line parser
+
 ## [0.7.2] - 2022-06-27
 
 ### Fixed

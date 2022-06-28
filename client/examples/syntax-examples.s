@@ -145,3 +145,10 @@ label8:       move.w        foo\2bar+\3,d1            ; numbered args in operand
             section section1,bss,chip           ; named section
             section section2,bss_c              ; named section shorthand type
             bss_c  
+
+            end
+Lorem ipsum dolor sit amet, 
+consectetur adipiscing elit. 
+Curabitur aliquet non velit sit amet condimentum. 
+Donec aliquam felis vel fermentum scelerisque. 
+Mauris sit amet velit sit amet dui rhoncus tincidunt.           

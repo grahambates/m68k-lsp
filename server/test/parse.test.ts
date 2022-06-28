@@ -50,6 +50,13 @@ describe("parse", () => {
       });
     });
 
+    it("parses a label with double colon", () => {
+      const line = parseLine("label::");
+      expect(line).toEqual({
+        label: { start: 0, end: 5, value: "label" },
+      });
+    });
+
     it("parses a local label", () => {
       const line = parseLine(".label:");
       expect(line).toEqual({
