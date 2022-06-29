@@ -43,6 +43,31 @@ npm install --global m68k-lsp-server
 
 ## Usage
 
+### Neovim
+
+Configure using [nvim-lspconfig](https://github.com/neovim/nvim-lspconfig)
+
+e.g.
+```lua
+require('lspconfig').m68k.setup{
+  on_attach = on_attach,
+  init_options = {
+    includePaths = { '../include', '/home/myuser/includes' },
+    format = {
+      case = {
+        instruction = 'upper'
+      }
+    }
+  }
+}
+```
+
+### Emacs
+
+See [emacs-m68k](https://github.com/themkat/emacs-m68k)
+
+### Standalone server
+
 Start the server e.g.:
 
 ```
