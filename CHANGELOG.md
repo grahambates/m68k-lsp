@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.3] - 2022-06-29
+
 ### Added
 
 - Syntax support for escape chars in strings and unquoted paths
@@ -15,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Handle double colon for external labels in line parser
 - Don't format text inside REM or after END
+- Various parser fixes in tree-sitter-m68k
 
 ## [0.7.2] - 2022-06-27
 
