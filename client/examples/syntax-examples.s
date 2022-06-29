@@ -72,9 +72,11 @@ label8:                                         ; Standalone label
 
 EXAMPLE1 = $100                                 ; operator
 EXAMPLE2=$100                                   ; operator no space
-EXAMPLE3 equ $100                               ; equ directive
-EXAMPLE4 set $100                               ; set directive
-EXAMPLE4 equr d0                                ; register alias                             ; shorthand section
+EXAMPLE4 =.s $100                               ; operator with qualifer
+EXAMPLE5 equ $100                               ; equ directive
+EXAMPLE6 equ.s $100                             ; equ directive with qualifier
+EXAMPLE7 set $100                               ; set directive
+EXAMPLE8 equr d0                                ; register alias
 
 ;---------------------------------------------
 ; Blocks
