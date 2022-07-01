@@ -35,7 +35,11 @@
     ["ifc", "endc"],
     ["ifc", "endif"],
     ["ifnc", "endc"],
-    ["ifnc", "endif"]
+    ["ifnc", "endif"],
+    ["ifb", "endc"],
+    ["ifb", "endif"],
+    ["ifnb", "endc"],
+    ["ifnb", "endif"]
   ],
   "autoClosingPairs": [
     ["{", "}"],
