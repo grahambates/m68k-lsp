@@ -67,7 +67,7 @@
     {
       "name": "string.quoted.double.m68k",
       "begin": "\"",
-      "end": "\"",
+      "end": "[\"\\n]",
       "patterns": [
         {
           "name": "constant.character.escape.char.m68k",
@@ -82,7 +82,7 @@
     {
       "name": "string.quoted.single.m68k",
       "begin": "'",
-      "end": "'",
+      "end": "['\\n]",
       "patterns": [
         {
           "name": "constant.character.escape.char.m68k",
