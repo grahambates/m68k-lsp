@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Nested blocks syntax error in tree-sitter-m68k
+
 ## [0.7.3] - 2022-06-29
 
 ### Added

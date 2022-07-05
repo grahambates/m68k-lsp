@@ -27,6 +27,6 @@
   "devDependencies": {
     "@types/minimatch": "^3.0.5",
     "@types/which": "^2.0.1",
-    "tree-sitter-m68k": "^0.2.3"
+    "tree-sitter-m68k": "^0.2.4"
   }
 }
