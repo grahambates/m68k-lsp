@@ -118,12 +118,15 @@ export default class HoverProvider implements Provider {
         case DefinitionType.Variable: {
           // Find Declaration and add code block
           const startLine = def.location.range.start.line;
-          const lines = document.getText().split(/\r?\n/g);
-          const definitionLine = lines[startLine];
-          contents.push({
-            language: document.languageId,
-            value: formatDeclaration(definitionLine),
-          });
+          const defDoc = this.ctx.store.get(def.location.uri)?.document;
+          if (defDoc) {
+            const lines = defDoc.getText().split(/\r?\n/g);
+            const definitionLine = lines[startLine];
+            contents.push({
+              language: document.languageId,
+              value: formatDeclaration(definitionLine),
+            });
+          }
           break;
         }
         default:
