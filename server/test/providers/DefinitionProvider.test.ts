@@ -69,7 +69,7 @@ describe("DefinitionProvider", () => {
 
       expect(definitions).toHaveLength(1);
       expect(definitions[0].uri).toBe(textDocument.uri);
-      expect(definitions[0].range).toEqual(range(1, 0, 1, 6));
+      expect(definitions[0].range).toEqual(range(1, 0, 1, 7));
     });
 
     it("returns a contant definition in included doc", async () => {

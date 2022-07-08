@@ -75,7 +75,7 @@ describe("DocumentSymbolProvider", () => {
       expect(symbols).toHaveLength(1);
       expect(symbols[0].name).toBe("foo");
       expect(symbols[0].kind).toBe(lsp.SymbolKind.Field);
-      expect(symbols[0].range).toEqual(range(0, 0, 0, 3));
+      expect(symbols[0].range).toEqual(range(0, 0, 0, 4));
       expect(symbols[0].selectionRange).toEqual(range(0, 0, 0, 3));
     });
 
@@ -97,7 +97,7 @@ describe("DocumentSymbolProvider", () => {
       expect(child.name).toBe(".bar");
       //       expect(child.detail).toBe("label");
       expect(child.kind).toBe(lsp.SymbolKind.Field);
-      expect(child.range).toEqual(range(1, 0, 1, 4));
+      expect(child.range).toEqual(range(1, 0, 1, 5));
       expect(child.selectionRange).toEqual(range(1, 0, 1, 4));
     });
 

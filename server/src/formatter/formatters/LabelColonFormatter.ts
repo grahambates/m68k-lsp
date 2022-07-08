@@ -17,7 +17,7 @@ class LabelColonFormatter implements Formatter {
   private query: Parser.Query;
 
   constructor(language: Parser.Language, private options: LabelColonOptions) {
-    this.query = language.query(`(label) @label`);
+    this.query = language.query(`(label name: (_) @label)`);
   }
 
   format(tree: Parser.Tree): TextEdit[] {
@@ -35,7 +35,7 @@ class LabelColonFormatter implements Formatter {
       }
 
       // Detect inline - any named nodes on same line, other than comments?
-      const next = node.nextNamedSibling;
+      const next = node.parent?.nextNamedSibling;
       const isInline =
         next?.startPosition.row === node.startPosition.row &&
         next.type !== "comment";
