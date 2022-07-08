@@ -7,9 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.5] - 2022-07-08
+
 ### Fixed
 
 - Nested blocks syntax error in tree-sitter-m68k
+
+## [0.7.4] - 2022-07-05
+
+### Fixed
+
 - syntax: add missing `ifb`/`ifnb` conditionals
 - syntax: handle unbalanced quotes
 

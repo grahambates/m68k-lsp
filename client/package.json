@@ -4,7 +4,7 @@
   "description": "Motorola 68000 family Assembly language support",
   "author": "Graham Bates",
   "license": "MIT",
-  "version": "0.7.4",
+  "version": "0.7.5",
   "scripts": {
     "package": "vsce package",
     "publish": "vsce publish"
@@ -322,7 +322,7 @@
     }
   },
   "dependencies": {
-    "m68k-lsp-server": "^0.7.4",
+    "m68k-lsp-server": "^0.7.5",
     "vscode-languageclient": "^7.0.0"
   },
   "devDependencies": {
