@@ -14,7 +14,24 @@ export default class DocumentFormattingProvider implements Provider {
     if (!processed) {
       return null;
     }
+    const formatter = this.getFormatter(options);
+    return formatter.format(processed.tree);
+  }
 
+  async onDocumentRangeFormatting({
+    textDocument,
+    options,
+    range,
+  }: lsp.DocumentRangeFormattingParams): Promise<lsp.TextEdit[] | null> {
+    const processed = this.ctx.store.get(textDocument.uri);
+    if (!processed) {
+      return null;
+    }
+    const formatter = this.getFormatter(options);
+    return formatter.formatRange(processed.tree, range);
+  }
+
+  private getFormatter(options: lsp.FormattingOptions): DocumentFormatter {
     // Defaults
     const config = this.ctx.config.format;
 
@@ -28,16 +45,17 @@ export default class DocumentFormattingProvider implements Provider {
     if (options.trimTrailingWhitespace !== undefined) {
       config.trimWhitespace = options.trimTrailingWhitespace;
     }
-
-    const formatter = new DocumentFormatter(this.ctx.language, config);
-
-    return formatter.format(processed.tree);
+    return new DocumentFormatter(this.ctx.language, config);
   }
 
   register(connection: lsp.Connection): lsp.ServerCapabilities {
     connection.onDocumentFormatting(this.onDocumentFormatting.bind(this));
+    connection.onDocumentRangeFormatting(
+      this.onDocumentRangeFormatting.bind(this)
+    );
     return {
       documentFormattingProvider: true,
+      documentRangeFormattingProvider: true,
     };
   }
 }

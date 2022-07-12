@@ -1,5 +1,6 @@
-import { TextEdit } from "vscode-languageserver";
+import { TextEdit, Range } from "vscode-languageserver";
 import Parser from "web-tree-sitter";
+import { containsRange } from "../geometry";
 import AlignFormatter, { AlignOptions } from "./formatters/AlignFormatter";
 import CaseFormatter, { CaseOptions } from "./formatters/CaseFormatter";
 import EndOfLineFormatter from "./formatters/EndOfLineFormatter";
@@ -77,6 +78,11 @@ class DocumentFormatter {
     }
 
     return edits;
+  }
+
+  formatRange(tree: Parser.Tree, range: Range) {
+    const edits = this.format(tree);
+    return edits.filter((e) => containsRange(range, e.range));
   }
 }
 

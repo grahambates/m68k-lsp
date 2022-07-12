@@ -40,6 +40,16 @@ export function containsPosition(
 }
 
 /**
+ * Does range contain sub-range?
+ */
+export function containsRange(range: lsp.Range, subRange: lsp.Range): boolean {
+  return (
+    isBeforeOrEqual(range.start, subRange.start) &&
+    isBeforeOrEqual(subRange.end, range.end)
+  );
+}
+
+/**
  * Convert language-server position to tree-sitter point
  */
 export function positionToPoint(position: lsp.Position): Parser.Point {
