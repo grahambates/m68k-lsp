@@ -31,6 +31,30 @@ export default class DocumentFormattingProvider implements Provider {
     return formatter.formatRange(processed.tree, range);
   }
 
+  async onDocumentOnTypeFormatting({
+    textDocument,
+    options,
+    position,
+    ch,
+  }: lsp.DocumentOnTypeFormattingParams) {
+    const processed = this.ctx.store.get(textDocument.uri);
+    if (!processed) {
+      return null;
+    }
+    const formatter = this.getFormatter({
+      ...options,
+      // Force trim whitespace off while still typing
+      trimTrailingWhitespace: false,
+    });
+    // Line to format - current or previous if NL
+    const line = ch === "\n" ? position.line - 1 : position.line;
+    const range = {
+      start: { line, character: 0 },
+      end: { line: line + 1, character: 0 },
+    };
+    return formatter.formatRange(processed.tree, range);
+  }
+
   private getFormatter(options: lsp.FormattingOptions): DocumentFormatter {
     // Defaults
     const config = this.ctx.config.format;
@@ -53,9 +77,16 @@ export default class DocumentFormattingProvider implements Provider {
     connection.onDocumentRangeFormatting(
       this.onDocumentRangeFormatting.bind(this)
     );
+    connection.onDocumentOnTypeFormatting(
+      this.onDocumentOnTypeFormatting.bind(this)
+    );
     return {
       documentFormattingProvider: true,
       documentRangeFormattingProvider: true,
+      documentOnTypeFormattingProvider: {
+        firstTriggerCharacter: "\n",
+        moreTriggerCharacter: [";", " ", "\t", ",", "."],
+      },
     };
   }
 }
