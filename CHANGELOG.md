@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- VS Code problem matcher for vasm output
+
 ## [0.7.5] - 2022-07-08
 
 ### Fixed

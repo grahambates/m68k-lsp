@@ -71,6 +71,23 @@
         "path": "./syntaxes/M68k-Assembly.tmLanguage.json"
       }
     ],
+    "problemMatchers": [
+      {
+        "name": "vasm",
+        "owner": "m68k",
+        "fileLocation": [
+          "relative",
+          "${workspaceFolder}"
+        ],
+        "pattern": {
+          "regexp": "^(.\\w+) (\\d+) in line (\\d+) of \"([^\"]*)\": (.*)$",
+          "severity": 1,
+          "line": 3,
+          "file": 4,
+          "message": 5
+        }
+      }
+    ],
     "configuration": {
       "type": "object",
       "title": "M68k",

@@ -27,6 +27,7 @@ Adds language support for Motorola 68000 Assembly to Visual Studio Code.
 - Multiple workspaces
 - Rename Symbols
 - Signature Help
+- Problem mathcing for vasm output
 
 ## Language server
 
