@@ -10,6 +10,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - VS Code problem matcher for vasm output
+- Format range
+- Format on type
+
+### Fixed
+
+- wasm fetch error in node 18
+- symbol hover definition from correct document
 
 ## [0.7.5] - 2022-07-08
 
