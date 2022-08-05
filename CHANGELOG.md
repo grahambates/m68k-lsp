@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Update tree-sitter-m68k to v0.2.7
+  - allows square brackets
+  - adds support for scaled indexes to address [#7](https://github.com/grahambates/m68k-lsp/issues/7)
+
 ## [0.8.0] - 2022-07-14
 
 ### Added
