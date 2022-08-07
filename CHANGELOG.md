@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.1] - 2022-08-07
+
 ### Fixed
 
 - Update tree-sitter-m68k to v0.2.7
