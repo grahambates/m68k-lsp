@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Formatting on comment blocks for hover and autocomplete. These are now correctly escaped into markdown with line breaks
+  intact.
+- Incorrect help string on a vscode setting
+
 ## [0.8.1] - 2022-08-07
 
 ### Fixed
