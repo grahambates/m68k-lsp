@@ -102,10 +102,31 @@ export function processSymbols(
       }
     }
 
+    // Convert to markdown:
+    const horizontalRule = "***";
+    const processedLines = commentLines.map((l) =>
+      l
+        // Remove comment char and leading whitespace from each line
+        .replace(/^[;*]\s?/, "")
+        // Convert repeated punctuation lines to MD horizontal rules
+        // This looks better and avoids creating headings with --- or === underline style
+        // Use a tmp placeholder string until special chars are escaped
+        .replace(/^\s*[*-=]{3,}\s*$/, "~~~")
+        // Escape special chars
+        .replace(/([*_{}[\]()#+-.!`])/g, "\\$1")
+        // Replace placholder with actual rule
+        .replace(/^~~~$/, horizontalRule)
+    );
+    // Ensure no horizontal rules at start or end of block
+    while (processedLines[0] === horizontalRule) {
+      processedLines.shift();
+    }
+    while (processedLines[processedLines.length - 1] === horizontalRule) {
+      processedLines.pop();
+    }
+
     if (commentLines.length) {
-      def.comment = commentLines
-        .map((l) => l.replace(/^[;*] ?/, ""))
-        .join("\\n");
+      def.comment = processedLines.join("  \n");
     }
 
     if (type === DefinitionType.Label) {

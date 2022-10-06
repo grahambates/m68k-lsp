@@ -265,7 +265,7 @@ foo = 123
 
       expect(completions).toContainEqual(
         expect.objectContaining({
-          documentation: { kind: "markdown", value: "test 123\\nexample" },
+          documentation: { kind: "markdown", value: "test 123  \nexample" },
         })
       );
     });
