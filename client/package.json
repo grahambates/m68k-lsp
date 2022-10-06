@@ -293,7 +293,7 @@
           "default": [
             "mc68000"
           ],
-          "description": "Additional paths to resolve includes"
+          "description": "Supported processors for syntax checking"
         },
         "m68k.vasm.provideDiagnostics": {
           "type": "boolean",
@@ -323,7 +323,7 @@
           "items": {
             "type": "string"
           },
-          "default": [],
+          "default": ["*.i"],
           "description": "File patterns to ignore and not build directly e.g. `*.i`"
         },
         "m68k.trace.server": {
