@@ -23,6 +23,16 @@ export async function createContext(
   config: Partial<Config>
 ): Promise<Context> {
   if (!language) {
+    // Workaround for web-tree-sitter node 18 compatibility issue:
+    // https://github.com/tree-sitter/tree-sitter/issues/1765#issuecomment-1271790298
+    try {
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore
+      delete WebAssembly.instantiateStreaming;
+    } catch {
+      // ¯\_(ツ)_/¯
+    }
+
     await Parser.init();
     language = await Parser.Language.load(
       path.join(__dirname, "..", "wasm", "tree-sitter-m68k.wasm")
