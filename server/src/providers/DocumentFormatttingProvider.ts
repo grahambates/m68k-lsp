@@ -69,6 +69,16 @@ export default class DocumentFormattingProvider implements Provider {
     if (options.trimTrailingWhitespace !== undefined) {
       config.trimWhitespace = options.trimTrailingWhitespace;
     }
+    if (!config.align) {
+      config.align = {};
+    }
+    if (options.insertSpaces !== undefined) {
+      config.align.indentStyle = options.insertSpaces ? "space" : "tab";
+    }
+    if (options.tabSize !== undefined) {
+      config.align.tabSize = options.tabSize;
+    }
+
     return new DocumentFormatter(this.ctx.language, config);
   }
 

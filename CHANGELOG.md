@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Better alignment with tabs. Positions are now always column numbers (i.e. spaces) so no nasty surprises when changing
+  indent modes.
+
 ### Fixed
 
 - Formatting on comment blocks for hover and autocomplete. These are now correctly escaped into markdown with line breaks

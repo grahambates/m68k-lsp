@@ -231,9 +231,19 @@ class AlignFormatter implements Formatter {
                 operatorPosition,
                 valuePosition,
               ];
+              let currentPos = comment.range.start;
+              // Adjust position for tab width - can't just just character offset:
+              if (this.shiftWidth > 1) {
+                const ws = lineText[line].substring(0, comment.range.start);
+                for (let i = 0; i < ws.length; i++) {
+                  if (ws[i] === "\t") {
+                    currentPos += this.shiftWidth - 1;
+                  }
+                }
+              }
               // Calculate absolute delta from each position
               const positionDeltas = possiblePositions.map((o) =>
-                Math.abs(o - comment.range.start)
+                Math.abs(o - currentPos)
               );
               // Use index of smallest delta
               const minDelta = Math.min(...positionDeltas);
@@ -338,7 +348,7 @@ class LineEditor {
 
   // Tracks position and character offset as we apply indents
   private previousEnd = 0;
-  private offset = 0;
+  private currentOffset = 0;
 
   constructor(
     private text: string,
@@ -350,23 +360,32 @@ class LineEditor {
   /**
    * Creates edits to adjust indent and align element at desired position
    *
-   * @param position Desired column/tab position for element
+   * @param desiredOffset Desired column/tab position for element
    * @param elementInfo Ranges of element before and after previous edits
-   * @param min Minimum space from previous element
+   * @param minSpace Minimum space from previous element
    */
   addIndent(
-    position: number,
+    desiredOffset: number,
     { range, edited = { start: 0, end: 0 } }: ElementInfo,
-    min = 1
+    minSpace = 1
   ) {
-    const positionOffset = position - this.offset;
-    // There's a chance the offset might be negative if the previous element is too long to position where we want.
-    // In this case insert a minimum number of spaces, or none at all.
-    const count = Math.max(positionOffset, min);
+    let offsetDelta = desiredOffset - this.currentOffset;
+    let newText: string;
 
-    // Always use spaces for min whitespace
-    const newText =
-      positionOffset > 0 ? this.char.repeat(count) : " ".repeat(count);
+    // There's a chance the delta might be negative if the previous element is too long to position where we want.
+    // In this case insert the minimum amount of whitespace.
+    if (offsetDelta > 0) {
+      const offsetFloor =
+        Math.floor(this.currentOffset / this.shiftWidth) * this.shiftWidth;
+      const deltaFromFloor = desiredOffset - offsetFloor;
+      const shiftCount = Math.floor(deltaFromFloor / this.shiftWidth);
+      const remainder = desiredOffset % this.shiftWidth;
+      newText = this.char.repeat(shiftCount) + " ".repeat(remainder);
+    } else {
+      // Always use spaces for min whitespace
+      offsetDelta = minSpace;
+      newText = " ".repeat(minSpace);
+    }
 
     const editRequired =
       newText !== this.text.substring(this.previousEnd, range.start);
@@ -389,7 +408,7 @@ class LineEditor {
     // This handles cases where other formatters have changed its length e.g. adding/removing label colon, which
     // would otherwise shift the alignment of subsequent elements.
     const elementLength = edited.end - edited.start;
-    this.offset += count + Math.floor(elementLength / this.shiftWidth);
+    this.currentOffset += offsetDelta + elementLength;
   }
 }
 

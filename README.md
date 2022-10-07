@@ -295,7 +295,7 @@ Indents elements to align by type.
 | `operator`          | Position of `=` character in constant assignment                                                        |
 | `value`             | Position of value in constant assignment                                                                |
 | `standaloneComment` | Position / behaviour of comment with no other elements on the same line.                                |
-| `indentStyle`       | Character to use for indent - `tab` or `space`. Values for the properties above are based on this unit. |
+| `indentStyle`       | Character to use for indent - `tab` or `space`.                                                         |
 | `tabSize`           | Width of tab character to calculate positions when using `tab` indent style.                            |
 | `autoExtend`        | Behaviour when a component exceeds the available space between positions. See below.                    |
 

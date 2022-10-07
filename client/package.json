@@ -95,14 +95,14 @@
       "properties": {
         "m68k.format.align.mnemonic": {
           "type": "number",
-          "default": 12,
+          "default": 8,
           "minium": 0,
           "maximum": 120,
           "description": "Indent position of instruction/directive element"
         },
         "m68k.format.align.operands": {
           "type": "number",
-          "default": 22,
+          "default": 16,
           "minium": 0,
           "maximum": 120,
           "description": "Indent position of operands element"

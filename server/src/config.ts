@@ -17,8 +17,8 @@ const defaultConfig: Config = {
     quotes: "double",
     operandSpace: "off",
     align: {
-      mnemonic: 12,
-      operands: 22,
+      mnemonic: 8,
+      operands: 16,
       comment: 48,
       operator: 0,
       value: 0,

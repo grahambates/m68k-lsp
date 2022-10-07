@@ -160,13 +160,13 @@ describe("AlignFormatter", () => {
 
   it("formats an instruction with tabs", async () => {
     const result = await doFormat(`foobarbaz: move d1,d2; foo`, {
-      mnemonic: 2,
-      operands: 4,
-      comment: 6,
+      mnemonic: 2 * 8,
+      operands: 4 * 8,
+      comment: 6 * 8,
       indentStyle: "tab",
       tabSize: 8,
     });
-    expect(result).toBe("foobarbaz:\tmove\t\td1,d2\t\t; foo");
+    expect(result).toBe(`foobarbaz:\tmove\t\td1,d2\t\t; foo`);
   });
 
   it("formats a constant assignment without indent by default", async () => {
@@ -381,7 +381,7 @@ label:      move.w      d0,d1                     ; comment`
 reallyreallylonglabel: rts
 label: rts`,
         {
-          mnemonic: 2,
+          mnemonic: 3 * 8,
           indentStyle: "tab",
           tabSize: 8,
           autoExtend: "file",
@@ -425,9 +425,9 @@ label:      move.w      d0,d1   ; comment`
       `
 foo:  move d1,d2
   REM
-Lorem ipsum dolor sit amet, 
-consectetur adipiscing elit. 
-Curabitur aliquet non velit sit amet condimentum. 
+Lorem ipsum dolor sit amet,
+consectetur adipiscing elit.
+Curabitur aliquet non velit sit amet condimentum.
   EREM
 foo:  move d1,d2
 `,
@@ -440,9 +440,9 @@ foo:  move d1,d2
     expect(result).toBe(`
 foo:      move      d1,d2
           REM
-Lorem ipsum dolor sit amet, 
-consectetur adipiscing elit. 
-Curabitur aliquet non velit sit amet condimentum. 
+Lorem ipsum dolor sit amet,
+consectetur adipiscing elit.
+Curabitur aliquet non velit sit amet condimentum.
           EREM
 foo:      move      d1,d2
 `);
@@ -453,9 +453,9 @@ foo:      move      d1,d2
       `
 foo:  move d1,d2
   END
-Lorem ipsum dolor sit amet, 
-consectetur adipiscing elit. 
-Curabitur aliquet non velit sit amet condimentum. 
+Lorem ipsum dolor sit amet,
+consectetur adipiscing elit.
+Curabitur aliquet non velit sit amet condimentum.
 `,
       {
         mnemonic: 10,
@@ -466,9 +466,9 @@ Curabitur aliquet non velit sit amet condimentum.
     expect(result).toBe(`
 foo:      move      d1,d2
           END
-Lorem ipsum dolor sit amet, 
-consectetur adipiscing elit. 
-Curabitur aliquet non velit sit amet condimentum. 
+Lorem ipsum dolor sit amet,
+consectetur adipiscing elit.
+Curabitur aliquet non velit sit amet condimentum.
 `);
   });
 });
