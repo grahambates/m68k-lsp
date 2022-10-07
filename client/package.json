@@ -323,7 +323,9 @@
           "items": {
             "type": "string"
           },
-          "default": ["*.i"],
+          "default": [
+            "*.i"
+          ],
           "description": "File patterns to ignore and not build directly e.g. `*.i`"
         },
         "m68k.trace.server": {
@@ -340,7 +342,7 @@
     }
   },
   "dependencies": {
-    "m68k-lsp-server": "^0.8.1",
+    "m68k-lsp-server": "^0.9.0",
     "vscode-languageclient": "^7.0.0"
   },
   "devDependencies": {

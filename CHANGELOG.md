@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.0] - 2022-10-07
+
 ### Changed
 
 - Better alignment with tabs. Positions are now always column numbers (i.e. spaces) so no nasty surprises when changing
