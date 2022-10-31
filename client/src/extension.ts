@@ -1,5 +1,5 @@
 import * as path from "path";
-import { ExtensionContext, workspace } from "vscode";
+import { ConfigurationTarget, ExtensionContext, workspace } from "vscode";
 
 import {
   LanguageClient,
@@ -32,6 +32,16 @@ export function activate(context: ExtensionContext): void {
 
   const config = workspace.getConfiguration("m68k");
 
+  updateRulers();
+  workspace.onDidChangeConfiguration((e) => {
+    if (
+      e.affectsConfiguration("m68k.format.align") ||
+      e.affectsConfiguration("m68k.rulers")
+    ) {
+      updateRulers();
+    }
+  });
+
   const clientOptions: LanguageClientOptions = {
     documentSelector: [
       { scheme: "file", language: "vasmmot" },
@@ -51,6 +61,17 @@ export function activate(context: ExtensionContext): void {
   );
 
   client.start();
+}
+
+function updateRulers() {
+  const config = workspace.getConfiguration("m68k");
+  const { mnemonic, operands, comment } = config.format.align;
+  const rulers = config.rulers
+    ? [mnemonic, operands, comment].filter((v) => v > 0)
+    : [];
+  workspace
+    .getConfiguration("", { languageId: "m68k" })
+    .update("editor.rulers", rulers, ConfigurationTarget.Workspace, true);
 }
 
 export function deactivate(): Thenable<void> | undefined {
