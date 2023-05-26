@@ -10,7 +10,7 @@ export interface Config {
   vasm: VasmOptions;
 }
 
-const defaultConfig: Config = {
+export const defaultConfig: Config = {
   format: {
     case: "lower",
     labelColon: "on",
@@ -41,7 +41,10 @@ const defaultConfig: Config = {
   },
 };
 
-export function mergeDefaults(config: Partial<Config>): Config {
+export function mergeConfig(
+  config: Partial<Config>,
+  defaultConfig: Config
+): Config {
   return {
     ...defaultConfig,
     ...config,

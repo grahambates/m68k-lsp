@@ -3,7 +3,7 @@ import Parser from "web-tree-sitter";
 import path from "path";
 
 import { ProcessedDocumentStore } from "./DocumentProcessor";
-import { Config, mergeDefaults } from "./config";
+import { Config, mergeConfig, defaultConfig } from "./config";
 
 export interface Context {
   store: ProcessedDocumentStore;
@@ -45,6 +45,6 @@ export async function createContext(
     language,
     logger,
     connection,
-    config: mergeDefaults(config),
+    config: mergeConfig(config, defaultConfig),
   };
 }
