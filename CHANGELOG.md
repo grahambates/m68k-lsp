@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.1] - 2023-05-26
+
+### Fixed
+
+- Merge existing config on change [#9](https://github.com/grahambates/m68k-lsp/issues/9)
+  - Fixes Helix support
+
 ## [0.9.0] - 2022-10-07
 
 ### Changed
