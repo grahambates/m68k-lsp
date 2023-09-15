@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.2] - 2023-09-15
+
+### Fixed
+
+- Upgrade web-tree-sitter to fix 'invalid URL' error in vscode
+
 ## [0.9.1] - 2023-05-26
 
 ### Fixed
