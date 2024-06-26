@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.10.0] - 2024-06-24
+
+### Changed
+
+- Support quoted macro arguments
+- Support macro qualifiers [#17](https://github.com/grahambates/m68k-lsp/issues/17)
+
 ## [0.9.2] - 2023-09-15
 
 ### Fixed
