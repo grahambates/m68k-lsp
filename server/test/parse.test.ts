@@ -295,6 +295,17 @@ describe("parse", () => {
         ],
       });
     });
+
+    it("parses a quoted macro arguments", () => {
+      const line = parseLine('    FOO     <1,"foo">,d2');
+      expect(line).toEqual({
+        mnemonic: { start: 4, end: 7, value: "FOO" },
+        operands: [
+          { start: 12, end: 21, value: '<1,"foo">' },
+          { start: 22, end: 24, value: "d2" },
+        ],
+      });
+    });
   });
 
   describe("#componentAtIndex()", () => {

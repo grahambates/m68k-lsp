@@ -51,15 +51,15 @@ export interface ComponentInfo {
 //       (?<mnemonic>([^\s.,;*=]+|=))               - Mnemonic
 //       (?<size>\.[^\s.,;*]*)?                     - Size qualifier
 //       (\s*(?<operands>                           - Operand list:
-//         ([^\s;"',]+|"([^"]*)"?|'([^']*)'?)         - first operand
-//         (,\s*[^\s;"',]*|"([^"]*)"?|'([^']*)'?)*    - additional comma separated operands
+//         ([^\s;"'<>,]+|"([^"]*)"?|'([^']*)'?|<([^>]*)>?)         - first operand
+//         (,\s*[^\s;"'<>,]*|"([^"]*)"?|'([^']*)'?|<([^>]*)>?)*    - additional comma separated operands
 //     )
 //   )
 // )?
 // (\s*(?<comment>.+))?                Comment (any trailing text)
 // $
 const pattern =
-  /^(?<label>([^:\s;*=]+:?:?)|(\s+[^:\s;*=]+::?))?(\s*(((?<mnemonic1>\.?(nop|reset|rte|rtr|rts|trapv|illegal|clrfo|clrso|comment|einline|even|inline|list|mexit|nolist|nopage|odd|page|popsection|pushsection|rsreset|endif|endc|else|elseif|endm|endr|erem))(?<size1>\.[a-z0-9_.]*)?)|((?<mnemonic>([^\s.,;*=]+|=))(?<size>\.[^\s.,;*]*)?(\s*(?<operands>([^\s;"',]+|"([^"]*)"?|'([^']*)'?)(,\s*[^\s;"',]*|"([^"]*)"?|'([^']*)'?)*))?)))?(\s*(?<comment>.+))?$/i;
+  /^(?<label>([^:\s;*=]+:?:?)|(\s+[^:\s;*=]+::?))?(\s*(((?<mnemonic1>\.?(nop|reset|rte|rtr|rts|trapv|illegal|clrfo|clrso|comment|einline|even|inline|list|mexit|nolist|nopage|odd|page|popsection|pushsection|rsreset|endif|endc|else|elseif|endm|endr|erem))(?<size1>\.[a-z0-9_.]*)?)|((?<mnemonic>([^\s.,;*=]+|=))(?<size>\.[^\s.,;*]*)?(\s*(?<operands>([^\s;"'<>,]+|"([^"]*)"?|'([^']*)'?|<([^>]*)>?)(,\s*[^\s;"'<>,]*|"([^"]*)"?|'([^']*)'?|<([^>]*)>?)*))?)))?(\s*(?<comment>.+))?$/i;
 
 /**
  * Parse a single line of source code into positional components
@@ -100,7 +100,7 @@ export function parseLine(text: string): ParsedLine {
 
     if (groups.operands) {
       // Split on comma, unless in parens
-      const values = groups.operands.split(/,\s*(?![^()]*\))/);
+      const values = groups.operands.split(/,\s*(?![^()<>]*[)>])/);
 
       const operands: Component[] = [];
       for (const value of values) {

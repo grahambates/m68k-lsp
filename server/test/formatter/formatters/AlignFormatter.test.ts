@@ -471,4 +471,13 @@ consectetur adipiscing elit.
 Curabitur aliquet non velit sit amet condimentum.
 `);
   });
+
+  it("formats handles quoted marco arguments", async () => {
+    const result = await doFormat(` FOO <1,"foo">,d2`, {
+      mnemonic: 10,
+      operands: 20,
+      comment: 35,
+    });
+    expect(result).toBe('          FOO       <1,"foo">,d2');
+  });
 });
