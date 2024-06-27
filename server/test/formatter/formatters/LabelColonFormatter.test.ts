@@ -60,4 +60,9 @@ describe("LabelColonFormatter", () => {
     );
     expect(result).toBe("foo\n move d0,d1\n.bar: add d0,d1");
   });
+
+  it("adds colon in correct place with multiple macro args", async () => {
+    const result = await doFormat(`foo\\1bar\\2`, "on");
+    expect(result).toBe("foo\\1bar\\2:");
+  });
 });
