@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Support multiple macro args in labels [#15](https://github.com/grahambates/m68k-lsp/issues/17)
+- Formatting options documentation defaults were incorrect [#17](https://github.com/grahambates/m68k-lsp/issues/16)
+
 ## [0.10.0] - 2024-06-24
 
 ### Changed
