@@ -241,7 +241,15 @@ Include space between operands e.g. ` move d0, d1`. VASM needs `-spaces` or `-ph
 | `off`  | Remove space  |
 | `any`  | Do not change |
 
-Default: `"on"`
+Default: `"off"`
+
+```json
+{
+  "format": {
+    "operandSpace": "off"
+  }
+}
+```
 
 #### Quotes
 
@@ -271,14 +279,13 @@ Indents elements to align by type.
 {
   "format": {
     "align": {
-      "mnemonic": 12,
-      "operands": 22,
+      "mnemonic": 8,
+      "operands": 16,
       "comment": 48,
       "operator": 0,
       "value": 0,
-      "standAloneComment": "nearest",
       "indentStyle": "space",
-      "tabSize": 8
+      "tabSize": 8,
       "autoExtend": "line"
     }
   }
