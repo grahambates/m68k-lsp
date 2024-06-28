@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.11.0] - 2024-06-28
+
 ### Added
 
 - Project specific settings overrides via `.m68krc.json`
