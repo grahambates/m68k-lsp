@@ -76,7 +76,7 @@ m68k-lsp-server --stdio
 
 ## Configuration
 
-The LSP client can configure the server with the following initialization options:
+The LSP client can configured using the following settings, either as initialization options, or as a `.m68krc.json` file in your workspace root, for project specific overrides.
 
 ### Processors:
 

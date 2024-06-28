@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Project specific settings overrides via `.m68krc.json`
+
 ### Fixed
 
 - Support multiple macro args in labels [#15](https://github.com/grahambates/m68k-lsp/issues/17)
