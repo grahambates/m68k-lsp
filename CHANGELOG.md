@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.11.1] - 2024-06-28
+
 ### Fixed
 
 - Document links should be URIs, not file paths [#14](https://github.com/grahambates/m68k-lsp/issues/14)
