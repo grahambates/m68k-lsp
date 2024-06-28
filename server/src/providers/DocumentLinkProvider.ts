@@ -1,4 +1,5 @@
 import * as lsp from "vscode-languageserver";
+import { URI } from "vscode-uri";
 import { Provider } from ".";
 import { resolveInclude } from "../files";
 import { Context } from "../context";
@@ -22,7 +23,7 @@ export default class DocumentLinkProvider implements Provider {
     const { path, uri } = item.data;
     const resolved = await resolveInclude(uri, path, this.ctx);
     if (resolved) {
-      item.target = resolved;
+      item.target = URI.file(resolved).toString();
     }
     return item;
   }
