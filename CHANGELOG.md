@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.11.2] - 2024-07-24
+
+### Fixed
+
+- Scoped local label syntax [#22](https://github.com/grahambates/m68k-lsp/issues/22)
+- Parsing expressions containing chevrons. Regression caused by quoted args support.
+
 ## [0.11.1] - 2024-06-28
 
 ### Fixed
