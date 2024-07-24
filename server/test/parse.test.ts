@@ -306,6 +306,36 @@ describe("parse", () => {
         ],
       });
     });
+
+    it("parses a complex statement with parens", () => {
+      const line = parseLine(
+        " dc.w	ddfstop,(DIW_XSTRT-17+(DIW_W>>4-1)<<4)>>1&$fc-SCROLL*8"
+      );
+      expect(line).toEqual({
+        mnemonic: {
+          end: 3,
+          start: 1,
+          value: "dc",
+        },
+        operands: [
+          {
+            end: 13,
+            start: 6,
+            value: "ddfstop",
+          },
+          {
+            start: 14,
+            end: 60,
+            value: "(DIW_XSTRT-17+(DIW_W>>4-1)<<4)>>1&$fc-SCROLL*8",
+          },
+        ],
+        size: {
+          end: 5,
+          start: 4,
+          value: "w",
+        },
+      });
+    });
   });
 
   describe("#componentAtIndex()", () => {

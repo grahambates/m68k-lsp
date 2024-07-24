@@ -51,15 +51,25 @@ export interface ComponentInfo {
 //       (?<mnemonic>([^\s.,;*=]+|=))               - Mnemonic
 //       (?<size>\.[^\s.,;*]*)?                     - Size qualifier
 //       (\s*(?<operands>                           - Operand list:
-//         ([^\s;"'<>,]+|"([^"]*)"?|'([^']*)'?|<([^>]*)>?)         - first operand
-//         (,\s*[^\s;"'<>,]*|"([^"]*)"?|'([^']*)'?|<([^>]*)>?)*    - additional comma separated operands
+//         (?<op1>                     First operand
+//          "([^"]*)"?|                 - double quoted
+//          '([^']*)'?|                 - singled quoted
+//          <([^>]*)>?|                 - chevron quoted
+//          [^\s;,]+                    - anything else
+//         )
+//         (?<op2>,\s*(                Additional comma separated operands
+//          "([^"]*)"?|
+//          '([^']*)'?|
+//          <([^>]*)>?|
+//          [^\s;,]*)
+//         )*))?
 //     )
 //   )
 // )?
 // (\s*(?<comment>.+))?                Comment (any trailing text)
 // $
 const pattern =
-  /^(?<label>([^:\s;*=]+:?:?)|(\s+[^:\s;*=]+::?))?(\s*(((?<mnemonic1>\.?(nop|reset|rte|rtr|rts|trapv|illegal|clrfo|clrso|comment|einline|even|inline|list|mexit|nolist|nopage|odd|page|popsection|pushsection|rsreset|endif|endc|else|elseif|endm|endr|erem))(?<size1>\.[a-z0-9_.]*)?)|((?<mnemonic>([^\s.,;*=]+|=))(?<size>\.[^\s.,;*]*)?(\s*(?<operands>([^\s;"'<>,]+|"([^"]*)"?|'([^']*)'?|<([^>]*)>?)(,\s*[^\s;"'<>,]*|"([^"]*)"?|'([^']*)'?|<([^>]*)>?)*))?)))?(\s*(?<comment>.+))?$/i;
+  /^(?<label>([^:\s;*=]+:?:?)|(\s+[^:\s;*=]+::?))?(\s*(((?<mnemonic1>\.?(nop|reset|rte|rtr|rts|trapv|illegal|clrfo|clrso|comment|einline|even|inline|list|mexit|nolist|nopage|odd|page|popsection|pushsection|rsreset|endif|endc|else|elseif|endm|endr|erem))(?<size1>\.[a-z0-9_.]*)?)|((?<mnemonic>([^\s.,;*=]+|=))(?<size>\.[^\s.,;*]*)?(\s*(?<operands>(?<op1>"([^"]*)"?|'([^']*)'?|<([^>]*)>?|[^\s;,]+)(?<op2>,\s*("([^"]*)"?|'([^']*)'?|<([^>]*)>?|[^\s;,]*))*))?)))?(\s*(?<comment>.+))?$/i;
 
 /**
  * Parse a single line of source code into positional components
