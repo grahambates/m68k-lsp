@@ -2,6 +2,33 @@
   "name": "m68k-lint",
   "version": "0.46.2",
   "description": "Extensible static analysis and linting for Motorola 68k assembly",
+  "keywords": [
+    "m68k",
+    "68000",
+    "68k",
+    "motorola",
+    "assembly",
+    "asm",
+    "lint",
+    "linter",
+    "static-analysis",
+    "amiga",
+    "atari-st",
+    "optimization"
+  ],
+  "homepage": "https://github.com/grahambates/m68k-lint#readme",
+  "bugs": {
+    "url": "https://github.com/grahambates/m68k-lint/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/grahambates/m68k-lint.git"
+  },
+  "author": "Graham Bates",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -14,6 +41,8 @@
   "files": [
     "dist",
     "README.md",
+    "CHANGELOG.md",
+    "LICENSE",
     "m68k-lint.schema.json"
   ],
   "scripts": {
@@ -21,7 +50,9 @@
     "test": "jest",
     "lint": "tsc -p tsconfig.json --noEmit",
     "cli": "node ./dist/cli/main.js",
-    "audit:impact": "node ./dist/cli/main.js --audit-rule-impact"
+    "audit:impact": "node ./dist/cli/main.js --audit-rule-impact",
+    "docs:rules": "npm run build && node ./scripts/generate-rules-doc.mjs",
+    "prepublishOnly": "npm run lint && npm test && npm run build && npm run audit:impact"
   },
   "dependencies": {
     "m68k-parser": "^1.2.0",

@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://example.invalid/m68k-lint.schema.json",
+  "$id": "https://raw.githubusercontent.com/grahambates/m68k-lint/main/m68k-lint.schema.json",
   "title": "m68k-lint configuration",
   "type": "object",
   "additionalProperties": false,
