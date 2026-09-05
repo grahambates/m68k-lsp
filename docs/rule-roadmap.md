@@ -44,16 +44,49 @@ mean here.
 Every rule below assembles without complaint on every processor. The difference
 only shows up at runtime.
 
-| Proposed ID                                   | Flags                                                                       | Why the assembler cannot help                                                                                                                                         |
-| --------------------------------------------- | --------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `portability/move-from-sr-privileged`         | `MOVE SR,<ea>` when any selected target is 68010 or later                   | Legal and unprivileged on the 68000, legal but **privileged from the 68010**. User-mode code that ran for years starts trapping. `MOVE CCR,<ea>` is the portable form |
-| `portability/clr-memory-access-differs`       | `CLR.x <mem>` when targets span the 68000 and later CPUs                    | The 68000 `CLR` to memory reads _and_ writes; from the 68010 it is write-only. Identical encoding, different bus cycles, visible to memory-mapped I/O                 |
-| `portability/movem-predecrement-base-in-list` | `MOVEM.x <list>,-(An)` where `An` is itself in the list                     | Assembles fine everywhere. The value stored for the base register differs between the 68000 and 68020+                                                                |
-| `portability/long-muldiv-emulated-on-68060`   | 64-bit-result `MULS.L`/`MULU.L`/`DIVS.L`/`DIVU.L` when 68060 is a target    | A legal 68020+ instruction that the 68060 traps and emulates in software. Silently turns a fast path into a very slow one                                             |
-| `portability/self-modifying-code-cache`       | A store whose destination resolves to a code label, when targets are 68020+ | Correct on a 68000, needs explicit cache flushing from the 68020. Needs the section model below                                                                       |
+| Proposed ID                                   | Flags                                                                       | Why the assembler cannot help                                                                                                                                                 |
+| --------------------------------------------- | --------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `portability/move-from-sr-privileged`         | `MOVE SR,Dn` where only the low byte of the result is subsequently used     | Legal and unprivileged on the 68000, legal but **privileged from the 68010**. See the note below: the rule keys on how the result is used, not on guessing the privilege mode |
+| `portability/clr-memory-access-differs`       | `CLR.x <mem>` when targets span the 68000 and later CPUs                    | The 68000 `CLR` to memory reads _and_ writes; from the 68010 it is write-only. Identical encoding, different bus cycles, visible to memory-mapped I/O                         |
+| `portability/movem-predecrement-base-in-list` | `MOVEM.x <list>,-(An)` where `An` is itself in the list                     | Assembles fine everywhere. The value stored for the base register differs between the 68000 and 68020+                                                                        |
+| `portability/long-muldiv-emulated-on-68060`   | 64-bit-result `MULS.L`/`MULU.L`/`DIVS.L`/`DIVU.L` when 68060 is a target    | A legal 68020+ instruction that the 68060 traps and emulates in software. Silently turns a fast path into a very slow one                                                     |
+| `portability/self-modifying-code-cache`       | A store whose destination resolves to a code label, when targets are 68020+ | Correct on a 68000, needs explicit cache flushing from the 68020. Needs the section model below                                                                               |
 
 These need only a small ordering helper (`isAtLeast(cpu, "mc68010")`), not a
 general instruction-availability table.
+
+### Two rules we cannot write, and one we nearly got wrong
+
+**Supervisor-mode hardware access.** Atari hardware above `$FF8000` is
+supervisor-protected and a TOS program starts in user mode, so touching it
+without `Super()`/`Supexec()` is a bus error. That looks like a valuable rule
+and is not deliverable: a source file is one translation unit, and nothing in it
+establishes the privilege mode. The entry point may be in another file, the
+routine may be documented "call via Supexec", and an interrupt handler runs
+supervisor without ever calling anything. The linter has no inter-file analysis
+at all, so every version of this rule is a guess that warns about correct code.
+
+**`MOVE SR` needs the same care.** The first draft of
+`portability/move-from-sr-privileged` said "user-mode code starts trapping on
+the 68010", which quietly assumes we know the code runs in user mode. We do not,
+for exactly the reasons above, and supervisor code using `MOVE SR` is perfectly
+correct on every CPU.
+
+The rule survives by keying on something local and provable instead. `MOVE SR`
+is word-sized: bits 8-15 are the system byte, bits 0-7 are the CCR.
+
+- If only the low byte is observed afterwards, the code wants the condition
+  codes, and `MOVE CCR,<ea>` is unprivileged on every CPU. That is a strict
+  improvement regardless of privilege mode, so the suggestion is safe to make.
+- If the system byte is observed, the code genuinely needs `SR` and must already
+  be running supervisor. Stay quiet.
+
+`registers.dataRegisterBitsUseAfter(index, register, 0xff00)` answers this
+directly, so no new analysis is needed - only a data-register destination, since
+a memory destination cannot be tracked.
+
+The general lesson for platform rules: prefer a discriminator the file actually
+contains over an inference about how the program was entered.
 
 ## correctness
 
