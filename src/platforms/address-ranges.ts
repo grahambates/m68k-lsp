@@ -11,7 +11,6 @@ export const platformLabels: Readonly<Record<Platform, string>> = {
   generic: "generic 68k",
   amiga: "Amiga",
   atarist: "Atari ST",
-  atariste: "Atari STE",
 };
 
 /**
@@ -20,9 +19,10 @@ export const platformLabels: Readonly<Record<Platform, string>> = {
  * the 68000 address bus is 24 bits wide and ignores A24-A31. Source may also
  * spell it as the negative word the encoding actually holds.
  *
- * The STE's additions (DMA sound, blitter) sit inside the same block, so both
- * machines share one range for this heuristic. They are kept as separate
- * platforms because finer-grained STE rules will need to tell them apart.
+ * One identifier covers the Atari family. Model-specific hardware - the STE's
+ * DMA sound and blitter, the Mega STE's second MFP and SCC - sits inside the
+ * same blocks, and splitting per model would only narrow the map, producing
+ * false positives on code that targets a range of machines.
  */
 const ATARI_RANGES: readonly ExpectedAbsoluteAddressRange[] = [
   { start: 0x000000, end: 0x0005ff, description: "68000 exception vectors and Atari system variables" },
@@ -48,7 +48,6 @@ export const expectedAbsoluteAddressRanges: Readonly<Record<Platform, readonly E
     { start: 0xdff000, end: 0xdff1fc, description: "Amiga custom-chip registers" },
   ],
   atarist: ATARI_RANGES,
-  atariste: ATARI_RANGES,
 };
 
 /**

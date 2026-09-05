@@ -17,7 +17,7 @@
       }
     },
     "platform": {
-      "enum": ["generic", "amiga", "atarist", "atariste"]
+      "enum": ["generic", "amiga", "atarist"]
     },
     "goal": {
       "enum": ["balanced", "speed", "size"]

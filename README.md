@@ -186,20 +186,23 @@ part of any preset, because they conflict in pairs — do not enable both sides 
 ### Platform modes
 
 `--platform` adds platform-specific correctness and footgun rules on top of
-generic 68k linting: `amiga`, `atarist`, `atariste`, or `generic` (the default).
+generic 68k linting: `amiga`, `atarist`, or `generic` (the default).
 
 Amiga mode covers unsupported `TAS`, custom-chip register access direction, and
 absolute addresses outside the expected vector, custom-chip and CIA regions (the
 common typo where an intended immediate is written without `#`).
 
-Atari ST and STE modes apply the same absolute-address heuristic against the
-Atari map, covering the memory controller, video, DMA, PSG, blitter, both MFPs
-and the keyboard and MIDI ACIAs. Hardware registers there are conventionally written as a
-sign-extended absolute short, so `$FFFF8240.W`, `$FF8240` and the negative word
-`-32192` all name the same register and are all recognised — the 68000 address
-bus is 24 bits and ignores A24-A31. The STE's extra hardware (DMA sound,
-blitter) sits inside the same block, so the two share a range; they are separate
-platforms because finer-grained STE rules will need to tell them apart.
+Atari mode applies the same absolute-address heuristic against the Atari map,
+covering the memory controller, video, DMA, PSG, blitter, both MFPs and the
+keyboard and MIDI ACIAs. Hardware registers there are conventionally written as
+a sign-extended absolute short, so `$FFFF8240.W`, `$FF8240` and the negative
+word `-32192` all name the same register and are all recognised — the 68000
+address bus is 24 bits and ignores A24-A31.
+
+One identifier covers the family rather than one per model. Model-specific
+hardware sits inside the same blocks, so splitting would only narrow the map and
+produce false positives on code targeting a range of machines, and the 68030 in
+the TT and Falcon is already expressible as `--cpu mc68030`.
 
 Custom-register checks understand include-file conventions, resolving both
 `DMACONR(a6)` after `lea CUSTOM,a6` and `DMACONR+CUSTOM` to `$DFF002`.

@@ -6,7 +6,7 @@ import type { RuleCategory } from "../core/diagnostic.js";
 export const configFileNames = ["m68k-lint.json", ".m68klintrc.json"] as const;
 
 const processors = new Set<Processor>(["mc68000", "mc68010", "mc68020", "mc68030", "mc68040", "mc68060", "cpu32"]);
-const platforms = new Set<Platform>(["generic", "amiga", "atarist", "atariste"]);
+const platforms = new Set<Platform>(["generic", "amiga", "atarist"]);
 const goals = new Set<OptimizationGoal>(["balanced", "speed", "size"]);
 const ruleSettings = new Set<RuleSetting>(["off", "error", "warning", "suggestion", "info"]);
 const presets = new Set<RulePreset>(["recommended", "style"]);

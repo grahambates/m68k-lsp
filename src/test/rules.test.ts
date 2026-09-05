@@ -1332,7 +1332,6 @@ describe("Atari ST/STE absolute-address footguns", () => {
     goal: "balanced",
     measureImpact: false,
   } as LintConfig;
-  const ste = { ...st, platform: "atariste" } as LintConfig;
   const ID = "suspicious/unexpected-absolute-address";
 
   test("accepts every spelling of the same hardware register", () => {
@@ -1384,9 +1383,12 @@ describe("Atari ST/STE absolute-address footguns", () => {
     expect(diagnostic?.message).toContain("#$1234");
   });
 
-  test("STE shares the range and reports under its own name", () => {
-    expect(ids("move.w $ff8240,d0", ste)).not.toContain(ID);
-    expect(lint("move.w $1234,d0", ste).find((d) => d.ruleId === ID)?.message).toContain("Atari STE");
+  test("covers STE and Mega STE hardware under the one Atari platform", () => {
+    // The models are not separate platforms: their extra hardware sits inside
+    // the same blocks, and splitting would only narrow the map.
+    expect(ids("move.b $ff8900,d0", st)).not.toContain(ID); // STE DMA sound
+    expect(ids("move.w $ff8a00,d0", st)).not.toContain(ID); // blitter
+    expect(ids("move.b $fffa81,d0", st)).not.toContain(ID); // Mega STE second MFP
   });
 
   test("does not run in generic platform mode", () => {

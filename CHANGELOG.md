@@ -52,7 +52,7 @@ previously lived in `README.md`.
 
 ### Added
 
-- `--platform atarist` and `--platform atariste`, applying
+- `--platform atarist`, applying
   `suspicious/unexpected-absolute-address` to the Atari map. Atari hardware
   registers are conventionally written as a sign-extended absolute short, so
   `$FFFF8240.W`, `$FF8240` and the negative word `-32192` all name the same
@@ -60,8 +60,10 @@ previously lived in `README.md`.
   ignores A24-A31. Expected regions are `$000000-$0005FF` (exception vectors and
   system variables), `$FF8000-$FFFA3F` (memory controller, video, DMA, PSG,
   blitter and the MFP register file), `$FFFA80-$FFFABF` (the second MFP on Mega
-  STE and TT) and `$FFFC00-$FFFC07` (keyboard and MIDI ACIAs). The STE shares
-  the ranges because its extra hardware sits inside the same blocks.
+  STE and TT) and `$FFFC00-$FFFC07` (keyboard and MIDI ACIAs). One identifier
+  covers the family: model-specific hardware sits inside the same blocks, so
+  splitting per model would only narrow the map, and the 68030 in the TT and
+  Falcon is already expressible as `--cpu mc68030`.
 - `optimization/prefer-lea-for-address-symbol` — `move.l #label,a0` becomes
   `lea label,a0`. The two are identical in size and cycles as written, and the
   audit measures exactly that (neutral, all deltas zero). The gain is at
