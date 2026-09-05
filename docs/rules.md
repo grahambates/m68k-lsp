@@ -34,7 +34,7 @@ Valid code that may be intentional but is easy to misread or misuse.
 | `suspicious/nop` | off | Flag NOP instructions for review | — |
 | `suspicious/partial-register-write` | warning | Flag byte/word MOVE writes whose preserved upper bits are subsequently used | — |
 | `suspicious/self-move` | warning | Flag MOVE operations whose source and destination are the same register | — |
-| `suspicious/unexpected-absolute-address` | warning | Flag unusual numeric absolute source addresses that may be missing an immediate '#' prefix *(amiga only)* | — |
+| `suspicious/unexpected-absolute-address` | warning | Flag unusual numeric absolute source addresses that may be missing an immediate '#' prefix *(amiga, atarist, atariste only)* | — |
 | `suspicious/zero-sized-storage` | warning | Flag DS directives that reserve zero elements | — |
 
 ## optimization (107)

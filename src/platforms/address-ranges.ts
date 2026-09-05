@@ -6,6 +6,29 @@ export interface ExpectedAbsoluteAddressRange {
   description: string;
 }
 
+/** Human-readable platform name for diagnostic text. */
+export const platformLabels: Readonly<Record<Platform, string>> = {
+  generic: "generic 68k",
+  amiga: "Amiga",
+  atarist: "Atari ST",
+  atariste: "Atari STE",
+};
+
+/**
+ * Atari hardware registers are conventionally written as a sign-extended
+ * absolute short: `$FFFF8240.W` and `$FF8240` name the same register, because
+ * the 68000 address bus is 24 bits wide and ignores A24-A31. Source may also
+ * spell it as the negative word the encoding actually holds.
+ *
+ * The STE's additions (DMA sound, blitter) sit inside the same block, so both
+ * machines share one range for this heuristic. They are kept as separate
+ * platforms because finer-grained STE rules will need to tell them apart.
+ */
+const ATARI_RANGES: readonly ExpectedAbsoluteAddressRange[] = [
+  { start: 0x000000, end: 0x0005ff, description: "68000 exception vectors and Atari system variables" },
+  { start: 0xff8201, end: 0xfffa23, description: "Atari hardware registers" },
+];
+
 /**
  * Numeric absolute-address regions that are commonplace enough on a platform
  * that they should not trigger the missing-# footgun heuristic.
@@ -19,12 +42,40 @@ export const expectedAbsoluteAddressRanges: Readonly<Record<Platform, readonly E
     { start: 0xbfd000, end: 0xbfefff, description: "Amiga CIA register space" },
     { start: 0xdff000, end: 0xdff1fc, description: "Amiga custom-chip registers" },
   ],
+  atarist: ATARI_RANGES,
+  atariste: ATARI_RANGES,
 };
+
+/**
+ * Address spellings that denote the same physical location on a 24-bit bus.
+ *
+ * `$FFFF8240`, `$FF8240` and `-32192` are all the same Atari register: the
+ * first is the 32-bit sign-extension of the absolute short, the second is what
+ * the 24-bit bus actually decodes, and the third is the signed word a source
+ * file may contain.
+ */
+function addressAliases(address: number): readonly number[] {
+  const unsigned = address >>> 0;
+  const truncated = unsigned & 0xffffff;
+  return unsigned === truncated ? [unsigned] : [unsigned, truncated];
+}
 
 export function expectedAbsoluteAddressRange(
   platform: Platform,
   address: number,
 ): ExpectedAbsoluteAddressRange | undefined {
-  const unsigned = address >>> 0;
-  return expectedAbsoluteAddressRanges[platform].find((range) => unsigned >= range.start && unsigned <= range.end);
+  const ranges = expectedAbsoluteAddressRanges[platform];
+  for (const candidate of addressAliases(address)) {
+    const match = ranges.find((range) => candidate >= range.start && candidate <= range.end);
+    if (match) return match;
+  }
+  return undefined;
+}
+
+/** Ranges rendered for diagnostic text, e.g. "$FF8201-$FFFA23 (Atari hardware registers)". */
+export function describeExpectedRanges(platform: Platform): string {
+  const hex = (value: number) => `$${value.toString(16).toUpperCase().padStart(6, "0")}`;
+  return expectedAbsoluteAddressRanges[platform]
+    .map((range) => `${hex(range.start)}-${hex(range.end)} (${range.description})`)
+    .join(", ");
 }

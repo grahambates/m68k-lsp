@@ -185,10 +185,20 @@ part of any preset, because they conflict in pairs — do not enable both sides 
 
 ### Platform modes
 
-`--platform amiga` adds Amiga-specific correctness and footgun rules on top of
-generic 68k linting: unsupported `TAS`, custom-chip register access direction,
-and absolute addresses outside the expected vector, custom-chip and CIA regions
-(the common typo where an intended immediate is written without `#`).
+`--platform` adds platform-specific correctness and footgun rules on top of
+generic 68k linting: `amiga`, `atarist`, `atariste`, or `generic` (the default).
+
+Amiga mode covers unsupported `TAS`, custom-chip register access direction, and
+absolute addresses outside the expected vector, custom-chip and CIA regions (the
+common typo where an intended immediate is written without `#`).
+
+Atari ST and STE modes apply the same absolute-address heuristic against the
+Atari map. Hardware registers there are conventionally written as a
+sign-extended absolute short, so `$FFFF8240.W`, `$FF8240` and the negative word
+`-32192` all name the same register and are all recognised — the 68000 address
+bus is 24 bits and ignores A24-A31. The STE's extra hardware (DMA sound,
+blitter) sits inside the same block, so the two share a range; they are separate
+platforms because finer-grained STE rules will need to tell them apart.
 
 Custom-register checks understand include-file conventions, resolving both
 `DMACONR(a6)` after `lea CUSTOM,a6` and `DMACONR+CUSTOM` to `$DFF002`.

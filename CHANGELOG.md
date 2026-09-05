@@ -52,6 +52,14 @@ previously lived in `README.md`.
 
 ### Added
 
+- `--platform atarist` and `--platform atariste`, applying
+  `suspicious/unexpected-absolute-address` to the Atari map. Atari hardware
+  registers are conventionally written as a sign-extended absolute short, so
+  `$FFFF8240.W`, `$FF8240` and the negative word `-32192` all name the same
+  register; all three are recognised, since the 68000 address bus is 24 bits and
+  ignores A24-A31. Expected regions are `$000000-$0005FF` (exception vectors and
+  system variables) and `$FF8201-$FFFA23` (hardware registers). The STE shares
+  the range because its extra hardware sits inside the same block.
 - `optimization/prefer-lea-for-address-symbol` — `move.l #label,a0` becomes
   `lea label,a0`. The two are identical in size and cycles as written, and the
   audit measures exactly that (neutral, all deltas zero). The gain is at

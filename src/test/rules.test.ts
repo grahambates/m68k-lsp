@@ -1325,6 +1325,54 @@ describe("platform modes", () => {
   });
 });
 
+describe("Atari ST/STE absolute-address footguns", () => {
+  const st = {
+    processors: ["mc68000"],
+    platform: "atarist",
+    goal: "balanced",
+    measureImpact: false,
+  } as LintConfig;
+  const ste = { ...st, platform: "atariste" } as LintConfig;
+  const ID = "suspicious/unexpected-absolute-address";
+
+  test("accepts every spelling of the same hardware register", () => {
+    // The 68000 address bus is 24 bits, so $FFFF8240 and $FF8240 decode
+    // identically, and source may hold the negative word the encoding uses.
+    for (const source of ["move.w $ff8240,d0", "move.w $ffff8240,d0", "move.w $ffff8240.w,d0", "move.w -32192,d0"]) {
+      expect(ids(source, st)).not.toContain(ID);
+    }
+  });
+
+  test("accepts system variables and exception vectors", () => {
+    // `move.l $44e,a0` for the screen base is idiomatic ST code.
+    expect(ids("move.l $44e,a0", st)).not.toContain(ID);
+    expect(ids("move.l $70,a0", st)).not.toContain(ID);
+  });
+
+  test("still flags a plausible missing immediate prefix", () => {
+    const diagnostic = lint("move.w $1234,d0", st).find((d) => d.ruleId === ID);
+    expect(diagnostic).toBeDefined();
+    expect(diagnostic?.message).toContain("Atari ST");
+    expect(diagnostic?.message).toContain("#$1234");
+  });
+
+  test("STE shares the range and reports under its own name", () => {
+    expect(ids("move.w $ff8240,d0", ste)).not.toContain(ID);
+    expect(lint("move.w $1234,d0", ste).find((d) => d.ruleId === ID)?.message).toContain("Atari STE");
+  });
+
+  test("does not run in generic platform mode", () => {
+    expect(ids("move.w $ff8240,d0", { processors: ["mc68000"], measureImpact: false })).not.toContain(ID);
+  });
+
+  test("Amiga ranges are unaffected by the Atari aliasing", () => {
+    const amiga = { ...st, platform: "amiga" } as LintConfig;
+    expect(ids("move.w $dff002,d0", amiga)).not.toContain(ID);
+    expect(ids("move.w $ff8240,d0", amiga)).toContain(ID);
+    expect(ids("move.w $1234,d0", amiga)).toContain(ID);
+  });
+});
+
 describe("Amiga suspicious absolute-address footguns", () => {
   const amiga = {
     processors: ["mc68000"],

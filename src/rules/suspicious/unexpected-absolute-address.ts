@@ -1,7 +1,11 @@
 import type { ExpressionNode } from "m68k-parser";
 import type { Rule } from "../../core/rule.js";
 import { semanticMnemonic } from "../../semantics/mnemonics.js";
-import { expectedAbsoluteAddressRange } from "../../platforms/address-ranges.js";
+import {
+  describeExpectedRanges,
+  expectedAbsoluteAddressRange,
+  platformLabels,
+} from "../../platforms/address-ranges.js";
 import { operand } from "../../util/ast.js";
 
 // Deliberately conservative: these are instructions where an absolute source
@@ -49,15 +53,16 @@ export const unexpectedAbsoluteAddress: Rule = {
     id: "suspicious/unexpected-absolute-address",
     category: "suspicious",
     defaultSeverity: "warning",
-    platforms: ["amiga"],
+    platforms: ["amiga", "atarist", "atariste"],
     description: "Flag unusual numeric absolute source addresses that may be missing an immediate '#' prefix",
-    tags: ["amiga", "absolute-address", "likely-typo", "immediate"],
+    tags: ["amiga", "atari", "absolute-address", "likely-typo", "immediate"],
     docs: {
-      note: "Heuristic for the common 68k typo where an intended immediate constant is written without '#'. Expected Amiga absolute regions are kept as platform metadata rather than hard-coded into the rule.",
+      note: "Heuristic for the common 68k typo where an intended immediate constant is written without '#'. Expected absolute regions are kept as platform metadata rather than hard-coded into the rule.",
     },
   },
 
   checkFile(ctx) {
+    const platform = ctx.config.platform ?? "generic";
     // ORG is a strong signal that this source intentionally uses absolute
     // addresses. Without a full location-counter model, suppress the heuristic
     // for the whole file rather than second-guessing individual operands.
@@ -79,14 +84,14 @@ export const unexpectedAbsoluteAddress: Rule = {
       const result = ctx.evaluate(source.address);
       if (!result.known) continue;
       const address = result.value >>> 0;
-      if (expectedAbsoluteAddressRange("amiga", address)) continue;
+      if (expectedAbsoluteAddressRange(platform, address)) continue;
 
       ctx.report({
         ruleId: this.meta.id,
         category: this.meta.category,
         severity: this.meta.defaultSeverity,
         confidence: "medium",
-        message: `Unexpected Amiga absolute source address ${hex(address)}; did you mean #${hex(address)}?`,
+        message: `Unexpected ${platformLabels[platform]} absolute source address ${hex(address)}; did you mean #${hex(address)}?`,
         loc: source.loc ?? line.mnemonic!.loc,
         notes: [
           {
@@ -94,8 +99,7 @@ export const unexpectedAbsoluteAddress: Rule = {
               "This may still be deliberate absolute addressing; the warning is intended to catch accidentally omitted immediate '#' prefixes.",
           },
           {
-            message:
-              "Expected Amiga absolute regions are $000000-$0000BC, $BFD000-$BFEFFF (CIA), and $DFF000-$DFF1FC (custom chips). Files containing ORG are exempt from this heuristic.",
+            message: `Expected ${platformLabels[platform]} absolute regions are ${describeExpectedRanges(platform)}. Files containing ORG are exempt from this heuristic.`,
           },
         ],
         suggestion: {

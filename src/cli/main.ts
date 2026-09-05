@@ -29,7 +29,7 @@ const severityRank: Record<Severity, number> = { error: 0, warning: 1, suggestio
 
 type OutputFormat = "pretty" | "json";
 const goals: readonly OptimizationGoal[] = ["balanced", "speed", "size"];
-const platforms: readonly Platform[] = ["generic", "amiga"];
+const platforms: readonly Platform[] = ["generic", "amiga", "atarist", "atariste"];
 const presets: readonly RulePreset[] = ["recommended", "style"];
 
 interface CliOptions {
@@ -57,7 +57,7 @@ interface CliOptions {
 }
 
 function usage(): string {
-  return `m68k-lint ${VERSION}\n\nUsage:\n  m68k-lint [options] <file|directory|glob ...>\n\nOptions:\n  --config <path>               Use a specific JSON config file\n  --no-config                   Disable config-file discovery\n  --ext <ext[,ext...]>          Extensions for directory/glob discovery; default: .s,.asm,.i\n  --ignore-pattern <glob>       Ignore matching files (repeatable)\n  --cpu <cpu[,cpu...]>          Target processor(s), default: mc68000\n  --platform <generic|amiga>    Target platform, default: generic\n  --preset <name[,name...]>     Enable rule preset(s): recommended, style\n  --goal <balanced|speed|size>  Filter known optimization trade-offs, default: balanced\n  --impact                      Enable exact 68000 impact measurement\n  --no-impact                   Disable exact 68000 impact measurement\n  --inline-config               Honor m68k-lint comment directives (default)\n  --no-inline-config            Ignore m68k-lint comment directives\n  --impact-summary              Summarize measured outcomes by rule\n  --audit-rule-impact           Run representative 68000 timing audit for every optimization rule\n  --only <category[,category]>  Run only selected rule categories\n  --disable-category <category> Disable a rule category (repeatable)\n  --rule <id>=<setting>         Override a rule: off|error|warning|suggestion|info\n  --format <pretty|json>        Output format, default: pretty\n  --fail-on <severity>          Exit 1 at this severity or higher, default: error\n  --list-rules                  List built-in rules and exit\n  --asp68k-coverage             Show tracked ASP68K table coverage and exit\n  --no-color                    Disable ANSI colours\n  -h, --help                    Show this help\n  -v, --version                 Show version\n\nExamples:\n  m68k-lint game.s\n  m68k-lint src/\n  m68k-lint "src/**/*.asm"\n  m68k-lint --ext .s,.asm,.i,.inc src/\n  m68k-lint --platform amiga --cpu mc68000 src/\n  m68k-lint --rule suspicious/nop=warning --fail-on warning game.s\n`;
+  return `m68k-lint ${VERSION}\n\nUsage:\n  m68k-lint [options] <file|directory|glob ...>\n\nOptions:\n  --config <path>               Use a specific JSON config file\n  --no-config                   Disable config-file discovery\n  --ext <ext[,ext...]>          Extensions for directory/glob discovery; default: .s,.asm,.i\n  --ignore-pattern <glob>       Ignore matching files (repeatable)\n  --cpu <cpu[,cpu...]>          Target processor(s), default: mc68000\n  --platform <name>             generic, amiga, atarist, atariste; default: generic\n  --preset <name[,name...]>     Enable rule preset(s): recommended, style\n  --goal <balanced|speed|size>  Filter known optimization trade-offs, default: balanced\n  --impact                      Enable exact 68000 impact measurement\n  --no-impact                   Disable exact 68000 impact measurement\n  --inline-config               Honor m68k-lint comment directives (default)\n  --no-inline-config            Ignore m68k-lint comment directives\n  --impact-summary              Summarize measured outcomes by rule\n  --audit-rule-impact           Run representative 68000 timing audit for every optimization rule\n  --only <category[,category]>  Run only selected rule categories\n  --disable-category <category> Disable a rule category (repeatable)\n  --rule <id>=<setting>         Override a rule: off|error|warning|suggestion|info\n  --format <pretty|json>        Output format, default: pretty\n  --fail-on <severity>          Exit 1 at this severity or higher, default: error\n  --list-rules                  List built-in rules and exit\n  --asp68k-coverage             Show tracked ASP68K table coverage and exit\n  --no-color                    Disable ANSI colours\n  -h, --help                    Show this help\n  -v, --version                 Show version\n\nExamples:\n  m68k-lint game.s\n  m68k-lint src/\n  m68k-lint "src/**/*.asm"\n  m68k-lint --ext .s,.asm,.i,.inc src/\n  m68k-lint --platform amiga --cpu mc68000 src/\n  m68k-lint --rule suspicious/nop=warning --fail-on warning game.s\n`;
 }
 
 function requireValue(argv: string[], index: number, option: string): string {
@@ -168,7 +168,7 @@ function parseArgs(argv: string[]): CliOptions | "help" | "version" {
     }
     if (arg === "--platform") {
       const value = requireValue(argv, i, arg) as Platform;
-      if (!platforms.includes(value)) throw new Error("--platform must be generic or amiga");
+      if (!platforms.includes(value)) throw new Error(`--platform must be one of: ${platforms.join(", ")}`);
       options.platform = value;
       i++;
       continue;

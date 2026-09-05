@@ -4,7 +4,7 @@ export type Processor = "mc68000" | "mc68010" | "mc68020" | "mc68030" | "mc68040
 
 export type RuleSetting = "off" | Severity;
 export type OptimizationGoal = "balanced" | "speed" | "size";
-export type Platform = "generic" | "amiga";
+export type Platform = "generic" | "amiga" | "atarist" | "atariste";
 export type RulePreset = "recommended" | "style";
 
 export interface LintConfig {
