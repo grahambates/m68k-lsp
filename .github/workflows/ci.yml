@@ -35,8 +35,10 @@ jobs:
       - name: Format check
         run: npm run format:check
 
+      # Coverage thresholds are a ratchet, not a target. The rule suite once
+      # stopped running entirely; that would collapse coverage and fail here.
       - name: Test
-        run: npm test
+        run: npm run test:coverage
 
       - name: Build
         run: npm run build

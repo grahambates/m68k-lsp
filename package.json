@@ -48,6 +48,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "test": "jest",
+    "test:coverage": "jest --coverage",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
@@ -76,6 +77,19 @@
   },
   "jest": {
     "preset": "ts-jest/presets/default-esm",
+    "transform": {
+      "^.+\\.tsx?$": [
+        "ts-jest",
+        {
+          "useESM": true,
+          "diagnostics": {
+            "ignoreCodes": [
+              151002
+            ]
+          }
+        }
+      ]
+    },
     "testEnvironment": "node",
     "extensionsToTreatAsEsm": [
       ".ts"
@@ -85,7 +99,19 @@
     },
     "testMatch": [
       "**/src/test/**/*.test.ts"
-    ]
+    ],
+    "collectCoverageFrom": [
+      "src/**/*.ts",
+      "!src/test/**"
+    ],
+    "coverageThreshold": {
+      "global": {
+        "statements": 75,
+        "branches": 68,
+        "functions": 65,
+        "lines": 80
+      }
+    }
   },
   "bin": {
     "m68k-lint": "./dist/cli/main.js"
