@@ -17,14 +17,23 @@ not:
 The project already says it does not duplicate assembler validation. The useful
 sharpening of that rule is:
 
-> **Would the assembler reject this?** If yes, it is the assembler's job.
-> Legality belongs to the assembler. Runtime behaviour, dataflow and
-> reachability belong here.
+> **Does the assembler already diagnose this?** If yes, it is the assembler's
+> job. Legality and encoding belong to the assembler. Runtime behaviour,
+> dataflow and reachability belong here.
 
-That test does real work. It rules out "this instruction or addressing mode does
-not exist on your target" — vasm with `-m68000` already errors on 68020+ scaled
-index, memory indirect, `PACK`/`UNPK`/`CAS`/bitfield ops, and so on. Restating
-that would be noise in a second tool.
+A warning counts, not just an error. `moveq #$ff,d0` was proposed as a
+`suspicious` rule and dropped, because vasm already says:
+
+```
+warning 2028: using signed operand as unsigned: 255 (valid: -128..127), -1 to fix
+```
+
+That is a better diagnostic than this linter would produce — it names the valid
+range and the fix — so restating it would be pure noise.
+
+The test also rules out "this instruction or addressing mode does not exist on
+your target": vasm with `-m68000` already errors on 68020+ scaled index, memory
+indirect, `PACK`/`UNPK`/`CAS`/bitfield ops, and so on.
 
 What it leaves is the more valuable class, and the one no assembler can reach:
 **code that is legal on every target and assembles cleanly, but behaves
@@ -54,7 +63,7 @@ Valid assembly with a _provable_ semantic or runtime problem.
 | Proposed ID                            | Flags                                                                       | Feasibility                                                                                                                                                      |
 | -------------------------------------- | --------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `correctness/odd-address-word-access`  | Word/long access to a known-odd absolute address, on 68000/68010 targets    | Ready now — `ctx.evaluate` resolves the address and odd is certain, not heuristic. Guaranteed address error. On 68020+ it is merely slower, so gate to 68000/010 |
-| `correctness/divide-by-zero-immediate` | `DIVU`/`DIVS` by a literal or constant-folded zero                          | Ready now. Worth checking what vasm and Devpac already say about a literal `#0` before committing to it                                                          |
+| `correctness/divide-by-zero-immediate` | `DIVU`/`DIVS` by a literal or constant-folded zero                          | Ready now, **pending the assembler check below**                                                                                                                 |
 | `correctness/movem-restore-mismatch`   | A routine whose `MOVEM` save list does not match its restore list           | CFG is available. Restoring fewer registers than were saved corrupts the stack; a different set silently clobbers caller state. Miserable to debug by hand       |
 | `correctness/unbalanced-stack`         | A path to `RTS` whose net stack adjustment is non-zero                      | Needs stack-depth tracking over the CFG. Highest effort here, and the highest payoff                                                                             |
 | `correctness/branch-into-data`         | Branch or jump whose target label sits on a `DC`/`DS` line                  | Needs the label index and section model                                                                                                                          |
@@ -64,18 +73,17 @@ Valid assembly with a _provable_ semantic or runtime problem.
 
 Valid code that may be intentional but is easy to get wrong.
 
-| Proposed ID                                   | Flags                                                                                 | Why                                                                                                                                                                   |
-| --------------------------------------------- | ------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `suspicious/dbcc-long-counter`                | `DBcc` whose counter provably exceeds 65535                                           | `DBcc` decrements and tests only the low word, so a long count silently loops the wrong number of times. Register constant propagation already supports this          |
-| `suspicious/dbcc-counter-modified`            | The loop body writes the register the `DBcc` uses as its counter                      | Needs CFG loop detection; register analysis does the rest                                                                                                             |
-| `suspicious/scc-partial-write`                | `Scc Dn` where the upper 24 bits are later read                                       | `Scc` writes only the low byte, but reads as though it set the whole register. Complements `partial-register-write`, reusing `dataRegisterBitsUseAfter`               |
-| `suspicious/word-result-used-as-long`         | A register written by a `.w` operation, later read as `.l`, with no intervening `EXT` | The classic missing sign-extension bug. Register analysis already tracks sub-register writes                                                                          |
-| `suspicious/pointer-compare-signed-condition` | Address-register or pointer comparison followed by `BGT`/`BLT`/`BGE`/`BLE`            | Addresses are unsigned; a pointer above `$7FFFFFFF` compares as negative. `BHI`/`BCS`/`BCC`/`BLS` are almost always what was meant                                    |
-| `suspicious/unreachable-code`                 | Instructions with no CFG predecessors and no label                                    | Ready now. Usually a deleted branch or a lost label                                                                                                                   |
-| `suspicious/stack-adjust-mismatch`            | A byte push to `-(SP)` cleaned up with an adjustment of 1                             | See the note below — this is the narrow, provable residue of a broader rule that had to be dropped                                                                    |
-| `suspicious/clr-memory-read-modify-write`     | `CLR.x` to an absolute address in a known I/O range                                   | The 68000 reads before writing; on hardware registers with read side effects that is a real fault. Amiga-gated at first                                               |
-| `suspicious/moveq-sign-extension`             | `MOVEQ` with an immediate in `$80..$FF`                                               | `moveq #$ff,d0` leaves `$FFFFFFFF`, not `$000000FF`. **Check first** whether vasm and Devpac already reject or warn on this — if they do, it fails the governing test |
-| `suspicious/immediate-looks-like-address`     | A large immediate moved to a data register later used as a pointer                    | Heuristic, hence `suspicious`. Low priority                                                                                                                           |
+| Proposed ID                                   | Flags                                                                                 | Why                                                                                                                                                          |
+| --------------------------------------------- | ------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `suspicious/dbcc-long-counter`                | `DBcc` whose counter provably exceeds 65535                                           | `DBcc` decrements and tests only the low word, so a long count silently loops the wrong number of times. Register constant propagation already supports this |
+| `suspicious/dbcc-counter-modified`            | The loop body writes the register the `DBcc` uses as its counter                      | Needs CFG loop detection; register analysis does the rest                                                                                                    |
+| `suspicious/scc-partial-write`                | `Scc Dn` where the upper 24 bits are later read                                       | `Scc` writes only the low byte, but reads as though it set the whole register. Complements `partial-register-write`, reusing `dataRegisterBitsUseAfter`      |
+| `suspicious/word-result-used-as-long`         | A register written by a `.w` operation, later read as `.l`, with no intervening `EXT` | The classic missing sign-extension bug. Register analysis already tracks sub-register writes                                                                 |
+| `suspicious/pointer-compare-signed-condition` | Address-register or pointer comparison followed by `BGT`/`BLT`/`BGE`/`BLE`            | Addresses are unsigned; a pointer above `$7FFFFFFF` compares as negative. `BHI`/`BCS`/`BCC`/`BLS` are almost always what was meant                           |
+| `suspicious/unreachable-code`                 | Instructions with no CFG predecessors and no label                                    | Ready now. Usually a deleted branch or a lost label                                                                                                          |
+| `suspicious/stack-adjust-mismatch`            | A byte push to `-(SP)` cleaned up with an adjustment of 1                             | See the note below — this is the narrow, provable residue of a broader rule that had to be dropped                                                           |
+| `suspicious/clr-memory-read-modify-write`     | `CLR.x` to an absolute address in a known I/O range                                   | The 68000 reads before writing; on hardware registers with read side effects that is a real fault. Amiga-gated at first                                      |
+| `suspicious/immediate-looks-like-address`     | A large immediate moved to a data register later used as a pointer                    | Heuristic, hence `suspicious`. Low priority                                                                                                                  |
 
 ### Why there is no general byte-stack rule
 
@@ -148,6 +156,25 @@ alignment, column layout — stays out of scope.
 | `style/prefer-bra-over-jmp`        | `JMP label` for an in-file target that `BRA` reaches                        |
 | `style/require-local-label-prefix` | Subroutine-internal labels not using the local (`.name`) form               |
 | `style/no-trailing-nop`            | `NOP` immediately before `RTS`, usually debug residue                       |
+
+## Assembler overlap still to check
+
+`moveq #$ff,d0` was dropped once vasm turned out to warn on it. Three other
+proposals carry the same risk and have not been checked. `docs/assembler-overlap.asm`
+holds them; assemble it and drop any that already produce a diagnostic:
+
+```sh
+vasmm68k_mot -m68000 -Fbin -o /dev/null docs/assembler-overlap.asm
+```
+
+| Proposal                                      | Snippet                  | Expectation                                                                                                                                     |
+| --------------------------------------------- | ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `correctness/divide-by-zero-immediate`        | `divu #0,d0`             | Probably not diagnosed — the encoding is legal and the fault is at runtime — but vasm does report division by zero in _expressions_, so confirm |
+| `correctness/odd-address-word-access`         | `move.w $1001,d0`        | Probably not diagnosed for an absolute EA, though some assemblers check `dc.w` alignment                                                        |
+| `portability/movem-predecrement-base-in-list` | `movem.l d0-d3/a0,-(a0)` | Unclear; some assemblers warn about the ambiguous base register                                                                                 |
+
+`portability/move-from-sr-privileged` is safe from this test: assemblers do not
+model supervisor state, so no assembler diagnoses a privilege violation.
 
 ## Enabling work
 
