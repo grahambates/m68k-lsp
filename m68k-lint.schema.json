@@ -17,7 +17,7 @@
       }
     },
     "platform": {
-      "enum": ["generic", "amiga", "atarist"]
+      "enum": ["generic", "amiga", "atari"]
     },
     "goal": {
       "enum": ["balanced", "speed", "size"]

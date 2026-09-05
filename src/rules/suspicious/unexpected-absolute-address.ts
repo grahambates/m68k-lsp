@@ -53,7 +53,7 @@ export const unexpectedAbsoluteAddress: Rule = {
     id: "suspicious/unexpected-absolute-address",
     category: "suspicious",
     defaultSeverity: "warning",
-    platforms: ["amiga", "atarist"],
+    platforms: ["amiga", "atari"],
     description: "Flag unusual numeric absolute source addresses that may be missing an immediate '#' prefix",
     tags: ["amiga", "atari", "absolute-address", "likely-typo", "immediate"],
     docs: {

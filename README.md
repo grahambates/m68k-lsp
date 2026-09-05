@@ -186,7 +186,7 @@ part of any preset, because they conflict in pairs — do not enable both sides 
 ### Platform modes
 
 `--platform` adds platform-specific correctness and footgun rules on top of
-generic 68k linting: `amiga`, `atarist`, or `generic` (the default).
+generic 68k linting: `amiga`, `atari`, or `generic` (the default).
 
 Amiga mode covers unsupported `TAS`, custom-chip register access direction, and
 absolute addresses outside the expected vector, custom-chip and CIA regions (the

@@ -1325,10 +1325,10 @@ describe("platform modes", () => {
   });
 });
 
-describe("Atari ST/STE absolute-address footguns", () => {
+describe("Atari absolute-address footguns", () => {
   const st = {
     processors: ["mc68000"],
-    platform: "atarist",
+    platform: "atari",
     goal: "balanced",
     measureImpact: false,
   } as LintConfig;
@@ -1379,7 +1379,7 @@ describe("Atari ST/STE absolute-address footguns", () => {
   test("still flags a plausible missing immediate prefix", () => {
     const diagnostic = lint("move.w $1234,d0", st).find((d) => d.ruleId === ID);
     expect(diagnostic).toBeDefined();
-    expect(diagnostic?.message).toContain("Atari ST");
+    expect(diagnostic?.message).toContain("Atari");
     expect(diagnostic?.message).toContain("#$1234");
   });
 

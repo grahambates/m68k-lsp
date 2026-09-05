@@ -10,7 +10,7 @@ export interface ExpectedAbsoluteAddressRange {
 export const platformLabels: Readonly<Record<Platform, string>> = {
   generic: "generic 68k",
   amiga: "Amiga",
-  atarist: "Atari ST",
+  atari: "Atari",
 };
 
 /**
@@ -47,7 +47,7 @@ export const expectedAbsoluteAddressRanges: Readonly<Record<Platform, readonly E
     { start: 0xbfd000, end: 0xbfefff, description: "Amiga CIA register space" },
     { start: 0xdff000, end: 0xdff1fc, description: "Amiga custom-chip registers" },
   ],
-  atarist: ATARI_RANGES,
+  atari: ATARI_RANGES,
 };
 
 /**

@@ -52,7 +52,7 @@ previously lived in `README.md`.
 
 ### Added
 
-- `--platform atarist`, applying
+- `--platform atari`, applying
   `suspicious/unexpected-absolute-address` to the Atari map. Atari hardware
   registers are conventionally written as a sign-extended absolute short, so
   `$FFFF8240.W`, `$FF8240` and the negative word `-32192` all name the same
