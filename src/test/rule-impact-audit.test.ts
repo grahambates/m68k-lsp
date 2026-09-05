@@ -26,7 +26,17 @@ describe("representative rule impact audit", () => {
 
   test("audit fixtures are indented so instructions are not parsed as column-zero labels", () => {
     expect(normalizeRuleImpactAuditSource("move.l #42,d0\n.x:\nrts")).toBe(
-      "\tmove.l #42,d0\n\t.x:\n\trts",
+      "\tmove.l #42,d0\n.x:\n\trts",
+    );
+  });
+
+  test("column-zero label definitions are left in place", () => {
+    // An indented `.x:` is neither a label nor a mnemonic, so indenting it would
+    // delete the branch target rather than merely move it.
+    expect(normalizeRuleImpactAuditSource("bra .x\n.x:\nrts")).toBe("\tbra .x\n.x:\n\trts");
+    expect(normalizeRuleImpactAuditSource("loop: dbf d0,loop")).toBe("loop: dbf d0,loop");
+    expect(normalizeRuleImpactAuditSource("answer equ 42\nmove.l #answer,d0")).toBe(
+      "answer equ 42\n\tmove.l #answer,d0",
     );
   });
 

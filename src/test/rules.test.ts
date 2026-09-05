@@ -1,5 +1,11 @@
 import { fixtureContext, ids, lint } from "./helpers.js";
 
+// Fixtures that need "all changed flags are dead" end with `add.l dX,dY` rather
+// than `move.l dX,dY`. MOVE sets N/Z and clears V/C but *preserves X*, so with a
+// MOVE the X flag still escapes through the trailing RTS and rules correctly
+// downgrade their suggestion to "conditional". ADD writes X too, which is what
+// these tests actually mean by "dead".
+
 describe("optimization rules", () => {
   test("prefers MOVEQ for signed 8-bit long immediates", () => {
     expect(ids("move.l #42,d3")).toContain("optimization/prefer-moveq");
@@ -91,7 +97,7 @@ describe("optimization rules", () => {
     const source = [
       "move.l a0,-(sp)",
       "add.l #12,(sp)",
-      "move.l d1,d2",
+      "add.l d1,d2",
       "rts",
     ].join("\n");
     const diagnostic = lint(source).find((d) => d.ruleId === "optimization/push-address-pea");
@@ -140,7 +146,7 @@ describe("optimization rules", () => {
 
   test("shrinks signed 16-bit immediate loads to address registers", () => {
     const diagnostic = lint("move.l #1234,a2").find((d) => d.ruleId === "optimization/prefer-move-word-address");
-    expect(diagnostic?.suggestion?.replacement).toBe("move.w #1234,a2");
+    expect(diagnostic?.suggestion?.replacement).toBe("movea.w #1234,a2");
     expect(ids("move.l #40000,a2")).not.toContain("optimization/prefer-move-word-address");
   });
 
@@ -184,7 +190,7 @@ describe("optimization rules", () => {
       "divu.w #4,d0",
       "move.w d0,d1",
       "move.l #0,d0",
-      "move.l d2,d3",
+      "add.l d2,d3",
       "rts",
     ].join("\n");
     const diagnostic = lint(source).find((d) => d.ruleId === "optimization/divu-word-power-of-two");
@@ -592,7 +598,7 @@ describe("v0.11 register-driven rules", () => {
     const source = [
       "addq.l #3,d0",
       "addq.l #5,d0",
-      "move.l d1,d2",
+      "add.l d1,d2",
       "rts",
     ].join("\n");
     const diagnostic = lint(source).find((d) => d.ruleId === "optimization/combine-consecutive-addq");
@@ -670,7 +676,7 @@ describe("v0.12 simple multiply rules", () => {
   });
 
   test("uses EXT+ASL for signed word powers of two and respects flag liveness", () => {
-    const safeSource = ["muls.w #8,d0", "move.l d1,d2", "rts"].join("\n");
+    const safeSource = ["muls.w #8,d0", "add.l d1,d2", "rts"].join("\n");
     const safe = lint(safeSource).find((d) => d.ruleId === "optimization/muls-word-power-of-two");
     expect(safe?.suggestion?.replacement).toBe("ext.l d0\nasl.l #3,d0");
     expect(safe?.suggestion?.applicability).toBe("safe");
@@ -689,7 +695,7 @@ describe("v0.12 simple multiply rules", () => {
 
 describe("v0.13 multiply and disposable-register sequence rules", () => {
   test("offers unsigned word power-of-two multiply replacement and checks CCR liveness", () => {
-    const safeSource = ["mulu.w #8,d0", "move.l d1,d2", "rts"].join("\n");
+    const safeSource = ["mulu.w #8,d0", "add.l d1,d2", "rts"].join("\n");
     const safe = lint(safeSource).find((d) => d.ruleId === "optimization/mulu-word-power-of-two");
     expect(safe?.suggestion?.replacement).toBe("swap d0\nclr.w d0\nswap d0\nlsl.l #3,d0");
     expect(safe?.suggestion?.applicability).toBe("safe");
@@ -710,7 +716,7 @@ describe("v0.13 multiply and disposable-register sequence rules", () => {
       "neg.l d0",
       "sub.l d0,d1",
       "move.l #0,d0",
-      "move.l d2,d3",
+      "add.l d2,d3",
       "rts",
     ].join("\n");
     const diagnostic = lint(source).find((d) => d.ruleId === "optimization/negate-sub-to-add");
@@ -750,7 +756,7 @@ describe("v0.16 redundant TST and additional ASP68K rules", () => {
   });
 
   test("does remove TST after arithmetic when only Z is observed", () => {
-    const source = ["add.w d0,d1", "tst.w d1", "beq .zero", ".zero:", "rts"].join("\n");
+    const source = ["add.w d0,d1", "tst.w d1", "beq .zero", ".zero:", "add.l d3,d4", "rts"].join("\n");
     expect(ids(source)).toContain("optimization/redundant-tst");
   });
 
@@ -761,7 +767,8 @@ describe("v0.16 redundant TST and additional ASP68K rules", () => {
 
   test("uses TAS for BSET bit 7 plus BEQ on 68000", () => {
     const source = ["bset.b #7,(a0)", "beq .clear", "move.l d0,d1", ".clear:", "rts"].join("\n");
-    const diagnostic = lint(source).find((d) => d.ruleId === "optimization/bset-to-tas");
+    const config = { processors: ["mc68000" as const], rules: { "optimization/bset-to-tas": "suggestion" as const } };
+    const diagnostic = lint(source, config).find((d) => d.ruleId === "optimization/bset-to-tas");
     expect(diagnostic?.suggestion?.replacement).toBe("tas (a0)\nbpl .clear");
   });
 
@@ -838,7 +845,7 @@ describe("operand-sensitive semantic normalisation", () => {
 
 describe("v0.19 long shifts and MOVEA/LEA rules", () => {
   test("replaces ASL.L #16 with SWAP+CLR.W on 68000", () => {
-    const diagnostic = lint(["asl.l #16,d0", "move.l d1,d2", "rts"].join("\n"))
+    const diagnostic = lint(["asl.l #16,d0", "add.l d1,d2", "rts"].join("\n"))
       .find((d) => d.ruleId === "optimization/long-shift-sequence");
     expect(diagnostic?.suggestion?.replacement).toBe("swap d0\nclr.w d0");
     expect(diagnostic?.suggestion?.applicability).toBe("safe");
@@ -1027,11 +1034,11 @@ describe("v0.29 Flamewing multiply tranche", () => {
 });
 
   test("reduces known large register-count ASR to sign saturation", () => {
-    const word = lint(["moveq #15,d1", "asr.w d1,d0", "move.l d0,d2", "rts"].join("\n"))
+    const word = lint(["moveq #15,d1", "asr.w d1,d0", "move.l d0,d2", "moveq #0,d1", "rts"].join("\n"))
       .find((d) => d.ruleId === "optimization/known-register-asr-saturate");
     expect(word?.suggestion?.replacement).toBe("add.w d0,d0\nsubx.w d0,d0");
 
-    const long = lint(["moveq #31,d1", "asr.l d1,d0", "move.l d0,d2", "rts"].join("\n"))
+    const long = lint(["moveq #31,d1", "asr.l d1,d0", "move.l d0,d2", "moveq #0,d1", "rts"].join("\n"))
       .find((d) => d.ruleId === "optimization/known-register-asr-saturate");
     expect(long?.suggestion?.replacement).toBe("add.l d0,d0\nsubx.l d0,d0");
   });
@@ -1056,11 +1063,11 @@ describe("v0.30 Flamewing partial-register tranche", () => {
   });
 
   test("reduces high known register-count long logical shifts without stack scratch", () => {
-    const left = lint(["moveq #30,d1", "lsl.l d1,d0", "move.l d0,d2", "rts"].join("\n"))
+    const left = lint(["moveq #30,d1", "lsl.l d1,d0", "move.l d0,d2", "moveq #0,d1", "rts"].join("\n"))
       .find((d) => d.ruleId === "optimization/known-register-shift-reduction");
     expect(left?.suggestion?.replacement).toBe("ror.w #2,d0\nandi.w #$C000,d0\nswap d0\nclr.w d0");
 
-    const right = lint(["moveq #29,d1", "lsr.l d1,d0", "move.l d0,d2", "rts"].join("\n"))
+    const right = lint(["moveq #29,d1", "lsr.l d1,d0", "move.l d0,d2", "moveq #0,d1", "rts"].join("\n"))
       .find((d) => d.ruleId === "optimization/known-register-shift-reduction");
     expect(right?.suggestion?.replacement).toBe("clr.w d0\nswap d0\nandi.w #$E000,d0\nrol.w #3,d0");
   });
@@ -1068,7 +1075,7 @@ describe("v0.30 Flamewing partial-register tranche", () => {
 
 describe("v0.31 Flamewing arithmetic-shift tranche", () => {
   test("uses ASR.W low-word reduction only when the high word is discarded", () => {
-    const safe = lint(["moveq #12,d1", "asr.w d1,d0", "move.w d0,d2", "moveq #0,d0", "rts"].join("\n"))
+    const safe = lint(["moveq #12,d1", "asr.w d1,d0", "move.w d0,d2", "moveq #0,d0", "moveq #0,d1", "rts"].join("\n"))
       .find((d) => d.ruleId === "optimization/known-register-asr-word-low-only");
     expect(safe?.suggestion?.replacement).toBe("ext.l d0\nswap d0\nrol.l #4,d0");
 
@@ -1078,7 +1085,7 @@ describe("v0.31 Flamewing arithmetic-shift tranche", () => {
   });
 
   test("reduces known ASR.L counts 26..30 without stack scratch", () => {
-    const diagnostic = lint(["moveq #28,d1", "asr.l d1,d0", "move.l d0,d2", "rts"].join("\n"))
+    const diagnostic = lint(["moveq #28,d1", "asr.l d1,d0", "move.l d0,d2", "moveq #0,d1", "rts"].join("\n"))
       .find((d) => d.ruleId === "optimization/known-register-asr-long-high");
     expect(diagnostic?.suggestion?.replacement).toBe("swap d0\next.l d0\nswap d0\nrol.l #4,d0\next.l d0");
   });
@@ -1160,7 +1167,7 @@ describe("Flamewing bounded A7 stack-scratch shifts", () => {
   });
 
   test("replaces MOVEQ #9 + LSL.W with the bounded stack form when the count register is disposable", () => {
-    const result = lint("moveq #9,d1\nlsl.w d1,d0\nmove.w d0,d2\n", { processors: ["mc68000"] });
+    const result = lint("moveq #9,d1\nlsl.w d1,d0\nmove.w d0,d2\nmoveq #0,d1\n", { processors: ["mc68000"] });
     const d = result.find((x) => x.ruleId === "optimization/stack-known-register-shift");
     expect(d).toBeDefined();
     expect(d?.suggestion?.replacement).toContain("move.b d0,-(sp)");
@@ -1168,7 +1175,7 @@ describe("Flamewing bounded A7 stack-scratch shifts", () => {
   });
 
   test("suggests the stack-assisted LSL.L #24 known-count sequence", () => {
-    const result = lint("moveq #24,d1\nlsl.l d1,d0\nmove.l d0,d2\n", { processors: ["mc68000"] });
+    const result = lint("moveq #24,d1\nlsl.l d1,d0\nmove.l d0,d2\nmoveq #0,d1\n", { processors: ["mc68000"] });
     const d = result.find((x) => x.ruleId === "optimization/stack-known-register-shift");
     expect(d).toBeDefined();
     expect(d?.suggestion?.replacement).toContain("swap d0");
@@ -1176,7 +1183,7 @@ describe("Flamewing bounded A7 stack-scratch shifts", () => {
   });
 
   test("suggests the stack-assisted LSR.L #24 known-count sequence", () => {
-    const result = lint("moveq #24,d1\nlsr.l d1,d0\nmove.l d0,d2\n", { processors: ["mc68000"] });
+    const result = lint("moveq #24,d1\nlsr.l d1,d0\nmove.l d0,d2\nmoveq #0,d1\n", { processors: ["mc68000"] });
     const d = result.find((x) => x.ruleId === "optimization/stack-known-register-shift");
     expect(d).toBeDefined();
     expect(d?.suggestion?.replacement).toContain("move.w d0,-(sp)");

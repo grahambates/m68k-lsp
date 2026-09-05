@@ -309,6 +309,20 @@ export function analyzeRegisters(
       }
       return saw ? (readMask >>> 0) : 0;
     };
+    /**
+     * SWAP Dn exchanges the register's halves. It neither observes nor discards
+     * the bits being tracked, it relocates them, so follow the rotated mask
+     * rather than giving up. Without this a DIVU.W remainder read via
+     * `swap dn` / `move.l dn,...` looks unobserved.
+     */
+    const swappedTarget = (line: ParsedLine): boolean => {
+      if (semanticMnemonic(line) !== "swap") return false;
+      const ops = line.operands ?? [];
+      return ops.length === 1 && ops[0].type === "data-register"
+        && normalizeRegister(ops[0].register) === target;
+    };
+    const rotateHalves = (mask: number): number => (((mask << 16) | (mask >>> 16)) >>> 0);
+
     const walk = (i: number, currentMask: number): RegisterBitsUse => {
       const key = `${i}:${currentMask >>> 0}`;
       const cached = memo.get(key);
@@ -318,6 +332,16 @@ export function analyzeRegisters(
       const line = file.lines[i];
       if (!line?.mnemonic || line.mnemonic.type !== "instruction") { visiting.delete(i); return "unknown"; }
       const sem = getRegisterSemantics(line);
+      if (swappedTarget(line)) {
+        const succ = [...cfg.successors[i]];
+        let aggregate: RegisterBitsUse = cfg.escapes[i] || succ.length === 0 ? "unknown" : "unused";
+        for (const next of succ) {
+          const state = walk(next, rotateHalves(currentMask));
+          if (state === "used") { aggregate = "used"; break; }
+          if (state === "unknown") aggregate = "unknown";
+        }
+        visiting.delete(i); memo.set(key, aggregate); return aggregate;
+      }
       if (sem.reads.has(target)) {
         const readMask = directReadMask(line);
         if (readMask === undefined) { visiting.delete(i); memo.set(key, "unknown"); return "unknown"; }

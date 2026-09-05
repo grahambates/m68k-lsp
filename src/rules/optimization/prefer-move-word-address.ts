@@ -26,7 +26,7 @@ export const preferMoveWordAddress: Rule = {
       message: "This address-register immediate fits the sign-extended word form",
       loc: line.mnemonic!.loc,
       suggestion: {
-        description: `Use MOVE.W #${value.value},${dest.register}`,
+        description: `Use MOVEA.W #${value.value},${dest.register}`,
         replacement: `movea.w #${value.value},${dest.register}`,
         applicability: "safe",
       },
