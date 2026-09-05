@@ -8,7 +8,9 @@ import type {
   OptimizationSourceClaim,
 } from "../core/diagnostic.js";
 
-interface ImpactRuleMeta { meta: { docs?: { source?: string } } }
+interface ImpactRuleMeta {
+  meta: { docs?: { source?: string } };
+}
 
 type CounterTotals = {
   isRange: boolean;
@@ -23,12 +25,12 @@ type CounterApi = {
 // 68kcounter is CommonJS today. Node's ESM bridge may expose its TS default
 // export either directly or under the CommonJS module object's `.default`.
 const outerCounter = counterNamespace as unknown as CounterApi;
-const cjsCounter = (outerCounter.default && typeof outerCounter.default === "object")
-  ? outerCounter.default as CounterApi
-  : outerCounter;
-const parse68kCounter = (typeof outerCounter.default === "function"
-  ? outerCounter.default
-  : cjsCounter.default) as ((source: string) => unknown[]) | undefined;
+const cjsCounter =
+  outerCounter.default && typeof outerCounter.default === "object"
+    ? (outerCounter.default as CounterApi)
+    : outerCounter;
+const parse68kCounter = (typeof outerCounter.default === "function" ? outerCounter.default : cjsCounter.default) as
+  ((source: string) => unknown[]) | undefined;
 const calculateCounterTotals = outerCounter.calculateTotals ?? cjsCounter.calculateTotals;
 
 interface Measurement {
@@ -99,8 +101,11 @@ function sourceSpan(diagnostic: Diagnostic, file: ParsedFile): { start: number; 
 
   let end = start;
   for (const [key, value] of Object.entries(diagnostic.data ?? {})) {
-    if ((key === "sourceStartIndex" || key === "sourceEndIndex" || key.endsWith("InstructionIndex")) &&
-        typeof value === "number" && Number.isInteger(value)) {
+    if (
+      (key === "sourceStartIndex" || key === "sourceEndIndex" || key.endsWith("InstructionIndex")) &&
+      typeof value === "number" &&
+      Number.isInteger(value)
+    ) {
       if (key === "sourceStartIndex") start = Math.min(start, value);
       else end = Math.max(end, value);
     }
@@ -108,14 +113,19 @@ function sourceSpan(diagnostic: Diagnostic, file: ParsedFile): { start: number; 
   return { start, end };
 }
 
-function preserveSourceClaim(existing: OptimizationImpact | undefined, rule: ImpactRuleMeta | undefined): OptimizationSourceClaim[] | undefined {
+function preserveSourceClaim(
+  existing: OptimizationImpact | undefined,
+  rule: ImpactRuleMeta | undefined,
+): OptimizationSourceClaim[] | undefined {
   if (!existing) return undefined;
   const size = existing.sizeBytes?.confidence === "source" ? existing.sizeBytes : undefined;
-  const execution = existing.execution && [
-    existing.execution.cpuCycles,
-    existing.execution.readCycles,
-    existing.execution.writeCycles,
-  ].some((m) => m?.confidence === "source") ? existing.execution : undefined;
+  const execution =
+    existing.execution &&
+    [existing.execution.cpuCycles, existing.execution.readCycles, existing.execution.writeCycles].some(
+      (m) => m?.confidence === "source",
+    )
+      ? existing.execution
+      : undefined;
   const previous = existing.sourceClaims ?? [];
   if (!size && !execution) return previous.length ? previous : undefined;
   return [
@@ -185,7 +195,10 @@ export function measureDiagnosticImpact(
     });
   }
   if (impact.assessment === "regression") {
-    notes.push({ message: "68kcounter measures this replacement as a 68000 resource regression; review the source rule/CPU applicability." });
+    notes.push({
+      message:
+        "68kcounter measures this replacement as a 68000 resource regression; review the source rule/CPU applicability.",
+    });
   } else if (impact.assessment === "tradeoff") {
     notes.push({ message: "68kcounter measures this as a 68000 trade-off rather than an unconditional improvement." });
   }

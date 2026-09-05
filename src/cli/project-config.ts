@@ -10,7 +10,14 @@ const platforms = new Set<Platform>(["generic", "amiga"]);
 const goals = new Set<OptimizationGoal>(["balanced", "speed", "size"]);
 const ruleSettings = new Set<RuleSetting>(["off", "error", "warning", "suggestion", "info"]);
 const presets = new Set<RulePreset>(["recommended", "style"]);
-const categories = new Set<RuleCategory>(["correctness", "suspicious", "optimization", "performance", "portability", "style"]);
+const categories = new Set<RuleCategory>([
+  "correctness",
+  "suspicious",
+  "optimization",
+  "performance",
+  "portability",
+  "style",
+]);
 
 export interface ProjectConfig {
   processors?: Processor[];
@@ -32,8 +39,11 @@ export interface ProjectConfig {
 }
 
 async function isFile(path: string): Promise<boolean> {
-  try { return (await stat(path)).isFile(); }
-  catch { return false; }
+  try {
+    return (await stat(path)).isFile();
+  } catch {
+    return false;
+  }
 }
 
 export async function findProjectConfig(start = process.cwd()): Promise<string | undefined> {
@@ -58,37 +68,86 @@ function assertStringArray(value: unknown, field: string): asserts value is stri
 export async function loadProjectConfig(path: string): Promise<ProjectConfig> {
   const absolute = resolve(path);
   let raw: string;
-  try { raw = await readFile(absolute, "utf8"); }
-  catch (error) { throw new Error(`Unable to read config ${path}: ${error instanceof Error ? error.message : String(error)}`, { cause: error }); }
+  try {
+    raw = await readFile(absolute, "utf8");
+  } catch (error) {
+    throw new Error(`Unable to read config ${path}: ${error instanceof Error ? error.message : String(error)}`, {
+      cause: error,
+    });
+  }
 
   let value: unknown;
-  try { value = JSON.parse(raw); }
-  catch (error) { throw new Error(`Invalid JSON in ${path}: ${error instanceof Error ? error.message : String(error)}`, { cause: error }); }
-  if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error(`${path} must contain a JSON object`);
+  try {
+    value = JSON.parse(raw);
+  } catch (error) {
+    throw new Error(`Invalid JSON in ${path}: ${error instanceof Error ? error.message : String(error)}`, {
+      cause: error,
+    });
+  }
+  if (!value || typeof value !== "object" || Array.isArray(value))
+    throw new Error(`${path} must contain a JSON object`);
   const config = value as Record<string, unknown>;
-  const knownFields = new Set(["$schema", "processors", "platform", "goal", "measureImpact", "inlineConfig", "presets", "rules", "categories", "extensions", "files", "ignores", "include", "ignorePatterns"]);
+  const knownFields = new Set([
+    "$schema",
+    "processors",
+    "platform",
+    "goal",
+    "measureImpact",
+    "inlineConfig",
+    "presets",
+    "rules",
+    "categories",
+    "extensions",
+    "files",
+    "ignores",
+    "include",
+    "ignorePatterns",
+  ]);
   for (const field of Object.keys(config)) {
     if (!knownFields.has(field)) throw new Error(`Unknown config field '${field}'`);
   }
 
-  for (const field of ["processors", "presets", "extensions", "files", "ignores", "ignorePatterns", "include"] as const) {
+  for (const field of [
+    "processors",
+    "presets",
+    "extensions",
+    "files",
+    "ignores",
+    "ignorePatterns",
+    "include",
+  ] as const) {
     if (config[field] !== undefined) assertStringArray(config[field], field);
   }
-  if (config.processors !== undefined && (config.processors as string[]).some((item) => !processors.has(item as Processor))) throw new Error("processors contains an unknown CPU");
-  if (config.presets !== undefined && (config.presets as string[]).some((item) => !presets.has(item as RulePreset))) throw new Error("presets contains an unknown preset");
-  if (config.platform !== undefined && (typeof config.platform !== "string" || !platforms.has(config.platform as Platform))) throw new Error("platform must be generic or amiga");
-  if (config.goal !== undefined && (typeof config.goal !== "string" || !goals.has(config.goal as OptimizationGoal))) throw new Error("goal must be balanced, speed, or size");
-  if (config.measureImpact !== undefined && typeof config.measureImpact !== "boolean") throw new Error("measureImpact must be a boolean");
-  if (config.inlineConfig !== undefined && typeof config.inlineConfig !== "boolean") throw new Error("inlineConfig must be a boolean");
+  if (
+    config.processors !== undefined &&
+    (config.processors as string[]).some((item) => !processors.has(item as Processor))
+  )
+    throw new Error("processors contains an unknown CPU");
+  if (config.presets !== undefined && (config.presets as string[]).some((item) => !presets.has(item as RulePreset)))
+    throw new Error("presets contains an unknown preset");
+  if (
+    config.platform !== undefined &&
+    (typeof config.platform !== "string" || !platforms.has(config.platform as Platform))
+  )
+    throw new Error("platform must be generic or amiga");
+  if (config.goal !== undefined && (typeof config.goal !== "string" || !goals.has(config.goal as OptimizationGoal)))
+    throw new Error("goal must be balanced, speed, or size");
+  if (config.measureImpact !== undefined && typeof config.measureImpact !== "boolean")
+    throw new Error("measureImpact must be a boolean");
+  if (config.inlineConfig !== undefined && typeof config.inlineConfig !== "boolean")
+    throw new Error("inlineConfig must be a boolean");
 
   if (config.rules !== undefined) {
-    if (!config.rules || typeof config.rules !== "object" || Array.isArray(config.rules)) throw new Error("rules must be an object");
+    if (!config.rules || typeof config.rules !== "object" || Array.isArray(config.rules))
+      throw new Error("rules must be an object");
     for (const [id, setting] of Object.entries(config.rules)) {
-      if (typeof setting !== "string" || !ruleSettings.has(setting as RuleSetting)) throw new Error(`rules.${id} has invalid setting '${String(setting)}'`);
+      if (typeof setting !== "string" || !ruleSettings.has(setting as RuleSetting))
+        throw new Error(`rules.${id} has invalid setting '${String(setting)}'`);
     }
   }
   if (config.categories !== undefined) {
-    if (!config.categories || typeof config.categories !== "object" || Array.isArray(config.categories)) throw new Error("categories must be an object");
+    if (!config.categories || typeof config.categories !== "object" || Array.isArray(config.categories))
+      throw new Error("categories must be an object");
     for (const [category, enabled] of Object.entries(config.categories)) {
       if (!categories.has(category as RuleCategory)) throw new Error(`Unknown category '${category}'`);
       if (typeof enabled !== "boolean") throw new Error(`categories.${category} must be a boolean`);

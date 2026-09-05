@@ -26,9 +26,10 @@ export const simplifyLongWordMasks: Rule = {
     if (mask !== 0x0000ffff && mask !== 0xffff0000) return;
 
     const safety = changedFlagsApplicability(ctx, index, ["N", "Z", "V", "C"]);
-    const replacement = mask === 0x0000ffff
-      ? `swap ${dst.register}\nclr.w ${dst.register}\nswap ${dst.register}`
-      : `clr.w ${dst.register}`;
+    const replacement =
+      mask === 0x0000ffff
+        ? `swap ${dst.register}\nclr.w ${dst.register}\nswap ${dst.register}`
+        : `clr.w ${dst.register}`;
     const sizeDelta = mask === 0x0000ffff ? 0 : -4;
 
     ctx.report({
@@ -36,9 +37,10 @@ export const simplifyLongWordMasks: Rule = {
       category: this.meta.category,
       severity: this.meta.defaultSeverity,
       confidence: safety.confidence,
-      message: mask === 0x0000ffff
-        ? "AND.L #$FFFF,Dn can clear the upper word without a long immediate"
-        : "AND.L #$FFFF0000,Dn is equivalent to clearing the low word",
+      message:
+        mask === 0x0000ffff
+          ? "AND.L #$FFFF,Dn can clear the upper word without a long immediate"
+          : "AND.L #$FFFF0000,Dn is equivalent to clearing the low word",
       loc: line.mnemonic!.loc,
       suggestion: {
         description: "Use the word-oriented mask sequence",
@@ -48,7 +50,9 @@ export const simplifyLongWordMasks: Rule = {
       },
       notes: [
         { message: "The resulting 32-bit register value is identical." },
-        ...(safety.applicability === "safe" ? [] : [{ message: "Flamewing marks the condition codes as different; review CCR use before applying." }]),
+        ...(safety.applicability === "safe"
+          ? []
+          : [{ message: "Flamewing marks the condition codes as different; review CCR use before applying." }]),
       ],
     });
   },

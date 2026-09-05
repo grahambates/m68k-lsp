@@ -27,7 +27,10 @@ describe("CLI file discovery", () => {
     await mkdir(join(root, "src", "generated"), { recursive: true });
     await writeFile(join(root, "src", "main.s"), " nop\n");
     await writeFile(join(root, "src", "generated", "auto.s"), " nop\n");
-    const files = await discoverFiles([join(root, "src", "**", "*.s")], { cwd: root, ignorePatterns: ["src/generated/**"] });
+    const files = await discoverFiles([join(root, "src", "**", "*.s")], {
+      cwd: root,
+      ignorePatterns: ["src/generated/**"],
+    });
     expect(files).toEqual([join(root, "src", "main.s")]);
   });
 

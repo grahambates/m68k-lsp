@@ -19,11 +19,23 @@ export const cmpaZeroToTst030: Rule = {
     const value = ctx.evaluate(expr);
     if (!value.known || value.value !== 0) return;
     ctx.report({
-      ruleId: this.meta.id, category: this.meta.category, severity: this.meta.defaultSeverity, confidence: "certain",
+      ruleId: this.meta.id,
+      category: this.meta.category,
+      severity: this.meta.defaultSeverity,
+      confidence: "certain",
       message: "CMPA.L #0,An can use TST.L An on 68030",
       loc: line.mnemonic!.loc,
       suggestion: { description: "Use TST.L", replacement: `tst.l ${dest.register}`, applicability: "safe" },
-      notes: [{ message: "The long form has equivalent N/Z/V/C semantics for comparison with zero; ASP68K records a 68030 speed win." }, { message: "The .W form is intentionally not implemented because CMPA.W sign-extends the source before a 32-bit address comparison." }],
+      notes: [
+        {
+          message:
+            "The long form has equivalent N/Z/V/C semantics for comparison with zero; ASP68K records a 68030 speed win.",
+        },
+        {
+          message:
+            "The .W form is intentionally not implemented because CMPA.W sign-extends the source before a 32-bit address comparison.",
+        },
+      ],
     });
   },
 };

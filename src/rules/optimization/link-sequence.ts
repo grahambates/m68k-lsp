@@ -9,8 +9,11 @@ function isSpRegister(line: ParsedLine, operandIndex: number): boolean {
 
 function isSpPredec(line: ParsedLine, operandIndex: number): boolean {
   const op = operand(line, operandIndex);
-  return op?.type === "address-register-indirect-predec" &&
-    op.register.type === "address-register" && ["sp", "a7"].includes(op.register.register.toLowerCase());
+  return (
+    op?.type === "address-register-indirect-predec" &&
+    op.register.type === "address-register" &&
+    ["sp", "a7"].includes(op.register.register.toLowerCase())
+  );
 }
 
 export const preferLinkSequence: Rule = {
@@ -56,7 +59,14 @@ export const preferLinkSequence: Rule = {
       },
       notes: [
         { message: "ASP68K lists MOVE.L An,-(SP) + MOVE.L SP,An + ADD.W #n,SP → LINK An,#n." },
-        ...(manual ? [{ message: "A later instruction in the matched sequence has a label; preserve any externally reachable entry point." }] : []),
+        ...(manual
+          ? [
+              {
+                message:
+                  "A later instruction in the matched sequence has a label; preserve any externally reachable entry point.",
+              },
+            ]
+          : []),
       ],
       data: { secondInstructionIndex: second.index, thirdInstructionIndex: third.index },
     });

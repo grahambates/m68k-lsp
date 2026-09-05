@@ -11,10 +11,10 @@ describe("diagnostic ordering", () => {
   test("diagnostics are returned in source order, not rule-registration order", () => {
     const source = [
       "start:",
-      "move.l 0(a0),d0",   // line 2
-      "move.l #42,d3",     // line 3
-      "add.l #1,d0",       // line 4
-      "lea (a0),a0",       // line 5
+      "move.l 0(a0),d0", // line 2
+      "move.l #42,d3", // line 3
+      "add.l #1,d0", // line 4
+      "lea (a0),a0", // line 5
     ].join("\n");
     const lineNumbers = lint(source).map((d) => d.loc.line);
     expect(lineNumbers.length).toBeGreaterThan(1);
@@ -31,20 +31,13 @@ describe("optimization rules", () => {
   });
 
   test("prefers MOVEQ when an EQU expression resolves to the range", () => {
-    const source = [
-      "answer equ 40+2",
-      "move.l #answer,d0",
-    ].join("\n");
+    const source = ["answer equ 40+2", "move.l #answer,d0"].join("\n");
 
     expect(ids(source)).toContain("optimization/prefer-moveq");
   });
 
   test("resolves chained EQU constants", () => {
-    const source = [
-      "base equ 40",
-      "answer equ base+2",
-      "move.l #answer,d0",
-    ].join("\n");
+    const source = ["base equ 40", "answer equ base+2", "move.l #answer,d0"].join("\n");
 
     expect(ids(source)).toContain("optimization/prefer-moveq");
   });
@@ -57,7 +50,6 @@ describe("optimization rules", () => {
     expect(ids("add.b #1,a0")).not.toContain("optimization/prefer-addq");
   });
 
-
   test("matches address-register instruction families where rules opt in", () => {
     expect(ids("adda.l #100,a0")).toContain("optimization/address-add-to-lea");
     expect(ids("suba.l #100,a0")).toContain("optimization/address-sub-to-lea");
@@ -69,23 +61,13 @@ describe("optimization rules", () => {
   });
 
   test("detects a null BRA across blank/comment-only lines", () => {
-    const source = [
-      "bra .next",
-      "; comment",
-      "",
-      ".next:",
-      "move.l d0,d1",
-    ].join("\n");
+    const source = ["bra .next", "; comment", "", ".next:", "move.l d0,d1"].join("\n");
 
     expect(ids(source)).toContain("optimization/null-branch");
   });
 
   test("does not flag BRA when a statement occurs before the target", () => {
-    const source = [
-      "bra .next",
-      "move.l d0,d1",
-      ".next:",
-    ].join("\n");
+    const source = ["bra .next", "move.l d0,d1", ".next:"].join("\n");
 
     expect(ids(source)).not.toContain("optimization/null-branch");
   });
@@ -105,33 +87,25 @@ describe("optimization rules", () => {
     expect(ids(["jsr helper", "rts"].join("\n"))).toContain("optimization/jsr-rts-tail-call");
     expect(ids(["bsr helper", "rts"].join("\n"))).toContain("optimization/bsr-rts-tail-call");
 
-    const diagnostic = lint(["jsr helper", "rts"].join("\n")).find((d) => d.ruleId === "optimization/jsr-rts-tail-call");
+    const diagnostic = lint(["jsr helper", "rts"].join("\n")).find(
+      (d) => d.ruleId === "optimization/jsr-rts-tail-call",
+    );
     expect(diagnostic?.suggestion?.applicability).toBe("manual");
   });
 
   test("folds address-register push plus immediate stack adjustment into PEA", () => {
-    const source = [
-      "move.l a0,-(sp)",
-      "add.l #12,(sp)",
-      "add.l d1,d2",
-      "rts",
-    ].join("\n");
+    const source = ["move.l a0,-(sp)", "add.l #12,(sp)", "add.l d1,d2", "rts"].join("\n");
     const diagnostic = lint(source).find((d) => d.ruleId === "optimization/push-address-pea");
     expect(diagnostic?.suggestion?.replacement).toBe("pea 12(a0)");
     expect(diagnostic?.suggestion?.applicability).toBe("safe");
   });
 
   test("PEA folding remains conditional when original arithmetic flags escape", () => {
-    const source = [
-      "move.l a1,-(sp)",
-      "sub.l #4,(sp)",
-      "rts",
-    ].join("\n");
+    const source = ["move.l a1,-(sp)", "sub.l #4,(sp)", "rts"].join("\n");
     const diagnostic = lint(source).find((d) => d.ruleId === "optimization/push-address-pea");
     expect(diagnostic?.suggestion?.replacement).toBe("pea -4(a1)");
     expect(diagnostic?.suggestion?.applicability).toBe("conditional");
   });
-
 
   test("uses MOVEQ #0 for CLR.L Dn on 68000 targets", () => {
     const diagnostic = lint("clr.l d3").find((d) => d.ruleId === "optimization/prefer-moveq-zero");
@@ -180,59 +154,35 @@ describe("optimization rules", () => {
   });
 
   test("recognises standard LINK and UNLK sequences", () => {
-    const setup = [
-      "move.l a6,-(sp)",
-      "move.l sp,a6",
-      "add.w #-32,sp",
-    ].join("\n");
+    const setup = ["move.l a6,-(sp)", "move.l sp,a6", "add.w #-32,sp"].join("\n");
     const link = lint(setup).find((d) => d.ruleId === "optimization/prefer-link-sequence");
     expect(link?.suggestion?.replacement).toBe("link a6,#-32");
 
-    const teardown = [
-      "move.l a6,sp",
-      "move.l (sp)+,a6",
-      "rts",
-    ].join("\n");
+    const teardown = ["move.l a6,sp", "move.l (sp)+,a6", "rts"].join("\n");
     const unlk = lint(teardown).find((d) => d.ruleId === "optimization/prefer-unlk-sequence");
     expect(unlk?.suggestion?.replacement).toBe("unlk a6");
   });
-
 });
 
+test("DIVU.W power-of-two proves discarded remainder when upper word is overwritten", () => {
+  const source = ["move.l #100,d0", "divu.w #4,d0", "move.w d0,d1", "move.l #0,d0", "add.l d2,d3", "rts"].join("\n");
+  const diagnostic = lint(source).find((d) => d.ruleId === "optimization/divu-word-power-of-two");
+  expect(diagnostic).toBeDefined();
+  expect(diagnostic?.data?.upperWordUse).toBe("unused");
+  expect(diagnostic?.suggestion?.applicability).toBe("safe");
+});
 
-  test("DIVU.W power-of-two proves discarded remainder when upper word is overwritten", () => {
-    const source = [
-      "move.l #100,d0",
-      "divu.w #4,d0",
-      "move.w d0,d1",
-      "move.l #0,d0",
-      "add.l d2,d3",
-      "rts",
-    ].join("\n");
-    const diagnostic = lint(source).find((d) => d.ruleId === "optimization/divu-word-power-of-two");
-    expect(diagnostic).toBeDefined();
-    expect(diagnostic?.data?.upperWordUse).toBe("unused");
-    expect(diagnostic?.suggestion?.applicability).toBe("safe");
-  });
+test("DIVU.W power-of-two does not suggest a shift when the remainder word is definitely used", () => {
+  const source = ["divu.w #4,d0", "swap d0", "move.l d0,d1", "rts"].join("\n");
+  expect(ids(source)).not.toContain("optimization/divu-word-power-of-two");
+});
 
-  test("DIVU.W power-of-two does not suggest a shift when the remainder word is definitely used", () => {
-    const source = [
-      "divu.w #4,d0",
-      "swap d0",
-      "move.l d0,d1",
-      "rts",
-    ].join("\n");
-    expect(ids(source)).not.toContain("optimization/divu-word-power-of-two");
-  });
-
-  test("DIVU.W power-of-two remains manual when remainder use is unknown", () => {
-    const source = ["divu.w #4,d0", "rts"].join("\n");
-    const diagnostic = lint(source).find((d) => d.ruleId === "optimization/divu-word-power-of-two");
-    expect(diagnostic?.data?.upperWordUse).toBe("unknown");
-    expect(diagnostic?.suggestion?.applicability).toBe("manual");
-  });
-
-
+test("DIVU.W power-of-two remains manual when remainder use is unknown", () => {
+  const source = ["divu.w #4,d0", "rts"].join("\n");
+  const diagnostic = lint(source).find((d) => d.ruleId === "optimization/divu-word-power-of-two");
+  expect(diagnostic?.data?.upperWordUse).toBe("unknown");
+  expect(diagnostic?.suggestion?.applicability).toBe("manual");
+});
 
 describe("Flamewing address sequence rules", () => {
   test("folds ADDA immediate plus data-register ADDA into indexed LEA", () => {
@@ -248,7 +198,9 @@ describe("Flamewing address sequence rules", () => {
   });
 
   test("does not fold when the index is the destination address register", () => {
-    expect(ids(["adda.w #4,a0", "adda.l a0,a0", "rts"].join("\n"))).not.toContain("optimization/address-arithmetic-indexed-lea");
+    expect(ids(["adda.w #4,a0", "adda.l a0,a0", "rts"].join("\n"))).not.toContain(
+      "optimization/address-arithmetic-indexed-lea",
+    );
   });
 });
 
@@ -271,12 +223,16 @@ describe("Flamewing rotate and shift rules", () => {
   });
 
   test("uses ADDX for ROXL #1", () => {
-    const diagnostic = lint(["roxl.w #1,d0", "move.w d0,d1", "rts"].join("\n")).find((d) => d.ruleId === "optimization/roxl-to-addx");
+    const diagnostic = lint(["roxl.w #1,d0", "move.w d0,d1", "rts"].join("\n")).find(
+      (d) => d.ruleId === "optimization/roxl-to-addx",
+    );
     expect(diagnostic?.suggestion?.replacement).toBe("addx.w d0,d0");
   });
 
   test("recognises the LSL.B #7 rotate-and-mask speed tradeoff", () => {
-    const diagnostic = lint(["lsl.b #7,d0", "move.b d0,d1", "rts"].join("\n")).find((d) => d.ruleId === "optimization/lsl-byte-seven");
+    const diagnostic = lint(["lsl.b #7,d0", "move.b d0,d1", "rts"].join("\n")).find(
+      (d) => d.ruleId === "optimization/lsl-byte-seven",
+    );
     expect(diagnostic?.suggestion?.replacement).toBe("ror.b #1,d0\nandi.b #$80,d0");
   });
 
@@ -350,13 +306,7 @@ describe("configuration", () => {
 
 describe("CCR analysis", () => {
   test("flags are live when consumed before overwrite", () => {
-    const source = [
-      "cmp.l d0,d1",
-      "movea.l (a0),a1",
-      "beq .same",
-      ".same:",
-      "rts",
-    ].join("\n");
+    const source = ["cmp.l d0,d1", "movea.l (a0),a1", "beq .same", ".same:", "rts"].join("\n");
 
     const diagnostics = lint(source);
     expect(diagnostics.map((d) => d.ruleId)).not.toContain("correctness/stale-condition-code");
@@ -382,34 +332,17 @@ describe("CCR analysis", () => {
   });
 
   test("warns when BEQ appears to expect MOVEA to set Z", () => {
-    const source = [
-      "movea.l d0,a0",
-      "beq .null",
-      ".null:",
-      "rts",
-    ].join("\n");
+    const source = ["movea.l d0,a0", "beq .null", ".null:", "rts"].join("\n");
     expect(ids(source)).toContain("correctness/stale-condition-code");
   });
 
   test("does not warn when MOVEA deliberately preserves a prior CMP result", () => {
-    const source = [
-      "cmp.l d0,d1",
-      "movea.l (a0),a1",
-      "beq .equal",
-      ".equal:",
-      "rts",
-    ].join("\n");
+    const source = ["cmp.l d0,d1", "movea.l (a0),a1", "beq .equal", ".equal:", "rts"].join("\n");
     expect(ids(source)).not.toContain("correctness/stale-condition-code");
   });
 
   test("populates quick arithmetic and simple constant rules", () => {
-    const source = [
-      "sub.l #8,d0",
-      "add.w #-3,d1",
-      "sub.l #-7,d2",
-      "cmp.l #0,d3",
-      "eor.l #-1,d4",
-    ].join("\n");
+    const source = ["sub.l #8,d0", "add.w #-3,d1", "sub.l #-7,d2", "cmp.l #0,d3", "eor.l #-1,d4"].join("\n");
     const found = ids(source);
     expect(found).toContain("optimization/prefer-subq");
     expect(found).toContain("optimization/prefer-subq-negative-add");
@@ -419,49 +352,29 @@ describe("CCR analysis", () => {
   });
 
   test("single-bit mask transforms are conditional when later flags may matter", () => {
-    const source = [
-      "or.l #8,d0",
-      "beq .done",
-      ".done:",
-      "rts",
-    ].join("\n");
+    const source = ["or.l #8,d0", "beq .done", ".done:", "rts"].join("\n");
     const diagnostic = lint(source).find((d) => d.ruleId === "optimization/prefer-bset");
     expect(diagnostic).toBeDefined();
     expect(diagnostic?.suggestion?.applicability).toBe("conditional");
   });
 
   test("single-bit mask transform becomes safe after flags are overwritten", () => {
-    const source = [
-      "or.l #8,d0",
-      "move.l d1,d2",
-      "rts",
-    ].join("\n");
+    const source = ["or.l #8,d0", "move.l d1,d2", "rts"].join("\n");
     const diagnostic = lint(source).find((d) => d.ruleId === "optimization/prefer-bset");
     expect(diagnostic?.suggestion?.applicability).toBe("safe");
   });
 
   test("large logical shifts can collapse to zero, respecting CCR liveness", () => {
-    const source = [
-      "lsl.w #16,d0",
-      "move.l d1,d2",
-      "rts",
-    ].join("\n");
+    const source = ["lsl.w #16,d0", "move.l d1,d2", "rts"].join("\n");
     const diagnostic = lint(source).find((d) => d.ruleId === "optimization/shift-to-clear");
     expect(diagnostic).toBeDefined();
     expect(diagnostic?.suggestion?.replacement).toBe("clr.w d0");
   });
-
 });
 
 describe("v0.8 sequence rules", () => {
   test("uses TST plus sign branch for BTST sign-bit tests", () => {
-    const source = [
-      "btst #31,d0",
-      "beq.s .positive",
-      "move.l d1,d2",
-      ".positive:",
-      "move.l d3,d4",
-    ].join("\n");
+    const source = ["btst #31,d0", "beq.s .positive", "move.l d1,d2", ".positive:", "move.l d3,d4"].join("\n");
     const diagnostic = lint(source).find((d) => d.ruleId === "optimization/btst-sign-branch");
     expect(diagnostic?.suggestion?.replacement).toBe("tst.l d0\nbpl.s .positive");
   });
@@ -472,22 +385,24 @@ describe("v0.8 sequence rules", () => {
   });
 
   test("finds adjacent absolute CLR byte/word stores but keeps them manual", () => {
-    const bytes = lint(["clr.b $1000", "clr.b $1001"].join("\n"))
-      .find((d) => d.ruleId === "optimization/combine-adjacent-clr-bytes");
+    const bytes = lint(["clr.b $1000", "clr.b $1001"].join("\n")).find(
+      (d) => d.ruleId === "optimization/combine-adjacent-clr-bytes",
+    );
     expect(bytes?.suggestion?.applicability).toBe("manual");
 
-    expect(ids(["clr.w $2000", "clr.w $2002"].join("\n")))
-      .toContain("optimization/combine-adjacent-clr-words");
+    expect(ids(["clr.w $2000", "clr.w $2002"].join("\n"))).toContain("optimization/combine-adjacent-clr-words");
   });
 
   test("combines adjacent immediate stores using 68k big-endian ordering", () => {
-    const bytes = lint(["move.b #$12,$1000", "move.b #$34,$1001"].join("\n"))
-      .find((d) => d.ruleId === "optimization/combine-adjacent-move-bytes");
+    const bytes = lint(["move.b #$12,$1000", "move.b #$34,$1001"].join("\n")).find(
+      (d) => d.ruleId === "optimization/combine-adjacent-move-bytes",
+    );
     expect(bytes?.suggestion?.description).toContain("#$1234");
     expect(bytes?.suggestion?.applicability).toBe("manual");
 
-    const words = lint(["move.w #$1234,$2000", "move.w #$5678,$2002"].join("\n"))
-      .find((d) => d.ruleId === "optimization/combine-adjacent-move-words");
+    const words = lint(["move.w #$1234,$2000", "move.w #$5678,$2002"].join("\n")).find(
+      (d) => d.ruleId === "optimization/combine-adjacent-move-words",
+    );
     expect(words?.suggestion?.description).toContain("#$12345678");
   });
 });
@@ -519,21 +434,25 @@ describe("v0.9 local peepholes", () => {
   });
 
   test("uses LEA for larger immediate address-register arithmetic", () => {
-    expect(lint("add.l #100,a2").find((d) => d.ruleId === "optimization/address-add-to-lea")?.suggestion?.replacement)
-      .toBe("lea 100(a2),a2");
-    expect(lint("sub.w #20,a3").find((d) => d.ruleId === "optimization/address-sub-to-lea")?.suggestion?.replacement)
-      .toBe("lea -20(a3),a3");
+    expect(
+      lint("add.l #100,a2").find((d) => d.ruleId === "optimization/address-add-to-lea")?.suggestion?.replacement,
+    ).toBe("lea 100(a2),a2");
+    expect(
+      lint("sub.w #20,a3").find((d) => d.ruleId === "optimization/address-sub-to-lea")?.suggestion?.replacement,
+    ).toBe("lea -20(a3),a3");
     expect(ids("add.l #8,a2")).not.toContain("optimization/address-add-to-lea");
   });
 
   test("uses PEA for signed-16-bit immediate pushes but respects CCR", () => {
-    const safe = lint(["move.l #123,-(sp)", "move.l d0,d1", "rts"].join("\n"))
-      .find((d) => d.ruleId === "optimization/push-immediate-pea");
+    const safe = lint(["move.l #123,-(sp)", "move.l d0,d1", "rts"].join("\n")).find(
+      (d) => d.ruleId === "optimization/push-immediate-pea",
+    );
     expect(safe?.suggestion?.replacement).toBe("pea 123.w");
     expect(safe?.suggestion?.applicability).toBe("safe");
 
-    const escaping = lint(["move.l #123,-(sp)", "rts"].join("\n"))
-      .find((d) => d.ruleId === "optimization/push-immediate-pea");
+    const escaping = lint(["move.l #123,-(sp)", "rts"].join("\n")).find(
+      (d) => d.ruleId === "optimization/push-immediate-pea",
+    );
     expect(escaping?.suggestion?.applicability).toBe("conditional");
   });
 
@@ -548,13 +467,15 @@ describe("v0.9 local peepholes", () => {
     expect(bset?.suggestion?.replacement).toBe("or.w #$0008,d0");
     expect(bset?.suggestion?.applicability).toBe("safe");
 
-    expect(lint("bclr.l #7,d1").find((d) => d.ruleId === "optimization/bclr-low-word-mask")?.suggestion?.replacement)
-      .toBe("and.w #$FF7F,d1");
+    expect(
+      lint("bclr.l #7,d1").find((d) => d.ruleId === "optimization/bclr-low-word-mask")?.suggestion?.replacement,
+    ).toBe("and.w #$FF7F,d1");
   });
 
   test("suggests two ADDs for two-bit byte/word shifts on supported CPUs", () => {
-    const diagnostic = lint(["asl.w #2,d2", "move.l d0,d1", "rts"].join("\n"))
-      .find((d) => d.ruleId === "optimization/shift-two-adds");
+    const diagnostic = lint(["asl.w #2,d2", "move.l d0,d1", "rts"].join("\n")).find(
+      (d) => d.ruleId === "optimization/shift-two-adds",
+    );
     expect(diagnostic?.suggestion?.replacement).toBe("add.w d2,d2\nadd.w d2,d2");
 
     const cpu060 = lint("asl.w #2,d2", { processors: ["mc68060"] });
@@ -581,11 +502,7 @@ describe("ASP68K coverage manifest", () => {
 
 describe("register analysis", () => {
   test("tracks a known-zero data register into a CLR optimisation", () => {
-    const source = [
-      "moveq #0,d7",
-      "clr.l -(a0)",
-      "rts",
-    ].join("\n");
+    const source = ["moveq #0,d7", "clr.l -(a0)", "rts"].join("\n");
     const diagnostic = lint(source).find((d) => d.ruleId === "optimization/known-zero-clear");
     expect(diagnostic?.suggestion?.replacement).toBe("move.l d7,-(a0)");
     expect(diagnostic?.suggestion?.applicability).toBe("conditional");
@@ -598,11 +515,7 @@ describe("register analysis", () => {
   });
 
   test("finds a dead scratch register when it is overwritten before return", () => {
-    const source = [
-      "move.l #42,(a0)",
-      "moveq #0,d0",
-      "rts",
-    ].join("\n");
+    const source = ["move.l #42,(a0)", "moveq #0,d0", "rts"].join("\n");
     const diagnostic = lint(source).find((d) => d.ruleId === "optimization/move-immediate-via-scratch");
     expect(diagnostic?.suggestion?.replacement).toContain("moveq #42,d0");
     expect(diagnostic?.suggestion?.applicability).toBe("safe");
@@ -611,11 +524,7 @@ describe("register analysis", () => {
 
 describe("v0.11 register-driven rules", () => {
   test("uses a dead data register to compare an address register with zero", () => {
-    const source = [
-      "cmp.l #0,a0",
-      "moveq #1,d0",
-      "rts",
-    ].join("\n");
+    const source = ["cmp.l #0,a0", "moveq #1,d0", "rts"].join("\n");
     const diagnostic = lint(source).find((d) => d.ruleId === "optimization/cmp-zero-address-via-scratch");
     expect(diagnostic?.suggestion?.replacement).toBe("move.l a0,d0");
     expect(diagnostic?.suggestion?.applicability).toBe("safe");
@@ -626,48 +535,29 @@ describe("v0.11 register-driven rules", () => {
   });
 
   test("combines consecutive ADDQ.L operations when flags are dead", () => {
-    const source = [
-      "addq.l #3,d0",
-      "addq.l #5,d0",
-      "add.l d1,d2",
-      "rts",
-    ].join("\n");
+    const source = ["addq.l #3,d0", "addq.l #5,d0", "add.l d1,d2", "rts"].join("\n");
     const diagnostic = lint(source).find((d) => d.ruleId === "optimization/combine-consecutive-addq");
     expect(diagnostic?.suggestion?.replacement).toBe("addq.l #8,d0");
     expect(diagnostic?.suggestion?.applicability).toBe("safe");
   });
 
   test("does not use the full-immediate ADD fallback on mc68000 when the sum exceeds 8", () => {
-    const source = [
-      "addq.l #5,d0",
-      "addq.l #6,d0",
-      "move.l d1,d2",
-      "rts",
-    ].join("\n");
-    expect(lint(source, { processors: ["mc68000"] }).map((d) => d.ruleId))
-      .not.toContain("optimization/combine-consecutive-addq");
+    const source = ["addq.l #5,d0", "addq.l #6,d0", "move.l d1,d2", "rts"].join("\n");
+    expect(lint(source, { processors: ["mc68000"] }).map((d) => d.ruleId)).not.toContain(
+      "optimization/combine-consecutive-addq",
+    );
   });
 
   test("retains the source-backed full-immediate ADD fallback for mc68030", () => {
-    const source = [
-      "addq.l #5,d0",
-      "addq.l #6,d0",
-      "move.l d1,d2",
-      "rts",
-    ].join("\n");
-    const diagnostic = lint(source, { processors: ["mc68030"] })
-      .find((d) => d.ruleId === "optimization/combine-consecutive-addq");
+    const source = ["addq.l #5,d0", "addq.l #6,d0", "move.l d1,d2", "rts"].join("\n");
+    const diagnostic = lint(source, { processors: ["mc68030"] }).find(
+      (d) => d.ruleId === "optimization/combine-consecutive-addq",
+    );
     expect(diagnostic?.suggestion?.replacement).toBe("add.l #11,d0");
   });
 
   test("keeps combined ADDQ conditional when carry/overflow flags are observed", () => {
-    const source = [
-      "addq.l #3,d0",
-      "addq.l #5,d0",
-      "bcs .carry",
-      ".carry:",
-      "rts",
-    ].join("\n");
+    const source = ["addq.l #3,d0", "addq.l #5,d0", "bcs .carry", ".carry:", "rts"].join("\n");
     const diagnostic = lint(source).find((d) => d.ruleId === "optimization/combine-consecutive-addq");
     expect(diagnostic?.suggestion?.applicability).toBe("conditional");
   });
@@ -685,11 +575,11 @@ describe("v0.11 register-driven rules", () => {
   });
 });
 
-
 describe("v0.12 simple multiply rules", () => {
   test("replaces signed/unsigned word multiply by zero with MOVEQ", () => {
-    expect(lint("muls.w #0,d2").find((d) => d.ruleId === "optimization/multiply-word-by-zero")?.suggestion?.replacement)
-      .toBe("moveq #0,d2");
+    expect(
+      lint("muls.w #0,d2").find((d) => d.ruleId === "optimization/multiply-word-by-zero")?.suggestion?.replacement,
+    ).toBe("moveq #0,d2");
     expect(ids("mulu.w #0,d3")).toContain("optimization/multiply-word-by-zero");
   });
 
@@ -702,8 +592,9 @@ describe("v0.12 simple multiply rules", () => {
   test("offers the unsigned multiply-by-one zero-extension sequence only on useful targets", () => {
     const diagnostic = lint("mulu.w #1,d5").find((d) => d.ruleId === "optimization/mulu-word-by-one");
     expect(diagnostic?.suggestion?.replacement).toBe("swap d5\nclr.w d5\nswap d5");
-    expect(lint("mulu.w #1,d5", { processors: ["mc68060"] }).map((d) => d.ruleId))
-      .not.toContain("optimization/mulu-word-by-one");
+    expect(lint("mulu.w #1,d5", { processors: ["mc68060"] }).map((d) => d.ruleId)).not.toContain(
+      "optimization/mulu-word-by-one",
+    );
   });
 
   test("uses EXT+ASL for signed word powers of two and respects flag liveness", () => {
@@ -737,19 +628,14 @@ describe("v0.13 multiply and disposable-register sequence rules", () => {
   });
 
   test("uses the high-power signed word construction for m=9..15", () => {
-    const diagnostic = lint(["muls.w #1024,d3", "move.l d0,d1", "rts"].join("\n"))
-      .find((d) => d.ruleId === "optimization/muls-word-high-power-of-two");
+    const diagnostic = lint(["muls.w #1024,d3", "move.l d0,d1", "rts"].join("\n")).find(
+      (d) => d.ruleId === "optimization/muls-word-high-power-of-two",
+    );
     expect(diagnostic?.suggestion?.replacement).toBe("swap d3\nclr.w d3\nasr.l #6,d3");
   });
 
   test("collapses NEG+SUB only when the negated register is disposable", () => {
-    const source = [
-      "neg.l d0",
-      "sub.l d0,d1",
-      "move.l #0,d0",
-      "add.l d2,d3",
-      "rts",
-    ].join("\n");
+    const source = ["neg.l d0", "sub.l d0,d1", "move.l #0,d0", "add.l d2,d3", "rts"].join("\n");
     const diagnostic = lint(source).find((d) => d.ruleId === "optimization/negate-sub-to-add");
     expect(diagnostic?.suggestion?.replacement).toBe("add.l d0,d1");
     expect(diagnostic?.suggestion?.applicability).toBe("safe");
@@ -768,8 +654,9 @@ describe("v0.13 multiply and disposable-register sequence rules", () => {
 });
 
 test("v0.13 uses the high-power unsigned word construction", () => {
-  const diagnostic = lint(["mulu.w #2048,d6", "move.l d0,d1", "rts"].join("\n"))
-    .find((d) => d.ruleId === "optimization/mulu-word-high-power-of-two");
+  const diagnostic = lint(["mulu.w #2048,d6", "move.l d0,d1", "rts"].join("\n")).find(
+    (d) => d.ruleId === "optimization/mulu-word-high-power-of-two",
+  );
   expect(diagnostic?.suggestion?.replacement).toBe("swap d6\nclr.w d6\nlsr.l #5,d6");
 });
 
@@ -804,8 +691,9 @@ describe("v0.16 redundant TST and additional ASP68K rules", () => {
   });
 
   test("does not suggest memory TAS form on 68040", () => {
-    expect(lint("bset.b #7,(a0)", { processors: ["mc68040"] }).map((d) => d.ruleId))
-      .not.toContain("optimization/bset-to-tas");
+    expect(lint("bset.b #7,(a0)", { processors: ["mc68040"] }).map((d) => d.ruleId)).not.toContain(
+      "optimization/bset-to-tas",
+    );
   });
 
   test("uses SUBA.L to zero an address register for LEA 0.w", () => {
@@ -815,14 +703,16 @@ describe("v0.16 redundant TST and additional ASP68K rules", () => {
   });
 
   test("synthesizes selected constants with MOVEQ + NOT.W", () => {
-    const diagnostic = lint(["move.l #65534,d0", "move.l d1,d2", "rts"].join("\n"))
-      .find((d) => d.ruleId === "optimization/move-immediate-word-complement");
+    const diagnostic = lint(["move.l #65534,d0", "move.l d1,d2", "rts"].join("\n")).find(
+      (d) => d.ruleId === "optimization/move-immediate-word-complement",
+    );
     expect(diagnostic?.suggestion?.replacement).toBe("moveq #1,d0\nnot.w d0");
   });
 
   test("synthesizes selected constants with MOVEQ + SWAP", () => {
-    const diagnostic = lint(["move.l #2752512,d0", "move.l d1,d2", "rts"].join("\n"))
-      .find((d) => d.ruleId === "optimization/move-immediate-swap");
+    const diagnostic = lint(["move.l #2752512,d0", "move.l d1,d2", "rts"].join("\n")).find(
+      (d) => d.ruleId === "optimization/move-immediate-swap",
+    );
     expect(diagnostic?.suggestion?.replacement).toBe("moveq #42,d0\nswap d0");
   });
 });
@@ -886,26 +776,30 @@ describe("operand-sensitive semantic normalisation", () => {
 
 describe("v0.19 long shifts and MOVEA/LEA rules", () => {
   test("replaces ASL.L #16 with SWAP+CLR.W on 68000", () => {
-    const diagnostic = lint(["asl.l #16,d0", "add.l d1,d2", "rts"].join("\n"))
-      .find((d) => d.ruleId === "optimization/long-shift-sequence");
+    const diagnostic = lint(["asl.l #16,d0", "add.l d1,d2", "rts"].join("\n")).find(
+      (d) => d.ruleId === "optimization/long-shift-sequence",
+    );
     expect(diagnostic?.suggestion?.replacement).toBe("swap d0\nclr.w d0");
     expect(diagnostic?.suggestion?.applicability).toBe("safe");
   });
 
   test("uses the 17..31 arithmetic-right shift sequence", () => {
-    const diagnostic = lint(["asr.l #20,d3", "move.l d1,d2", "rts"].join("\n"))
-      .find((d) => d.ruleId === "optimization/long-shift-sequence");
+    const diagnostic = lint(["asr.l #20,d3", "move.l d1,d2", "rts"].join("\n")).find(
+      (d) => d.ruleId === "optimization/long-shift-sequence",
+    );
     expect(diagnostic?.suggestion?.replacement).toBe("swap d3\nasr.w #4,d3\next.l d3");
   });
 
   test("does not offer early-CPU ASL sequence on 68040", () => {
-    expect(lint("asl.l #16,d0", { processors: ["mc68040"] }).map((d) => d.ruleId))
-      .not.toContain("optimization/long-shift-sequence");
+    expect(lint("asl.l #16,d0", { processors: ["mc68040"] }).map((d) => d.ruleId)).not.toContain(
+      "optimization/long-shift-sequence",
+    );
   });
 
   test("allows the documented LSR #16 sequence on 68030", () => {
-    expect(lint("lsr.l #16,d0", { processors: ["mc68030"] }).map((d) => d.ruleId))
-      .toContain("optimization/long-shift-sequence");
+    expect(lint("lsr.l #16,d0", { processors: ["mc68030"] }).map((d) => d.ruleId)).toContain(
+      "optimization/long-shift-sequence",
+    );
   });
 
   test("uses LEA for a non-zero immediate MOVEA on 68000", () => {
@@ -948,71 +842,83 @@ describe("v0.19 multiple predecrement cancellation", () => {
 
 describe("v0.20 coverage rules", () => {
   test("cancels ADDQ #4,SP plus PEA with CCR-aware direct store", () => {
-    const safe = lint(["addq.l #4,sp", "pea (a0)", "move.l d0,d1", "rts"].join("\n"))
-      .find((d) => d.ruleId === "optimization/cancel-stack-pea-sequence");
+    const safe = lint(["addq.l #4,sp", "pea (a0)", "move.l d0,d1", "rts"].join("\n")).find(
+      (d) => d.ruleId === "optimization/cancel-stack-pea-sequence",
+    );
     expect(safe?.suggestion?.replacement).toBe("move.l a0,(sp)");
     expect(safe?.suggestion?.applicability).toBe("safe");
 
-    const escaping = lint(["addq.l #4,sp", "pea (a0)", "rts"].join("\n"))
-      .find((d) => d.ruleId === "optimization/cancel-stack-pea-sequence");
+    const escaping = lint(["addq.l #4,sp", "pea (a0)", "rts"].join("\n")).find(
+      (d) => d.ruleId === "optimization/cancel-stack-pea-sequence",
+    );
     expect(escaping?.suggestion?.applicability).toBe("conditional");
   });
 
   test("cancels mixed stack predecrement/PEA forms", () => {
-    const a = lint(["addq.w #6,sp", "move.w d0,-(sp)", "pea (a1)", "rts"].join("\n"))
-      .find((d) => d.ruleId === "optimization/cancel-stack-pea-sequence");
+    const a = lint(["addq.w #6,sp", "move.w d0,-(sp)", "pea (a1)", "rts"].join("\n")).find(
+      (d) => d.ruleId === "optimization/cancel-stack-pea-sequence",
+    );
     expect(a?.suggestion?.replacement).toBe("move.w d0,4(sp)\nmove.l a1,(sp)");
 
-    const b = lint(["addq.l #8,sp", "pea (a0)", "move.l d2,-(sp)", "rts"].join("\n"))
-      .find((d) => d.ruleId === "optimization/cancel-stack-pea-sequence");
+    const b = lint(["addq.l #8,sp", "pea (a0)", "move.l d2,-(sp)", "rts"].join("\n")).find(
+      (d) => d.ruleId === "optimization/cancel-stack-pea-sequence",
+    );
     expect(b?.suggestion?.replacement).toBe("move.l a0,4(sp)\nmove.l d2,(sp)");
     expect(b?.suggestion?.applicability).toBe("safe");
   });
 
   test("rejects stack-fold source operands that depend on SP", () => {
-    expect(ids(["addq.w #6,sp", "move.w (sp),-(sp)", "pea (a1)"].join("\n")))
-      .not.toContain("optimization/cancel-stack-pea-sequence");
+    expect(ids(["addq.w #6,sp", "move.w (sp),-(sp)", "pea (a1)"].join("\n"))).not.toContain(
+      "optimization/cancel-stack-pea-sequence",
+    );
   });
 
   test("removes long multiply by one only for 68060 and respects CCR", () => {
-    const diagnostic = lint(["muls.l #1,d0", "move.l d1,d2", "rts"].join("\n"), { processors: ["mc68060"] })
-      .find((d) => d.ruleId === "optimization/multiply-long-by-one");
+    const diagnostic = lint(["muls.l #1,d0", "move.l d1,d2", "rts"].join("\n"), { processors: ["mc68060"] }).find(
+      (d) => d.ruleId === "optimization/multiply-long-by-one",
+    );
     expect(diagnostic?.suggestion?.replacement).toBe("");
     expect(diagnostic?.suggestion?.applicability).toBe("safe");
 
-    expect(lint("muls.l #1,d0", { processors: ["mc68040"] }).map((d) => d.ruleId))
-      .not.toContain("optimization/multiply-long-by-one");
+    expect(lint("muls.l #1,d0", { processors: ["mc68040"] }).map((d) => d.ruleId)).not.toContain(
+      "optimization/multiply-long-by-one",
+    );
   });
 });
 
 describe("v0.22 deferred-rule tranche", () => {
   test("folds MOVEA plus immediate/index ADDA into one LEA", () => {
-    const add = lint(["move.l a0,a2", "add.l #12,a2", "add.w d3,a2", "rts"].join("\n"))
-      .find((d) => d.ruleId === "optimization/address-expression-to-lea");
+    const add = lint(["move.l a0,a2", "add.l #12,a2", "add.w d3,a2", "rts"].join("\n")).find(
+      (d) => d.ruleId === "optimization/address-expression-to-lea",
+    );
     expect(add?.suggestion?.replacement).toBe("lea 12(a0,d3.w),a2");
     expect(add?.suggestion?.applicability).toBe("safe");
 
-    const sub = lint(["move.l a1,a4", "sub.w #8,a4", "add.l d5,a4", "rts"].join("\n"))
-      .find((d) => d.ruleId === "optimization/address-expression-to-lea");
+    const sub = lint(["move.l a1,a4", "sub.w #8,a4", "add.l d5,a4", "rts"].join("\n")).find(
+      (d) => d.ruleId === "optimization/address-expression-to-lea",
+    );
     expect(sub?.suggestion?.replacement).toBe("lea -8(a1,d5.l),a4");
   });
 
   test("does not fold MOVEA.W base copies into LEA", () => {
-    expect(ids(["move.w a0,a2", "add.w #12,a2", "add.w d3,a2"].join("\n")))
-      .not.toContain("optimization/address-expression-to-lea");
+    expect(ids(["move.w a0,a2", "add.w #12,a2", "add.w d3,a2"].join("\n"))).not.toContain(
+      "optimization/address-expression-to-lea",
+    );
   });
 
   test("suggests DIVU.W power-of-two shifts with remainder review when upper-word use is unknown", () => {
-    const diagnostic = lint(["divu.w #8,d0", "rts"].join("\n"))
-      .find((d) => d.ruleId === "optimization/divu-word-power-of-two");
+    const diagnostic = lint(["divu.w #8,d0", "rts"].join("\n")).find(
+      (d) => d.ruleId === "optimization/divu-word-power-of-two",
+    );
     expect(diagnostic?.suggestion?.replacement).toBe("lsr.l #3,d0");
     expect(diagnostic?.suggestion?.applicability).toBe("manual");
     expect(diagnostic?.data?.upperWordUse).toBe("unknown");
   });
 
   test("can prove DIVU.W shift observation-equivalence when remainder is discarded", () => {
-    const diagnostic = lint(["moveq #64,d0", "divu.w #8,d0", "move.w d0,d1", "moveq #0,d0", "move.l d2,d3", "rts"].join("\n"))
-      .find((d) => d.ruleId === "optimization/divu-word-power-of-two");
+    const diagnostic = lint(
+      ["moveq #64,d0", "divu.w #8,d0", "move.w d0,d1", "moveq #0,d0", "move.l d2,d3", "rts"].join("\n"),
+    ).find((d) => d.ruleId === "optimization/divu-word-power-of-two");
     expect(diagnostic?.suggestion?.replacement).toBe("lsr.l #3,d0");
     expect(diagnostic?.data?.upperWordUse).toBe("unused");
     expect(diagnostic?.data?.quotientOverflowProvenSafe).toBe(true);
@@ -1021,35 +927,39 @@ describe("v0.22 deferred-rule tranche", () => {
 
 describe("v0.27 Flamewing shift tranche", () => {
   test("clears known register-count logical shifts once the count reaches the operand width", () => {
-    const byte = lint(["moveq #9,d1", "lsl.b d1,d0", "move.l d2,d3", "rts"].join("\n"))
-      .find((d) => d.ruleId === "optimization/known-register-shift-to-clear");
+    const byte = lint(["moveq #9,d1", "lsl.b d1,d0", "move.l d2,d3", "rts"].join("\n")).find(
+      (d) => d.ruleId === "optimization/known-register-shift-to-clear",
+    );
     expect(byte?.suggestion?.replacement).toBe("clr.b d0");
 
-    const long = lint(["moveq #32,d1", "lsr.l d1,d0", "move.l d2,d3", "rts"].join("\n"))
-      .find((d) => d.ruleId === "optimization/known-register-shift-to-clear");
+    const long = lint(["moveq #32,d1", "lsr.l d1,d0", "move.l d2,d3", "rts"].join("\n")).find(
+      (d) => d.ruleId === "optimization/known-register-shift-to-clear",
+    );
     expect(long?.suggestion?.replacement).toBe("moveq #0,d0");
   });
 
   test("does not treat ASR as a zeroing shift", () => {
-    expect(ids(["moveq #32,d1", "asr.l d1,d0"].join("\n")))
-      .not.toContain("optimization/known-register-shift-to-clear");
+    expect(ids(["moveq #32,d1", "asr.l d1,d0"].join("\n"))).not.toContain("optimization/known-register-shift-to-clear");
   });
 
   test("recognises Flamewing byte edge-shift identities", () => {
-    const lsr = lint(["lsr.b #7,d0", "move.l d1,d2", "rts"].join("\n"))
-      .find((d) => d.ruleId === "optimization/lsr-byte-seven");
+    const lsr = lint(["lsr.b #7,d0", "move.l d1,d2", "rts"].join("\n")).find(
+      (d) => d.ruleId === "optimization/lsr-byte-seven",
+    );
     expect(lsr?.suggestion?.replacement).toBe("add.b d0,d0\nsubx.b d0,d0\nneg.b d0");
 
-    const asr = lint(["asr.b #8,d0", "move.l d1,d2", "rts"].join("\n"))
-      .find((d) => d.ruleId === "optimization/asr-byte-saturate");
+    const asr = lint(["asr.b #8,d0", "move.l d1,d2", "rts"].join("\n")).find(
+      (d) => d.ruleId === "optimization/asr-byte-saturate",
+    );
     expect(asr?.suggestion?.replacement).toBe("add.b d0,d0\nsubx.b d0,d0");
   });
 });
 
 describe("v0.29 Flamewing multiply tranche", () => {
   test("uses verified full-result MULS.W recipes with a dead scratch register", () => {
-    const diagnostic = lint(["muls.w #11,d0", "move.l d0,d2", "rts"].join("\n"))
-      .find((d) => d.ruleId === "optimization/muls-word-full-result-constants");
+    const diagnostic = lint(["muls.w #11,d0", "move.l d0,d2", "rts"].join("\n")).find(
+      (d) => d.ruleId === "optimization/muls-word-full-result-constants",
+    );
     expect(diagnostic?.suggestion?.replacement).toContain("ext.l d0");
     expect(diagnostic?.suggestion?.replacement).toContain("asl.l #2,d0");
     expect(diagnostic?.data?.factor).toBe(11);
@@ -1057,33 +967,37 @@ describe("v0.29 Flamewing multiply tranche", () => {
 
   test("supports additional full-result factors from Flamewing", () => {
     for (const factor of [13, 14, 15, 17, 19, 23, 26, 29, 31, 35]) {
-      const diagnostic = lint([`muls.w #${factor},d0`, "move.l d0,d2", "rts"].join("\n"))
-        .find((d) => d.ruleId === "optimization/muls-word-full-result-constants");
+      const diagnostic = lint([`muls.w #${factor},d0`, "move.l d0,d2", "rts"].join("\n")).find(
+        (d) => d.ruleId === "optimization/muls-word-full-result-constants",
+      );
       expect(diagnostic?.data?.factor).toBe(factor);
     }
   });
 
   test("uses low-word-only recipes only when the result high word is discarded", () => {
-    const safe = lint(["muls.w #7,d0", "move.w d0,d2", "moveq #0,d0", "move.l d3,d4", "rts"].join("\n"))
-      .find((d) => d.ruleId === "optimization/muls-word-low-word-only");
+    const safe = lint(["muls.w #7,d0", "move.w d0,d2", "moveq #0,d0", "move.l d3,d4", "rts"].join("\n")).find(
+      (d) => d.ruleId === "optimization/muls-word-low-word-only",
+    );
     expect(safe?.data?.upperWordUse).toBe("unused");
 
-    const used = lint(["muls.w #7,d0", "swap d0", "move.w d0,d2", "rts"].join("\n"))
-      .find((d) => d.ruleId === "optimization/muls-word-low-word-only");
+    const used = lint(["muls.w #7,d0", "swap d0", "move.w d0,d2", "rts"].join("\n")).find(
+      (d) => d.ruleId === "optimization/muls-word-low-word-only",
+    );
     expect(used).toBeUndefined();
   });
 });
 
-  test("reduces known large register-count ASR to sign saturation", () => {
-    const word = lint(["moveq #15,d1", "asr.w d1,d0", "move.l d0,d2", "moveq #0,d1", "rts"].join("\n"))
-      .find((d) => d.ruleId === "optimization/known-register-asr-saturate");
-    expect(word?.suggestion?.replacement).toBe("add.w d0,d0\nsubx.w d0,d0");
+test("reduces known large register-count ASR to sign saturation", () => {
+  const word = lint(["moveq #15,d1", "asr.w d1,d0", "move.l d0,d2", "moveq #0,d1", "rts"].join("\n")).find(
+    (d) => d.ruleId === "optimization/known-register-asr-saturate",
+  );
+  expect(word?.suggestion?.replacement).toBe("add.w d0,d0\nsubx.w d0,d0");
 
-    const long = lint(["moveq #31,d1", "asr.l d1,d0", "move.l d0,d2", "moveq #0,d1", "rts"].join("\n"))
-      .find((d) => d.ruleId === "optimization/known-register-asr-saturate");
-    expect(long?.suggestion?.replacement).toBe("add.l d0,d0\nsubx.l d0,d0");
-  });
-
+  const long = lint(["moveq #31,d1", "asr.l d1,d0", "move.l d0,d2", "moveq #0,d1", "rts"].join("\n")).find(
+    (d) => d.ruleId === "optimization/known-register-asr-saturate",
+  );
+  expect(long?.suggestion?.replacement).toBe("add.l d0,d0\nsubx.l d0,d0");
+});
 
 describe("v0.30 Flamewing partial-register tranche", () => {
   test("uses MOVEQ + AND.B when upper 24 bits are proven discarded", () => {
@@ -1104,51 +1018,59 @@ describe("v0.30 Flamewing partial-register tranche", () => {
   });
 
   test("reduces high known register-count long logical shifts without stack scratch", () => {
-    const left = lint(["moveq #30,d1", "lsl.l d1,d0", "move.l d0,d2", "moveq #0,d1", "rts"].join("\n"))
-      .find((d) => d.ruleId === "optimization/known-register-shift-reduction");
+    const left = lint(["moveq #30,d1", "lsl.l d1,d0", "move.l d0,d2", "moveq #0,d1", "rts"].join("\n")).find(
+      (d) => d.ruleId === "optimization/known-register-shift-reduction",
+    );
     expect(left?.suggestion?.replacement).toBe("ror.w #2,d0\nandi.w #$C000,d0\nswap d0\nclr.w d0");
 
-    const right = lint(["moveq #29,d1", "lsr.l d1,d0", "move.l d0,d2", "moveq #0,d1", "rts"].join("\n"))
-      .find((d) => d.ruleId === "optimization/known-register-shift-reduction");
+    const right = lint(["moveq #29,d1", "lsr.l d1,d0", "move.l d0,d2", "moveq #0,d1", "rts"].join("\n")).find(
+      (d) => d.ruleId === "optimization/known-register-shift-reduction",
+    );
     expect(right?.suggestion?.replacement).toBe("clr.w d0\nswap d0\nandi.w #$E000,d0\nrol.w #3,d0");
   });
 });
 
 describe("v0.31 Flamewing arithmetic-shift tranche", () => {
   test("uses ASR.W low-word reduction only when the high word is discarded", () => {
-    const safe = lint(["moveq #12,d1", "asr.w d1,d0", "move.w d0,d2", "moveq #0,d0", "moveq #0,d1", "rts"].join("\n"))
-      .find((d) => d.ruleId === "optimization/known-register-asr-word-low-only");
+    const safe = lint(
+      ["moveq #12,d1", "asr.w d1,d0", "move.w d0,d2", "moveq #0,d0", "moveq #0,d1", "rts"].join("\n"),
+    ).find((d) => d.ruleId === "optimization/known-register-asr-word-low-only");
     expect(safe?.suggestion?.replacement).toBe("ext.l d0\nswap d0\nrol.l #4,d0");
 
-    const used = lint(["moveq #12,d1", "asr.w d1,d0", "move.l d0,d2", "rts"].join("\n"))
-      .find((d) => d.ruleId === "optimization/known-register-asr-word-low-only");
+    const used = lint(["moveq #12,d1", "asr.w d1,d0", "move.l d0,d2", "rts"].join("\n")).find(
+      (d) => d.ruleId === "optimization/known-register-asr-word-low-only",
+    );
     expect(used).toBeUndefined();
   });
 
   test("reduces known ASR.L counts 26..30 without stack scratch", () => {
-    const diagnostic = lint(["moveq #28,d1", "asr.l d1,d0", "move.l d0,d2", "moveq #0,d1", "rts"].join("\n"))
-      .find((d) => d.ruleId === "optimization/known-register-asr-long-high");
+    const diagnostic = lint(["moveq #28,d1", "asr.l d1,d0", "move.l d0,d2", "moveq #0,d1", "rts"].join("\n")).find(
+      (d) => d.ruleId === "optimization/known-register-asr-long-high",
+    );
     expect(diagnostic?.suggestion?.replacement).toBe("swap d0\next.l d0\nswap d0\nrol.l #4,d0\next.l d0");
   });
 });
 
 describe("v0.32 Flamewing unsigned low-word multiply tranche", () => {
   test("uses a word-only MULU recipe when the high word is discarded", () => {
-    const diagnostic = lint(["mulu.w #9,d0", "move.w d0,d2", "moveq #0,d0", "rts"].join("\n"))
-      .find((d) => d.ruleId === "optimization/mulu-word-low-word-only");
+    const diagnostic = lint(["mulu.w #9,d0", "move.w d0,d2", "moveq #0,d0", "rts"].join("\n")).find(
+      (d) => d.ruleId === "optimization/mulu-word-low-word-only",
+    );
     expect(diagnostic?.suggestion?.replacement).toContain("lsl.w #3,d0");
     expect(diagnostic?.data?.factor).toBe(9);
   });
 
   test("does not use a word-only MULU recipe when the high word is observed", () => {
-    const diagnostic = lint(["mulu.w #9,d0", "move.l d0,d2", "rts"].join("\n"))
-      .find((d) => d.ruleId === "optimization/mulu-word-low-word-only");
+    const diagnostic = lint(["mulu.w #9,d0", "move.l d0,d2", "rts"].join("\n")).find(
+      (d) => d.ruleId === "optimization/mulu-word-low-word-only",
+    );
     expect(diagnostic).toBeUndefined();
   });
 
   test("can remove MULU.W #1 when only the low word and no CCR result are observed", () => {
-    const diagnostic = lint(["mulu.w #1,d0", "move.w d0,d2", "moveq #0,d0", "move.l d3,d4", "rts"].join("\n"))
-      .find((d) => d.ruleId === "optimization/mulu-word-low-word-only");
+    const diagnostic = lint(["mulu.w #1,d0", "move.w d0,d2", "moveq #0,d0", "move.l d3,d4", "rts"].join("\n")).find(
+      (d) => d.ruleId === "optimization/mulu-word-low-word-only",
+    );
     expect(diagnostic?.suggestion?.replacement).toBe("");
   });
 });
@@ -1156,9 +1078,15 @@ describe("v0.32 Flamewing unsigned low-word multiply tranche", () => {
 describe("vasm-derived optimizations", () => {
   test("replaces logical identity immediates on data registers with TST", () => {
     const result = lint("andi.w #$ffff,d0\nori.l #0,d1\neori.b #0,d2\n", { processors: ["mc68000"] });
-    expect(result.some((d) => d.ruleId === "optimization/andi-all-ones-to-tst" && d.suggestion?.replacement === "tst.w d0")).toBe(true);
-    expect(result.some((d) => d.ruleId === "optimization/ori-zero-to-tst" && d.suggestion?.replacement === "tst.l d1")).toBe(true);
-    expect(result.some((d) => d.ruleId === "optimization/eori-zero-to-tst" && d.suggestion?.replacement === "tst.b d2")).toBe(true);
+    expect(
+      result.some((d) => d.ruleId === "optimization/andi-all-ones-to-tst" && d.suggestion?.replacement === "tst.w d0"),
+    ).toBe(true);
+    expect(
+      result.some((d) => d.ruleId === "optimization/ori-zero-to-tst" && d.suggestion?.replacement === "tst.l d1"),
+    ).toBe(true);
+    expect(
+      result.some((d) => d.ruleId === "optimization/eori-zero-to-tst" && d.suggestion?.replacement === "tst.b d2"),
+    ).toBe(true);
   });
 
   test("marks memory logical-identity replacement manual because RMW side effects differ", () => {
@@ -1169,7 +1097,12 @@ describe("vasm-derived optimizations", () => {
 
   test("narrows signed-word CMPA immediates", () => {
     const result = lint("cmp.l #1234,a0\n", { processors: ["mc68000"] });
-    expect(result.some((d) => d.ruleId === "optimization/narrow-cmpa-immediate-word" && d.suggestion?.replacement === "cmpa.w #1234,a0")).toBe(true);
+    expect(
+      result.some(
+        (d) =>
+          d.ruleId === "optimization/narrow-cmpa-immediate-word" && d.suggestion?.replacement === "cmpa.w #1234,a0",
+      ),
+    ).toBe(true);
   });
 });
 
@@ -1239,23 +1172,31 @@ describe("Flamewing bounded A7 stack-scratch shifts", () => {
 
 describe("v0.37 vasm source + optimization goals", () => {
   test("replaces negative power-of-two long MULS using shift plus NEG", () => {
-    const diagnostic = lint("muls.l #-8,d0\nmove.l d0,d1\n", { processors: ["mc68020"] })
-      .find((d) => d.ruleId === "optimization/negative-signed-multiply");
+    const diagnostic = lint("muls.l #-8,d0\nmove.l d0,d1\n", { processors: ["mc68020"] }).find(
+      (d) => d.ruleId === "optimization/negative-signed-multiply",
+    );
     expect(diagnostic?.suggestion?.replacement).toBe("asl.l #3,d0\nneg.l d0");
   });
 
   test("replaces MULS.W #-1 with EXT.L plus NEG.L", () => {
-    const diagnostic = lint("muls.w #-1,d0\nmove.l d0,d1\n", { processors: ["mc68000"] })
-      .find((d) => d.ruleId === "optimization/negative-signed-multiply");
+    const diagnostic = lint("muls.w #-1,d0\nmove.l d0,d1\n", { processors: ["mc68000"] }).find(
+      (d) => d.ruleId === "optimization/negative-signed-multiply",
+    );
     expect(diagnostic?.suggestion?.replacement).toBe("ext.l d0\nneg.l d0");
   });
 
   test("size goal suppresses speed-for-size rules but balanced retains them", () => {
     const source = "muls.l #-8,d0\nmove.l d0,d1\n";
-    expect(lint(source, { processors: ["mc68020"], goal: "balanced" })
-      .some((d) => d.ruleId === "optimization/negative-signed-multiply")).toBe(true);
-    expect(lint(source, { processors: ["mc68020"], goal: "size" })
-      .some((d) => d.ruleId === "optimization/negative-signed-multiply")).toBe(false);
+    expect(
+      lint(source, { processors: ["mc68020"], goal: "balanced" }).some(
+        (d) => d.ruleId === "optimization/negative-signed-multiply",
+      ),
+    ).toBe(true);
+    expect(
+      lint(source, { processors: ["mc68020"], goal: "size" }).some(
+        (d) => d.ruleId === "optimization/negative-signed-multiply",
+      ),
+    ).toBe(false);
   });
 });
 
@@ -1278,36 +1219,67 @@ describe("platform modes", () => {
   });
 
   test("Amiga mode rejects TAS instructions", () => {
-    expect(lint("tas (a0)", {
-      processors: ["mc68000"], platform: "amiga", goal: "balanced", measureImpact: false,
-    }).map((d) => d.ruleId)).toContain("correctness/amiga-tas-unsupported");
+    expect(
+      lint("tas (a0)", {
+        processors: ["mc68000"],
+        platform: "amiga",
+        goal: "balanced",
+        measureImpact: false,
+      }).map((d) => d.ruleId),
+    ).toContain("correctness/amiga-tas-unsupported");
 
-    expect(lint("tas (a0)", {
-      processors: ["mc68000"], platform: "generic", goal: "balanced", measureImpact: false,
-    }).map((d) => d.ruleId)).not.toContain("correctness/amiga-tas-unsupported");
+    expect(
+      lint("tas (a0)", {
+        processors: ["mc68000"],
+        platform: "generic",
+        goal: "balanced",
+        measureImpact: false,
+      }).map((d) => d.ruleId),
+    ).not.toContain("correctness/amiga-tas-unsupported");
   });
 
   test("Amiga mode checks custom-register access direction", () => {
     const config = { processors: ["mc68000"], platform: "amiga", goal: "balanced", measureImpact: false } as LintConfig;
-    expect(lint("move.w #1,$dff002", config).map((d) => d.ruleId)).toContain("correctness/amiga-custom-register-access");
-    expect(lint("move.w $dff09a,d0", config).map((d) => d.ruleId)).toContain("correctness/amiga-custom-register-access");
-    expect(lint("move.w $dff002,d0", config).map((d) => d.ruleId)).not.toContain("correctness/amiga-custom-register-access");
-    expect(lint("move.w d0,$dff09a", config).map((d) => d.ruleId)).not.toContain("correctness/amiga-custom-register-access");
+    expect(lint("move.w #1,$dff002", config).map((d) => d.ruleId)).toContain(
+      "correctness/amiga-custom-register-access",
+    );
+    expect(lint("move.w $dff09a,d0", config).map((d) => d.ruleId)).toContain(
+      "correctness/amiga-custom-register-access",
+    );
+    expect(lint("move.w $dff002,d0", config).map((d) => d.ruleId)).not.toContain(
+      "correctness/amiga-custom-register-access",
+    );
+    expect(lint("move.w d0,$dff09a", config).map((d) => d.ruleId)).not.toContain(
+      "correctness/amiga-custom-register-access",
+    );
 
     // Canonical Amiga include style: register symbols are offsets from CUSTOM.
-    expect(lint("    lea CUSTOM,a6\n    move.w DMACON(a6),d0\n", config).map((d) => d.ruleId)).toContain("correctness/amiga-custom-register-access");
-    expect(lint("    lea custom,a6\n    move.w d0,dmaconr(a6)\n", config).map((d) => d.ruleId)).toContain("correctness/amiga-custom-register-access");
+    expect(lint("    lea CUSTOM,a6\n    move.w DMACON(a6),d0\n", config).map((d) => d.ruleId)).toContain(
+      "correctness/amiga-custom-register-access",
+    );
+    expect(lint("    lea custom,a6\n    move.w d0,dmaconr(a6)\n", config).map((d) => d.ruleId)).toContain(
+      "correctness/amiga-custom-register-access",
+    );
 
     // Absolute expressions combining a register offset with the CUSTOM base.
-    expect(lint("    move.w DMACON+CUSTOM,d0\n", config).map((d) => d.ruleId)).toContain("correctness/amiga-custom-register-access");
-    expect(lint("    move.w d0,DMACONR+CUSTOM\n", config).map((d) => d.ruleId)).toContain("correctness/amiga-custom-register-access");
-    expect(lint("    move.w DMACONR+CUSTOM,d0\n", config).map((d) => d.ruleId)).not.toContain("correctness/amiga-custom-register-access");
+    expect(lint("    move.w DMACON+CUSTOM,d0\n", config).map((d) => d.ruleId)).toContain(
+      "correctness/amiga-custom-register-access",
+    );
+    expect(lint("    move.w d0,DMACONR+CUSTOM\n", config).map((d) => d.ruleId)).toContain(
+      "correctness/amiga-custom-register-access",
+    );
+    expect(lint("    move.w DMACONR+CUSTOM,d0\n", config).map((d) => d.ruleId)).not.toContain(
+      "correctness/amiga-custom-register-access",
+    );
   });
 });
 
 describe("Amiga suspicious absolute-address footguns", () => {
   const amiga = {
-    processors: ["mc68000"], platform: "amiga", goal: "balanced", measureImpact: false,
+    processors: ["mc68000"],
+    platform: "amiga",
+    goal: "balanced",
+    measureImpact: false,
   } as LintConfig;
 
   test("flags an unusual numeric absolute source that may be a missing immediate prefix", () => {
@@ -1318,38 +1290,51 @@ describe("Amiga suspicious absolute-address footguns", () => {
   });
 
   test("allows the configured zero-page vector range", () => {
-    expect(lint("move.l $bc,d0\n", amiga)
-      .some((x) => x.ruleId === "suspicious/unexpected-absolute-address")).toBe(false);
+    expect(lint("move.l $bc,d0\n", amiga).some((x) => x.ruleId === "suspicious/unexpected-absolute-address")).toBe(
+      false,
+    );
   });
 
   test("allows the configured custom-register range", () => {
-    expect(lint("move.w $dff002,d0\n", amiga)
-      .some((x) => x.ruleId === "suspicious/unexpected-absolute-address")).toBe(false);
+    expect(lint("move.w $dff002,d0\n", amiga).some((x) => x.ruleId === "suspicious/unexpected-absolute-address")).toBe(
+      false,
+    );
   });
 
   test("allows the configured CIA register range", () => {
-    expect(lint("move.b $bfe001,d0\n", amiga)
-      .some((x) => x.ruleId === "suspicious/unexpected-absolute-address")).toBe(false);
+    expect(lint("move.b $bfe001,d0\n", amiga).some((x) => x.ruleId === "suspicious/unexpected-absolute-address")).toBe(
+      false,
+    );
   });
 
   test("suppresses the heuristic for files containing ORG", () => {
-    expect(lint("    org $1000\n    move.w $1234,d0\n", amiga)
-      .some((x) => x.ruleId === "suspicious/unexpected-absolute-address")).toBe(false);
+    expect(
+      lint("    org $1000\n    move.w $1234,d0\n", amiga).some(
+        (x) => x.ruleId === "suspicious/unexpected-absolute-address",
+      ),
+    ).toBe(false);
   });
 
   test("does not guess about ordinary symbolic addresses", () => {
-    expect(lint("move.w foo,d0\nfoo: dc.w 1\n", amiga)
-      .some((x) => x.ruleId === "suspicious/unexpected-absolute-address")).toBe(false);
+    expect(
+      lint("move.w foo,d0\nfoo: dc.w 1\n", amiga).some((x) => x.ruleId === "suspicious/unexpected-absolute-address"),
+    ).toBe(false);
   });
 
   test("does not flag absolute destinations because they cannot be a missing immediate", () => {
-    expect(lint("move.w d0,$1234\n", amiga)
-      .some((x) => x.ruleId === "suspicious/unexpected-absolute-address")).toBe(false);
+    expect(lint("move.w d0,$1234\n", amiga).some((x) => x.ruleId === "suspicious/unexpected-absolute-address")).toBe(
+      false,
+    );
   });
 
   test("does not run in generic platform mode", () => {
-    expect(lint("move.w $1234,d0\n", {
-      processors: ["mc68000"], platform: "generic", goal: "balanced", measureImpact: false,
-    }).some((x) => x.ruleId === "suspicious/unexpected-absolute-address")).toBe(false);
+    expect(
+      lint("move.w $1234,d0\n", {
+        processors: ["mc68000"],
+        platform: "generic",
+        goal: "balanced",
+        measureImpact: false,
+      }).some((x) => x.ruleId === "suspicious/unexpected-absolute-address"),
+    ).toBe(false);
   });
 });

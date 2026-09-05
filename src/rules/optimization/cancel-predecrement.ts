@@ -1,5 +1,11 @@
 import type { Rule } from "../../core/rule.js";
-import { addressRegisterOperand, predecrementAddressRegister, immediateExpressionOperand, instructionSize, isInstruction } from "../../util/ast.js";
+import {
+  addressRegisterOperand,
+  predecrementAddressRegister,
+  immediateExpressionOperand,
+  instructionSize,
+  isInstruction,
+} from "../../util/ast.js";
 import { normalizeRegister, registersReadByOperand } from "../../semantics/registers.js";
 
 function hasLabelBetween(ctx: Parameters<NonNullable<Rule["checkLine"]>>[0], from: number, to: number): boolean {
@@ -23,7 +29,8 @@ export const cancelAddqPredecrementMove: Rule = {
     const imm = immediateExpressionOperand(line, 0);
     const ar = addressRegisterOperand(line, 1);
     if (!imm || !ar) return;
-    const q = ctx.evaluate(imm); if (!q.known) return;
+    const q = ctx.evaluate(imm);
+    if (!q.known) return;
 
     const next = ctx.nextInstruction(index);
     if (!next || hasLabelBetween(ctx, index, next.index) || !isInstruction(next.line, "move")) return;
@@ -56,13 +63,22 @@ export const cancelAddqPredecrementMove: Rule = {
 
     const replacement = `move.${moveSize} ${srcText},(${ar.register})`;
     ctx.report({
-      ruleId: this.meta.id, category: this.meta.category, severity: this.meta.defaultSeverity,
+      ruleId: this.meta.id,
+      category: this.meta.category,
+      severity: this.meta.defaultSeverity,
       confidence: "certain",
       message: `ADDQ #${width},${ar.register.toUpperCase()} cancels the following MOVE.${moveSize.toUpperCase()} predecrement`,
       loc: line.mnemonic!.loc,
-      suggestion: { description: "Remove the cancelling address update/predecrement pair", replacement, applicability: "safe" },
+      suggestion: {
+        description: "Remove the cancelling address update/predecrement pair",
+        replacement,
+        applicability: "safe",
+      },
       notes: [
-        { message: "The MOVE source does not read the adjusted address register, so its effective address is unchanged." },
+        {
+          message:
+            "The MOVE source does not read the adjusted address register, so its effective address is unchanged.",
+        },
         { message: `ASP68K records a 2-byte saving for the ${width}-byte form.` },
       ],
       data: { sourceEndIndex: next.index },

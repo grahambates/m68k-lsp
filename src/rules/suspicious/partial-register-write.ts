@@ -31,7 +31,8 @@ export const partialRegisterWrite: Rule = {
       message: `MOVE.${size.toUpperCase()} preserves the ${preserved} of ${destination.register.toUpperCase()}, and later code reads them`,
       loc: line.mnemonic!.loc,
       suggestion: {
-        description: "Review whether the preserved upper bits are intentional; clear/extend or use a full-width write if not",
+        description:
+          "Review whether the preserved upper bits are intentional; clear/extend or use a full-width write if not",
         applicability: "manual",
       },
     });

@@ -12,15 +12,18 @@ function hasInterveningLabel(ctx: Parameters<NonNullable<Rule["checkLine"]>>[0],
 }
 
 function isMemoryBtstOperand(op: OperandNode | undefined): boolean {
-  return !!op && [
-    "address-register-indirect",
-    "address-register-indirect-postinc",
-    "address-register-indirect-predec",
-    "address-register-indirect-displacement",
-    "address-register-indirect-index",
-    "memory-indirect",
-    "absolute-address",
-  ].includes(op.type);
+  return (
+    !!op &&
+    [
+      "address-register-indirect",
+      "address-register-indirect-postinc",
+      "address-register-indirect-predec",
+      "address-register-indirect-displacement",
+      "address-register-indirect-index",
+      "memory-indirect",
+      "absolute-address",
+    ].includes(op.type)
+  );
 }
 
 export const btstSignBranch: Rule = {
@@ -43,8 +46,16 @@ export const btstSignBranch: Rule = {
     const dataDest = dataRegisterOperand(line, 1);
     const memoryDest = isMemoryBtstOperand(rawDest);
     const size = dataDest
-      ? (bit.value === 7 ? "b" : bit.value === 15 ? "w" : bit.value === 31 ? "l" : undefined)
-      : (memoryDest && bit.value === 7 ? "b" : undefined);
+      ? bit.value === 7
+        ? "b"
+        : bit.value === 15
+          ? "w"
+          : bit.value === 31
+            ? "l"
+            : undefined
+      : memoryDest && bit.value === 7
+        ? "b"
+        : undefined;
     if (!size) return;
 
     const next = ctx.nextInstruction(index);
@@ -73,8 +84,19 @@ export const btstSignBranch: Rule = {
         applicability: safety.applicability,
       },
       notes: [
-        { message: dataDest ? "ASP68K lists this for sign bits 7, 15 and 31 of data registers." : "ASP68K lists BTST.B #7,memory + BEQ/BNE → TST.B + BPL/BMI for alterable memory addressing modes." },
-        ...(safety.applicability === "safe" ? [] : [{ message: "The replacement leaves different N/Z/V/C values after the branch; review any later CCR use on either path." }]),
+        {
+          message: dataDest
+            ? "ASP68K lists this for sign bits 7, 15 and 31 of data registers."
+            : "ASP68K lists BTST.B #7,memory + BEQ/BNE → TST.B + BPL/BMI for alterable memory addressing modes.",
+        },
+        ...(safety.applicability === "safe"
+          ? []
+          : [
+              {
+                message:
+                  "The replacement leaves different N/Z/V/C values after the branch; review any later CCR use on either path.",
+              },
+            ]),
       ],
       data: { secondInstructionIndex: next.index },
     });

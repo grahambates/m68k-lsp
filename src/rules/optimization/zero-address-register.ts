@@ -32,7 +32,12 @@ export const zeroAddressRegister: Rule = {
         replacement: `suba.l ${dest.register},${dest.register}`,
         applicability: "safe",
       },
-      notes: [{ message: "ASP68K lists MOVE #0,An → SUB.L An,An as a smaller early-CPU form. Address-register subtraction preserves CCR." }],
+      notes: [
+        {
+          message:
+            "ASP68K lists MOVE #0,An → SUB.L An,An as a smaller early-CPU form. Address-register subtraction preserves CCR.",
+        },
+      ],
     });
   },
 };

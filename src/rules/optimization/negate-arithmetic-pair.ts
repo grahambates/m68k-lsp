@@ -1,4 +1,4 @@
-import type {  } from "m68k-parser";
+import type {} from "m68k-parser";
 import type { Rule } from "../../core/rule.js";
 import type { RuleContext } from "../../core/context.js";
 import { dataRegisterOperand, instructionSize, isInstruction } from "../../util/ast.js";
@@ -8,11 +8,7 @@ function hasLabelBetween(ctx: RuleContext, from: number, to: number): boolean {
   return false;
 }
 
-function makeRule(
-  id: string,
-  secondMnemonic: "add" | "sub",
-  replacementMnemonic: "sub" | "add",
-): Rule {
+function makeRule(id: string, secondMnemonic: "add" | "sub", replacementMnemonic: "sub" | "add"): Rule {
   return {
     meta: {
       id,
@@ -46,8 +42,8 @@ function makeRule(
       const flagStates = (["X", "N", "Z", "V", "C"] as const).map((flag) => ctx.flags.isLiveAfter(next.index, flag));
       const flagsDead = flagStates.every((state) => state === "dead");
       const flagsLive = flagStates.some((state) => state === "live");
-      const applicability = flagsDead ? "safe" as const : "conditional" as const;
-      const confidence = flagsDead ? "certain" as const : flagsLive ? "high" as const : "medium" as const;
+      const applicability = flagsDead ? ("safe" as const) : ("conditional" as const);
+      const confidence = flagsDead ? ("certain" as const) : flagsLive ? ("high" as const) : ("medium" as const);
 
       const r = negated.register;
       const d = dest.register;
@@ -65,8 +61,12 @@ function makeRule(
           applicability,
         },
         notes: [
-          { message: `The source register ${r.toUpperCase()} is proven dead after the pair, satisfying ASP68K's “dx is trashed” caveat.` },
-          ...(flagsDead ? [] : [{ message: "The replacement may leave different condition-code details; review later CCR use." }]),
+          {
+            message: `The source register ${r.toUpperCase()} is proven dead after the pair, satisfying ASP68K's “dx is trashed” caveat.`,
+          },
+          ...(flagsDead
+            ? []
+            : [{ message: "The replacement may leave different condition-code details; review later CCR use." }]),
         ],
         data: { sourceEndIndex: next.index },
       });
@@ -74,17 +74,9 @@ function makeRule(
   };
 }
 
-export const negateThenSubToAdd = makeRule(
-  "optimization/negate-sub-to-add",
-  "sub",
-  "add",
-);
+export const negateThenSubToAdd = makeRule("optimization/negate-sub-to-add", "sub", "add");
 
-export const negateThenAddToSub = makeRule(
-  "optimization/negate-add-to-sub",
-  "add",
-  "sub",
-);
+export const negateThenAddToSub = makeRule("optimization/negate-add-to-sub", "add", "sub");
 
 export const negateAddPowerOfTwoToEor: Rule = {
   meta: {
@@ -109,7 +101,13 @@ export const negateAddPowerOfTwoToEor: Rule = {
     if (!isInstruction(next.line, "add") || instructionSize(next.line) !== size) return;
     const imm = next.line.operands?.[0];
     const dest = dataRegisterOperand(next.line, 1);
-    if (imm?.type !== "immediate" || imm.value.type === "string-literal" || !dest || dest.register.toLowerCase() !== reg.register.toLowerCase()) return;
+    if (
+      imm?.type !== "immediate" ||
+      imm.value.type === "string-literal" ||
+      !dest ||
+      dest.register.toLowerCase() !== reg.register.toLowerCase()
+    )
+      return;
     const n = ctx.evaluate(imm.value);
     if (!n.known || n.value <= 0 || (n.value & (n.value - 1)) !== 0 || prior >= n.value) return;
 
@@ -119,8 +117,8 @@ export const negateAddPowerOfTwoToEor: Rule = {
     const flagStates = (["X", "N", "Z", "V", "C"] as const).map((flag) => ctx.flags.isLiveAfter(next.index, flag));
     const flagsDead = flagStates.every((state) => state === "dead");
     const flagsLive = flagStates.some((state) => state === "live");
-    const applicability = flagsDead ? "safe" as const : "conditional" as const;
-    const confidence = flagsDead ? "certain" as const : flagsLive ? "high" as const : "medium" as const;
+    const applicability = flagsDead ? ("safe" as const) : ("conditional" as const);
+    const confidence = flagsDead ? ("certain" as const) : flagsLive ? ("high" as const) : ("medium" as const);
     const mask = n.value - 1;
     const replacement = `eor.${size} #${mask},${reg.register}`;
     ctx.report({
@@ -130,10 +128,16 @@ export const negateAddPowerOfTwoToEor: Rule = {
       confidence,
       message: `Known ${reg.register.toUpperCase()}=${prior} satisfies the ASP68K power-of-two NEG/ADD identity`,
       loc: line.mnemonic!.loc,
-      suggestion: { description: `Replace both instructions with ${replacement.toUpperCase()}`, replacement, applicability },
+      suggestion: {
+        description: `Replace both instructions with ${replacement.toUpperCase()}`,
+        replacement,
+        applicability,
+      },
       notes: [
         { message: `ASP68K requires n to be a power of two and dx<n; both are proven here (${prior}<${n.value}).` },
-        ...(flagsDead ? [] : [{ message: "EOR leaves different arithmetic condition codes from NEG+ADD; review later CCR use." }]),
+        ...(flagsDead
+          ? []
+          : [{ message: "EOR leaves different arithmetic condition codes from NEG+ADD; review later CCR use." }]),
       ],
       data: { sourceEndIndex: next.index },
     });

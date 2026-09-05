@@ -17,27 +17,50 @@ function hasInterveningLabel(ctx: Parameters<NonNullable<Rule["checkLine"]>>[0],
 
 function clearPair(fromSize: "b" | "w", toSize: "w" | "l", delta: number, id: string): Rule {
   return {
-    meta: { id, category: "optimization", defaultSeverity: "suggestion", description: `Combine adjacent CLR.${fromSize.toUpperCase()} writes`, tags: ["asp68k", "peephole", "memory", "size"], docs: { source: "ASP68K" } },
+    meta: {
+      id,
+      category: "optimization",
+      defaultSeverity: "suggestion",
+      description: `Combine adjacent CLR.${fromSize.toUpperCase()} writes`,
+      tags: ["asp68k", "peephole", "memory", "size"],
+      docs: { source: "ASP68K" },
+    },
     checkLine(ctx, line, index) {
       if (!isInstruction(line, "clr") || instructionSize(line) !== fromSize) return;
       const first = operand(line, 0);
       const a = absoluteNumeric(ctx, first);
       if (a === undefined) return;
       const next = ctx.nextInstruction(index);
-      if (!next || hasInterveningLabel(ctx, index, next.index) || !isInstruction(next.line, "clr") || instructionSize(next.line) !== fromSize) return;
+      if (
+        !next ||
+        hasInterveningLabel(ctx, index, next.index) ||
+        !isInstruction(next.line, "clr") ||
+        instructionSize(next.line) !== fromSize
+      )
+        return;
       const b = absoluteNumeric(ctx, operand(next.line, 0));
       if (b !== a + delta) return;
       const rendered = sourceOperand(ctx, line, 0);
       if (!rendered) return;
 
       ctx.report({
-        ruleId: id, category: "optimization", severity: "suggestion", confidence: "high",
+        ruleId: id,
+        category: "optimization",
+        severity: "suggestion",
+        confidence: "high",
         message: `Adjacent CLR.${fromSize.toUpperCase()} writes can be combined into CLR.${toSize.toUpperCase()}`,
         loc: line.mnemonic!.loc,
-        suggestion: { description: `Use CLR.${toSize} ${rendered}`, replacement: `clr.${toSize} ${rendered}`, applicability: "manual" },
+        suggestion: {
+          description: `Use CLR.${toSize} ${rendered}`,
+          replacement: `clr.${toSize} ${rendered}`,
+          applicability: "manual",
+        },
         notes: [
           { message: "ASP68K lists this adjacent-clear collapse as a size/speed optimisation." },
-          { message: "Manual review required: combining bus accesses can change behaviour for memory-mapped I/O, device registers, or fault boundaries." },
+          {
+            message:
+              "Manual review required: combining bus accesses can change behaviour for memory-mapped I/O, device registers, or fault boundaries.",
+          },
         ],
         data: { secondInstructionIndex: next.index },
       });

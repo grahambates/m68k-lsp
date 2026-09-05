@@ -40,28 +40,28 @@ m68k-lint --platform amiga --cpu mc68000 src/
 Directories and globs recursively discover `.s`, `.asm` and `.i` by default;
 explicit file paths are always linted whatever their suffix.
 
-| Option | Description |
-| --- | --- |
-| `--config <path>` | Use a specific JSON config file |
-| `--no-config` | Disable config-file discovery |
-| `--ext <ext,...>` | Extensions for directory/glob discovery (default `.s,.asm,.i`) |
-| `--ignore-pattern <glob>` | Ignore matching files (repeatable) |
-| `--cpu <cpu,...>` | Target processor(s), default `mc68000` |
-| `--platform <generic\|amiga>` | Target platform, default `generic` |
-| `--preset <name,...>` | Enable rule presets: `recommended`, `style` |
-| `--goal <balanced\|speed\|size>` | Filter known optimization trade-offs |
-| `--impact` / `--no-impact` | Enable/disable exact 68000 measurement |
-| `--inline-config` / `--no-inline-config` | Honour `m68k-lint` comment directives |
-| `--impact-summary` | Summarize measured outcomes by rule |
-| `--audit-rule-impact` | Run the representative 68000 timing audit |
-| `--only <category,...>` | Run only selected rule categories |
-| `--disable-category <category>` | Disable a category (repeatable) |
-| `--rule <id>=<setting>` | Override a rule: `off\|error\|warning\|suggestion\|info` |
-| `--format <pretty\|json>` | Output format, default `pretty` |
-| `--fail-on <severity>` | Exit 1 at this severity or higher, default `error` |
-| `--list-rules` | List built-in rules and exit |
-| `--asp68k-coverage` | Show tracked ASP68K table coverage and exit |
-| `--no-color` | Disable ANSI colours |
+| Option                                   | Description                                                    |
+| ---------------------------------------- | -------------------------------------------------------------- |
+| `--config <path>`                        | Use a specific JSON config file                                |
+| `--no-config`                            | Disable config-file discovery                                  |
+| `--ext <ext,...>`                        | Extensions for directory/glob discovery (default `.s,.asm,.i`) |
+| `--ignore-pattern <glob>`                | Ignore matching files (repeatable)                             |
+| `--cpu <cpu,...>`                        | Target processor(s), default `mc68000`                         |
+| `--platform <generic\|amiga>`            | Target platform, default `generic`                             |
+| `--preset <name,...>`                    | Enable rule presets: `recommended`, `style`                    |
+| `--goal <balanced\|speed\|size>`         | Filter known optimization trade-offs                           |
+| `--impact` / `--no-impact`               | Enable/disable exact 68000 measurement                         |
+| `--inline-config` / `--no-inline-config` | Honour `m68k-lint` comment directives                          |
+| `--impact-summary`                       | Summarize measured outcomes by rule                            |
+| `--audit-rule-impact`                    | Run the representative 68000 timing audit                      |
+| `--only <category,...>`                  | Run only selected rule categories                              |
+| `--disable-category <category>`          | Disable a category (repeatable)                                |
+| `--rule <id>=<setting>`                  | Override a rule: `off\|error\|warning\|suggestion\|info`       |
+| `--format <pretty\|json>`                | Output format, default `pretty`                                |
+| `--fail-on <severity>`                   | Exit 1 at this severity or higher, default `error`             |
+| `--list-rules`                           | List built-in rules and exit                                   |
+| `--asp68k-coverage`                      | Show tracked ASP68K table coverage and exit                    |
+| `--no-color`                             | Disable ANSI colours                                           |
 
 Parser errors and `error`-severity diagnostics exit 1; warnings and suggestions
 are printed but do not fail the command. `--fail-on` makes CI stricter. Usage
@@ -72,12 +72,7 @@ and configuration errors exit 2.
 ```ts
 import { lintSource } from "m68k-lint";
 
-const diagnostics = lintSource([
-  "\tmovea.l d0,a0",
-  "\tbeq     .null",
-  ".null:",
-  "\trts",
-].join("\n"));
+const diagnostics = lintSource(["\tmovea.l d0,a0", "\tbeq     .null", ".null:", "\trts"].join("\n"));
 ```
 
 `lintSource` returns a `Diagnostic[]` sorted by source position. `lintParsedFile`
@@ -97,9 +92,9 @@ import { DefaultRuleContext } from "m68k-lint";
 const source = "\tadd.l  d0,d1\n\tmove.l d2,d3\n\trts\n";
 const ctx = new DefaultRuleContext(parseFile(source), source, { processors: ["mc68000"] });
 
-ctx.flags.isLiveAfter(0, "Z");     // "dead"  - MOVE overwrites it
-ctx.flags.isLiveAfter(0, "X");     // "unknown" - MOVE preserves X, RTS escapes
-ctx.registers.isLiveAfter(0, "d0") // "dead" | "live" | "unknown"
+ctx.flags.isLiveAfter(0, "Z"); // "dead"  - MOVE overwrites it
+ctx.flags.isLiveAfter(0, "X"); // "unknown" - MOVE preserves X, RTS escapes
+ctx.registers.isLiveAfter(0, "d0"); // "dead" | "live" | "unknown"
 ```
 
 ## Configuration
@@ -161,12 +156,12 @@ centrally enforced configuration can set `"inlineConfig": false` or pass
 See [`docs/rules.md`](docs/rules.md) for the full generated table, or run
 `m68k-lint --list-rules`.
 
-| Category | Count | Purpose |
-| --- | --- | --- |
-| `correctness` | 3 | Valid assembly with a provable semantic or runtime problem |
-| `suspicious` | 8 | Valid code that may be intentional but is easy to misread |
-| `optimization` | 106 | Smaller or faster equivalents, gated on target and liveness |
-| `style` | 7 | Subjective conventions, opt-in |
+| Category       | Count | Purpose                                                     |
+| -------------- | ----- | ----------------------------------------------------------- |
+| `correctness`  | 3     | Valid assembly with a provable semantic or runtime problem  |
+| `suspicious`   | 8     | Valid code that may be intentional but is easy to misread   |
+| `optimization` | 106   | Smaller or faster equivalents, gated on target and liveness |
+| `style`        | 7     | Subjective conventions, opt-in                              |
 
 `severity`, `confidence` and `applicability` are independent. Applicability is
 always explicit:

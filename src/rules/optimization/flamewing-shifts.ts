@@ -15,7 +15,8 @@ function hasInterveningLabel(ctx: RuleContext, from: number, to: number): boolea
 
 function precedingMoveq(ctx: RuleContext, index: number, register: string, count: number) {
   const previous = ctx.previousInstruction(index);
-  if (!previous || hasInterveningLabel(ctx, previous.index, index) || !isInstruction(previous.line, "moveq")) return undefined;
+  if (!previous || hasInterveningLabel(ctx, previous.index, index) || !isInstruction(previous.line, "moveq"))
+    return undefined;
   const expr = immediateExpressionOperand(previous.line, 0);
   const dst = dataRegisterOperand(previous.line, 1);
   if (!expr || !dst || dst.register.toLowerCase() !== register) return undefined;
@@ -24,7 +25,13 @@ function precedingMoveq(ctx: RuleContext, index: number, register: string, count
   return previous;
 }
 
-function canRemoveCountSetup(ctx: RuleContext, setupIndex: number, shiftIndex: number, register: string, count: number): boolean {
+function canRemoveCountSetup(
+  ctx: RuleContext,
+  setupIndex: number,
+  shiftIndex: number,
+  register: string,
+  count: number,
+): boolean {
   if (ctx.registers.isLiveAfter(shiftIndex, register) === "dead") return true;
   return ctx.registers.knownConstantBefore(setupIndex, register) === count;
 }
@@ -79,10 +86,23 @@ export const knownRegisterShiftToClear: Rule = {
         applicability: safety.applicability,
       },
       notes: [
-        ...(removeSetup ? [{ message: `${countReg.register.toUpperCase()} is dead afterwards or already held the same count before MOVEQ, so the setup can be removed.` }] : [{ message: `${countReg.register.toUpperCase()} is preserved; only replace the shift instruction.` }]),
-        ...(safety.applicability === "safe" ? [] : [{ message: "The clear form has different CCR behaviour from the original multi-bit shift." }]),
+        ...(removeSetup
+          ? [
+              {
+                message: `${countReg.register.toUpperCase()} is dead afterwards or already held the same count before MOVEQ, so the setup can be removed.`,
+              },
+            ]
+          : [{ message: `${countReg.register.toUpperCase()} is preserved; only replace the shift instruction.` }]),
+        ...(safety.applicability === "safe"
+          ? []
+          : [{ message: "The clear form has different CCR behaviour from the original multi-bit shift." }]),
       ],
-      data: { secondInstructionIndex: removeSetup ? index : undefined, countRegister, shiftCount: effectiveCount, removedCountSetup: removeSetup },
+      data: {
+        secondInstructionIndex: removeSetup ? index : undefined,
+        countRegister,
+        shiftCount: effectiveCount,
+        removedCountSetup: removeSetup,
+      },
     });
   },
 };
@@ -162,7 +182,10 @@ export const asrByteSaturate: Rule = {
         replacement: `add.b ${dst.register},${dst.register}\nsubx.b ${dst.register},${dst.register}`,
         applicability: safety.applicability,
       },
-      notes: safety.applicability === "safe" ? undefined : [{ message: "The replacement has different CCR semantics, especially SUBX's cumulative Z behaviour." }],
+      notes:
+        safety.applicability === "safe"
+          ? undefined
+          : [{ message: "The replacement has different CCR semantics, especially SUBX's cumulative Z behaviour." }],
     });
   },
 };
@@ -197,12 +220,16 @@ export const knownRegisterShiftReduction: Rule = {
     const known = ctx.registers.knownConstantBefore(index, countRegister);
     if (known === undefined) return;
     const count = known & 63;
-    const wordRotateMask = size === "w" && (mnemonic === "lsl" || mnemonic === "asl" || mnemonic === "lsr") && count >= 10 && count <= (mnemonic === "lsr" ? 14 : 15);
+    const wordRotateMask =
+      size === "w" &&
+      (mnemonic === "lsl" || mnemonic === "asl" || mnemonic === "lsr") &&
+      count >= 10 &&
+      count <= (mnemonic === "lsr" ? 14 : 15);
     const longWordSwap = size === "l" && count >= 16 && count <= 23;
-    const longHighRotateMask = size === "l" && (
-      ((mnemonic === "lsl" || mnemonic === "asl") && count >= 26 && count <= 31) ||
-      (mnemonic === "lsr" && count >= 25 && count <= 30)
-    );
+    const longHighRotateMask =
+      size === "l" &&
+      (((mnemonic === "lsl" || mnemonic === "asl") && count >= 26 && count <= 31) ||
+        (mnemonic === "lsr" && count >= 25 && count <= 30));
     if (!wordRotateMask && !longWordSwap && !longHighRotateMask) return;
 
     const setup = precedingMoveq(ctx, index, countRegister, known);
@@ -211,36 +238,34 @@ export const knownRegisterShiftReduction: Rule = {
     const reg = valueReg.register;
     let replacement: string;
     if (size === "w") {
-      const mask = (~((1 << count) - 1)) & 0xffff;
+      const mask = ~((1 << count) - 1) & 0xffff;
       const maskText = `$${mask.toString(16).toUpperCase().padStart(4, "0")}`;
       const rotate = 16 - count;
-      replacement = mnemonic === "lsr"
-        ? `andi.w #${maskText},${reg}\nrol.w #${rotate},${reg}`
-        : `ror.w #${rotate},${reg}\nandi.w #${maskText},${reg}`;
+      replacement =
+        mnemonic === "lsr"
+          ? `andi.w #${maskText},${reg}\nrol.w #${rotate},${reg}`
+          : `ror.w #${rotate},${reg}\nandi.w #${maskText},${reg}`;
     } else if ((mnemonic === "lsl" || mnemonic === "asl") && count >= 26) {
       const x = count - 24;
       const rotate = 8 - x;
-      const mask = (~((1 << (8 + x)) - 1)) & 0xffff;
+      const mask = ~((1 << (8 + x)) - 1) & 0xffff;
       const maskText = `$${mask.toString(16).toUpperCase().padStart(4, "0")}`;
       replacement = `ror.w #${rotate},${reg}\nandi.w #${maskText},${reg}\nswap ${reg}\nclr.w ${reg}`;
     } else if (mnemonic === "lsr" && count >= 25) {
       const x = count - 24;
       const rotate = 8 - x;
-      const mask = (~((1 << (8 + x)) - 1)) & 0xffff;
+      const mask = ~((1 << (8 + x)) - 1) & 0xffff;
       const maskText = `$${mask.toString(16).toUpperCase().padStart(4, "0")}`;
       replacement = `clr.w ${reg}\nswap ${reg}\nandi.w #${maskText},${reg}\nrol.w #${rotate},${reg}`;
     } else if (mnemonic === "lsl" || mnemonic === "asl") {
-      replacement = count === 16
-        ? `swap ${reg}\nclr.w ${reg}`
-        : `${mnemonic}.w #${count - 16},${reg}\nswap ${reg}\nclr.w ${reg}`;
+      replacement =
+        count === 16 ? `swap ${reg}\nclr.w ${reg}` : `${mnemonic}.w #${count - 16},${reg}\nswap ${reg}\nclr.w ${reg}`;
     } else if (mnemonic === "lsr") {
-      replacement = count === 16
-        ? `clr.w ${reg}\nswap ${reg}`
-        : `clr.w ${reg}\nswap ${reg}\nlsr.w #${count - 16},${reg}`;
+      replacement =
+        count === 16 ? `clr.w ${reg}\nswap ${reg}` : `clr.w ${reg}\nswap ${reg}\nlsr.w #${count - 16},${reg}`;
     } else {
-      replacement = count === 16
-        ? `swap ${reg}\next.l ${reg}`
-        : `swap ${reg}\nasr.w #${count - 16},${reg}\next.l ${reg}`;
+      replacement =
+        count === 16 ? `swap ${reg}\next.l ${reg}` : `swap ${reg}\nasr.w #${count - 16},${reg}\next.l ${reg}`;
     }
 
     const safety = changedFlagsApplicability(ctx, index, ["X", "N", "Z", "V", "C"]);
@@ -257,15 +282,22 @@ export const knownRegisterShiftReduction: Rule = {
         applicability: safety.applicability,
       },
       notes: [
-        { message: `${countReg.register.toUpperCase()} is dead afterwards or already held the same count before MOVEQ, so the count setup can be removed.` },
-        ...(safety.applicability === "safe" ? [] : [{ message: "Flamewing notes different CCR results; the replacement is only safe when the changed flags are not observed." }]),
+        {
+          message: `${countReg.register.toUpperCase()} is dead afterwards or already held the same count before MOVEQ, so the count setup can be removed.`,
+        },
+        ...(safety.applicability === "safe"
+          ? []
+          : [
+              {
+                message:
+                  "Flamewing notes different CCR results; the replacement is only safe when the changed flags are not observed.",
+              },
+            ]),
       ],
       data: { secondInstructionIndex: index, countRegister, shiftCount: count },
     });
   },
 };
-
-
 
 /**
  * Flamewing's ASR.W count 10..14 reduction. The low word is exact, but the
@@ -314,10 +346,22 @@ export const knownRegisterAsrWordLowOnly: Rule = {
         applicability: safety.applicability,
       },
       notes: [
-        { message: `The analyser proves bits 16-31 of ${reg.toUpperCase()} are discarded before any read; Flamewing explicitly notes that the high word differs.` },
-        ...(safety.applicability === "safe" ? [] : [{ message: "The replacement has different CCR results and requires the changed flags to be unobserved." }]),
+        {
+          message: `The analyser proves bits 16-31 of ${reg.toUpperCase()} are discarded before any read; Flamewing explicitly notes that the high word differs.`,
+        },
+        ...(safety.applicability === "safe"
+          ? []
+          : [
+              { message: "The replacement has different CCR results and requires the changed flags to be unobserved." },
+            ]),
       ],
-      data: { secondInstructionIndex: index, countRegister, shiftCount: count, differingBits: "16-31", provenance: "flamewing" },
+      data: {
+        secondInstructionIndex: index,
+        countRegister,
+        shiftCount: count,
+        differingBits: "16-31",
+        provenance: "flamewing",
+      },
     });
   },
 };
@@ -365,7 +409,9 @@ export const knownRegisterAsrLongHighReduction: Rule = {
       },
       notes: [
         { message: "The replacement preserves the full 32-bit arithmetic-shift result without using the stack." },
-        ...(safety.applicability === "safe" ? [] : [{ message: "Flamewing's sequence has different CCR results; changed flags must be unobserved." }]),
+        ...(safety.applicability === "safe"
+          ? []
+          : [{ message: "Flamewing's sequence has different CCR results; changed flags must be unobserved." }]),
       ],
       data: { secondInstructionIndex: index, countRegister, shiftCount: count, provenance: "flamewing" },
     });
@@ -420,8 +466,12 @@ export const knownRegisterAsrSaturate: Rule = {
         applicability: safety.applicability,
       },
       notes: [
-        { message: `${countReg.register.toUpperCase()} is dead afterwards or already held the same count before MOVEQ, so its setup may be removed.` },
-        ...(safety.applicability === "safe" ? [] : [{ message: "SUBX has different CCR behaviour, including cumulative-Z semantics." }]),
+        {
+          message: `${countReg.register.toUpperCase()} is dead afterwards or already held the same count before MOVEQ, so its setup may be removed.`,
+        },
+        ...(safety.applicability === "safe"
+          ? []
+          : [{ message: "SUBX has different CCR behaviour, including cumulative-Z semantics." }]),
       ],
       data: { secondInstructionIndex: index, countRegister, shiftCount: count },
     });

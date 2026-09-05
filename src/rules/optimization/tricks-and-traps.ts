@@ -47,7 +47,12 @@ export const compareLongImmediateViaMoveq: Rule = {
         replacement: `moveq #${value.value},${scratch}\ncmp.l ${scratch},${target}`,
         applicability: "safe",
       },
-      notes: [{ message: "Tricks and Traps recommends this for small long-immediate comparisons; the scratch register is proven dead here." }],
+      notes: [
+        {
+          message:
+            "Tricks and Traps recommends this for small long-immediate comparisons; the scratch register is proven dead here.",
+        },
+      ],
     });
   },
 };
@@ -94,7 +99,12 @@ export const destructiveSmallCompareBranch: Rule = {
         replacement: `subq.${size} #${value.value},${reg}\n${branch}${suffix} ${branchTarget}`,
         applicability: "safe",
       },
-      notes: [{ message: "Restricted to positive 1..8 immediates so SUBQ reproduces CMP subtraction flags exactly; negative ADDQ forms need separate carry-condition reasoning." }],
+      notes: [
+        {
+          message:
+            "Restricted to positive 1..8 immediates so SUBQ reproduces CMP subtraction flags exactly; negative ADDQ forms need separate carry-condition reasoning.",
+        },
+      ],
       data: { secondInstructionIndex: next.index },
     });
   },
@@ -130,7 +140,10 @@ export const jsrJmpDispatch: Rule = {
       },
       notes: [
         { message: "For an ordinary RTS return this reaches the same continuation with the same stack depth." },
-        { message: "The return-address value visible to the callee changes from the address of the original JMP instruction to the final continuation target; review code that inspects or edits its return address." },
+        {
+          message:
+            "The return-address value visible to the callee changes from the address of the original JMP instruction to the final continuation target; review code that inspects or edits its return address.",
+        },
       ],
       data: { secondInstructionIndex: next.index },
     });

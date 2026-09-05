@@ -46,7 +46,6 @@ export const amigaCustomRegisters = new Map<number, CustomRegister>([
   [0xdff180, { name: "COLOR00", access: "write-only" }],
 ]);
 
-
 const CUSTOM_BASE = 0xdff000;
 
 // Canonical Amiga include-file symbols are commonly offsets from CUSTOM, not
@@ -83,7 +82,11 @@ function knownAddressRegisterBefore(ctx: RuleContext, lineIndex: number, registe
     if (semanticMnemonic(line) === "lea") {
       const source = operand(line, 0);
       const dest = operand(line, 1);
-      if (dest?.type === "address-register" && normalizeRegister(dest.register) === register && source?.type === "absolute-address") {
+      if (
+        dest?.type === "address-register" &&
+        normalizeRegister(dest.register) === register &&
+        source?.type === "absolute-address"
+      ) {
         const value = evaluateAmigaExpression(ctx, source.address);
         if (value !== undefined) return value >>> 0;
       }
@@ -93,11 +96,7 @@ function knownAddressRegisterBefore(ctx: RuleContext, lineIndex: number, registe
   return undefined;
 }
 
-function effectiveAddress(
-  ctx: RuleContext,
-  op: OperandNode | undefined,
-  lineIndex: number,
-): number | undefined {
+function effectiveAddress(ctx: RuleContext, op: OperandNode | undefined, lineIndex: number): number | undefined {
   if (!op) return undefined;
 
   if (op.type === "absolute-address") {
@@ -129,11 +128,13 @@ function operandAccess(line: ParsedLine, index: number): Access | undefined {
   const mnemonic = canonicalMnemonic(line);
   if (!mnemonic) return undefined;
 
-  if (mnemonic === "move" || mnemonic === "movea") return index === 0 ? "read" : mnemonic === "move" && index === 1 ? "write" : undefined;
+  if (mnemonic === "move" || mnemonic === "movea")
+    return index === 0 ? "read" : mnemonic === "move" && index === 1 ? "write" : undefined;
   if (["cmp", "cmpa", "tst", "btst"].includes(mnemonic)) return "read";
   if (["clr", "not", "neg", "negx", "nbcd", "tas"].includes(mnemonic)) return index === 0 ? "readwrite" : undefined;
   if (["bchg", "bclr", "bset"].includes(mnemonic)) return index === 1 ? "readwrite" : undefined;
-  if (["add", "adda", "sub", "suba", "and", "or", "eor"].includes(mnemonic)) return index === 0 ? "read" : index === 1 ? "readwrite" : undefined;
+  if (["add", "adda", "sub", "suba", "and", "or", "eor"].includes(mnemonic))
+    return index === 0 ? "read" : index === 1 ? "readwrite" : undefined;
   return undefined;
 }
 
@@ -173,7 +174,9 @@ export const amigaCustomRegisterAccess: Rule = {
         message: `${action} access to ${register.access} Amiga register ${register.name}`,
         loc: op?.loc ?? line.mnemonic!.loc,
         notes: [
-          { message: `${register.name} at $${address.toString(16).toUpperCase()} is documented as ${register.access}.` },
+          {
+            message: `${register.name} at $${address.toString(16).toUpperCase()} is documented as ${register.access}.`,
+          },
         ],
       });
     }

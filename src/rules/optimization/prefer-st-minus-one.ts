@@ -55,7 +55,9 @@ export const preferStMinusOne: Rule = {
       },
       notes: [
         { message: "ASP68K lists MOVE.B #-1 → ST as a 2-byte saving; timing varies by CPU/addressing mode." },
-        ...(safety.applicability === "safe" ? [] : [{ message: "ST preserves CCR while MOVE.B writes N/Z/V/C; review subsequent flag use." }]),
+        ...(safety.applicability === "safe"
+          ? []
+          : [{ message: "ST preserves CCR while MOVE.B writes N/Z/V/C; review subsequent flag use." }]),
       ],
     });
   },

@@ -9,30 +9,19 @@ describe("inline configuration directives", () => {
   const rule = "optimization/prefer-moveq";
 
   test("disable-next-line suppresses one rule on the following physical line", () => {
-    const source = [
-      `; m68k-lint-disable-next-line ${rule}`,
-      "  move.l #42,d0",
-      "  move.l #43,d1",
-    ].join("\n");
+    const source = [`; m68k-lint-disable-next-line ${rule}`, "  move.l #42,d0", "  move.l #43,d1"].join("\n");
     const matches = lintSource(source, defaultConfig).filter((d) => d.ruleId === rule);
     expect(matches).toHaveLength(1);
     expect(matches[0].loc.line).toBe(3);
   });
 
   test("recognises a column-zero star comment, the Devpac/AsmOne full-line form", () => {
-    const source = [
-      `* m68k-lint-disable ${rule}`,
-      "  move.l #42,d0",
-    ].join("\n");
+    const source = [`* m68k-lint-disable ${rule}`, "  move.l #42,d0"].join("\n");
     expect(hasRule(source, rule)).toBe(false);
   });
 
   test("star directives obey the same next-line scope as semicolon ones", () => {
-    const source = [
-      `* m68k-lint-disable-next-line ${rule}`,
-      "  move.l #42,d0",
-      "  move.l #43,d1",
-    ].join("\n");
+    const source = [`* m68k-lint-disable-next-line ${rule}`, "  move.l #42,d0", "  move.l #43,d1"].join("\n");
     const matches = lintSource(source, defaultConfig).filter((d) => d.ruleId === rule);
     expect(matches).toHaveLength(1);
     expect(matches[0].loc.line).toBe(3);
@@ -61,10 +50,7 @@ describe("inline configuration directives", () => {
   });
 
   test("bare disable-next-line suppresses all rules", () => {
-    const source = [
-      "; m68k-lint-disable-next-line -- deliberate code shape",
-      "  move.l #42,d0",
-    ].join("\n");
+    const source = ["; m68k-lint-disable-next-line -- deliberate code shape", "  move.l #42,d0"].join("\n");
     expect(lintSource(source, defaultConfig)).toHaveLength(0);
   });
 

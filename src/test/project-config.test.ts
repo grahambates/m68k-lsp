@@ -16,11 +16,19 @@ describe("project config", () => {
   test("loads lint and discovery settings", async () => {
     const root = await mkdtemp(join(tmpdir(), "m68k-lint-config-load-"));
     const config = join(root, ".m68klintrc.json");
-    await writeFile(config, JSON.stringify({
-      processors: ["mc68000"], platform: "amiga", goal: "speed",
-      extensions: [".s", ".i"], ignorePatterns: ["generated/**"], inlineConfig: false, presets: ["style"],
-      rules: { "suspicious/nop": "warning" }
-    }));
+    await writeFile(
+      config,
+      JSON.stringify({
+        processors: ["mc68000"],
+        platform: "amiga",
+        goal: "speed",
+        extensions: [".s", ".i"],
+        ignorePatterns: ["generated/**"],
+        inlineConfig: false,
+        presets: ["style"],
+        rules: { "suspicious/nop": "warning" },
+      }),
+    );
     const loaded = await loadProjectConfig(config);
     expect(loaded.platform).toBe("amiga");
     expect(loaded.goal).toBe("speed");

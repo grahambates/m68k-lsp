@@ -14,7 +14,7 @@ High-value candidates not already covered (or worth re-checking independently):
 - FPU constant-size reductions and `FDIV #2^n -> FMUL #2^-n` — later FPU rule pack.
 - speed-only multi-instruction rewrites should be tied to future goal/impact policy rather than enabled unconditionally.
 
-Important vasm correctness note: signed division by powers of two is *not* generally reducible to ASR because DIVS rounds toward zero while ASR rounds downward for negative values.
+Important vasm correctness note: signed division by powers of two is _not_ generally reducible to ASR because DIVS rounds toward zero while ASR rounds downward for negative values.
 
 ## 68000 Tricks and Traps
 

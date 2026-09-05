@@ -19,7 +19,13 @@ import { bitNumberWraparound } from "./suspicious/bit-number-wraparound.js";
 import { partialRegisterWrite } from "./suspicious/partial-register-write.js";
 import { unexpectedAbsoluteAddress } from "./suspicious/unexpected-absolute-address.js";
 import { requireInstructionSize, omitRedundantInstructionSize } from "./style/instruction-size-style.js";
-import { preferAddressRegisterMnemonics, preferDbraAlias, preferDbfAlias, preferUnsignedConditionAliases, preferCarryConditionAliases } from "./style/semantic-mnemonic-style.js";
+import {
+  preferAddressRegisterMnemonics,
+  preferDbraAlias,
+  preferDbfAlias,
+  preferUnsignedConditionAliases,
+  preferCarryConditionAliases,
+} from "./style/semantic-mnemonic-style.js";
 import { preferLeaQuick } from "./optimization/prefer-lea-quick.js";
 import { jsrRtsTailCall, bsrRtsTailCall } from "./optimization/tail-call.js";
 import { pushAddressPea } from "./optimization/push-address-pea.js";
@@ -54,8 +60,16 @@ import {
   multiplySignedWordHighPowerOfTwo,
   multiplyUnsignedWordHighPowerOfTwo,
 } from "./optimization/multiply-simple.js";
-import { negateThenSubToAdd, negateThenAddToSub, negateAddPowerOfTwoToEor } from "./optimization/negate-arithmetic-pair.js";
-import { moveImmediateBelowMoveq, moveImmediateByteComplement, moveImmediateDoubleByte } from "./optimization/move-immediate-synthesis.js";
+import {
+  negateThenSubToAdd,
+  negateThenAddToSub,
+  negateAddPowerOfTwoToEor,
+} from "./optimization/negate-arithmetic-pair.js";
+import {
+  moveImmediateBelowMoveq,
+  moveImmediateByteComplement,
+  moveImmediateDoubleByte,
+} from "./optimization/move-immediate-synthesis.js";
 import { cancelAddqPredecrementMove } from "./optimization/cancel-predecrement.js";
 import { zeroArithmeticToTst } from "./optimization/zero-arithmetic-to-tst.js";
 import { combineExtByte } from "./optimization/combine-ext-byte.js";
@@ -69,45 +83,174 @@ import { moveImmediateAddressToLea, moveAddressThenAddToLea } from "./optimizati
 import { cancelMultiplePredecrementMoves } from "./optimization/cancel-multiple-predecrement.js";
 import { cancelStackPeaSequence } from "./optimization/stack-pea-cancellation.js";
 import { multiplyLongByOne } from "./optimization/multiply-long-by-one.js";
-import { multiplyLongSmallConstant, multiplyLongLargePowerOfTwo, multiplySignedLong060 } from "./optimization/multiply-long-constants.js";
+import {
+  multiplyLongSmallConstant,
+  multiplyLongLargePowerOfTwo,
+  multiplySignedLong060,
+} from "./optimization/multiply-long-constants.js";
 import { cmpaZeroToTst030 } from "./optimization/cmpa-zero-tst-030.js";
 import { multiplySignedWordSelectedConstants } from "./optimization/multiply-word-constants.js";
 import { foldAddressExpressionToLea } from "./optimization/address-expression-lea.js";
 import { divuWordPowerOfTwo, divuLongPowerOfTwo } from "./optimization/divu-power-of-two.js";
-import { narrowMoveaImmediate, narrowAddaSubaImmediate, narrowCmpaImmediate } from "./optimization/flamewing-address-width.js";
+import {
+  narrowMoveaImmediate,
+  narrowAddaSubaImmediate,
+  narrowCmpaImmediate,
+} from "./optimization/flamewing-address-width.js";
 import { simplifyLongWordMasks } from "./optimization/flamewing-masks.js";
 import { normalizeByteRotate } from "./optimization/flamewing-rotates.js";
 import { simplifyKnownRegisterRotate, roxlToAddx, lslByteSeven } from "./optimization/flamewing-rotate-sequences.js";
-import { knownRegisterShiftToClear, lsrByteSeven, asrByteSaturate, knownRegisterShiftReduction, knownRegisterAsrWordLowOnly, knownRegisterAsrLongHighReduction, knownRegisterAsrSaturate } from "./optimization/flamewing-shifts.js";
+import {
+  knownRegisterShiftToClear,
+  lsrByteSeven,
+  asrByteSaturate,
+  knownRegisterShiftReduction,
+  knownRegisterAsrWordLowOnly,
+  knownRegisterAsrLongHighReduction,
+  knownRegisterAsrSaturate,
+} from "./optimization/flamewing-shifts.js";
 import { foldAddressArithmeticToIndexedLea } from "./optimization/flamewing-address-sequences.js";
-import { flamewingMulsWordFullResultConstants, flamewingMulsWordLowWordOnly, flamewingMuluWordLowWordOnly } from "./optimization/flamewing-multiply.js";
+import {
+  flamewingMulsWordFullResultConstants,
+  flamewingMulsWordLowWordOnly,
+  flamewingMuluWordLowWordOnly,
+} from "./optimization/flamewing-multiply.js";
 import { moveByteAndMaskViaMoveq } from "./optimization/flamewing-partial-register.js";
 import { andAllOnesToTst, orZeroToTst, eorZeroToTst } from "./optimization/vasm-logical-identities.js";
-import { compareLongImmediateViaMoveq, destructiveSmallCompareBranch, jsrJmpDispatch } from "./optimization/tricks-and-traps.js";
-import { stackAlignedWordShiftByEight, stackAlignedKnownRegisterShifts } from "./optimization/flamewing-stack-shifts.js";
+import {
+  compareLongImmediateViaMoveq,
+  destructiveSmallCompareBranch,
+  jsrJmpDispatch,
+} from "./optimization/tricks-and-traps.js";
+import {
+  stackAlignedWordShiftByEight,
+  stackAlignedKnownRegisterShifts,
+} from "./optimization/flamewing-stack-shifts.js";
 import { vasmNegativeSignedMultiply } from "./optimization/vasm-negative-multiply.js";
 import { amigaTasUnsupported } from "./platform/amiga/tas.js";
 import { amigaCustomRegisterAccess } from "./platform/amiga/custom-register-access.js";
 
 export {
-  amigaTasUnsupported, amigaCustomRegisterAccess,
+  amigaTasUnsupported,
+  amigaCustomRegisterAccess,
   vasmNegativeSignedMultiply,
-  stackAlignedWordShiftByEight, stackAlignedKnownRegisterShifts,
-  nullBranch, preferAddq, preferMoveq, redundantLea,
-  preferSubq, preferSubqForNegativeAdd, preferAddqForNegativeSub,
-  preferNot, preferTstZero, preferBset, preferBclr, shiftToClear,
-  selfMove, suspiciousNop, staleConditionCode, zeroSizedStorage, conditionAfterPreservedCcr, moveaWordSignExtension, bitNumberWraparound, partialRegisterWrite, unexpectedAbsoluteAddress, requireInstructionSize, omitRedundantInstructionSize, preferAddressRegisterMnemonics, preferDbraAlias, preferDbfAlias, preferUnsignedConditionAliases, preferCarryConditionAliases,
-  preferLeaQuick, jsrRtsTailCall, bsrRtsTailCall, pushAddressPea,
-  preferMoveqZero, preferStMinusOne, preferAddForShiftOne, preferMoveWordAddress,
-  zeroAddressRegister, addqAddressWordSize, subqAddressWordSize, preferUnlkSequence, preferLinkSequence,
-  btstSignBranch, combineAdjacentClrBytes, combineAdjacentClrWords, combineAdjacentMoveBytes, combineAdjacentMoveWords,
-  redundantZeroDisplacement, addressAddToLea, addressSubToLea, pushImmediatePea, singleRegisterMovem,
-  bsetLowWordMask, bclrLowWordMask, shiftTwoAdds, knownZeroClear, moveImmediateViaScratch, cmpZeroAddressViaScratch, combineConsecutiveAddq,
-  multiplyWordByZero, multiplySignedWordByOne, multiplyUnsignedWordByOne, multiplySignedWordPowerOfTwo,
-  multiplyUnsignedWordPowerOfTwo, multiplySignedWordHighPowerOfTwo, multiplyUnsignedWordHighPowerOfTwo,
-  negateThenSubToAdd, negateThenAddToSub, negateAddPowerOfTwoToEor,
-  moveImmediateBelowMoveq, moveImmediateByteComplement, moveImmediateDoubleByte, moveImmediateWordComplement, moveImmediateSwap, cancelAddqPredecrementMove, zeroArithmeticToTst, combineExtByte,
-  redundantTst, bsetToTas, leaZeroAddress, longShiftSequence, moveImmediateAddressToLea, moveAddressThenAddToLea, cancelMultiplePredecrementMoves, cancelStackPeaSequence, multiplyLongByOne, multiplyLongSmallConstant, multiplyLongLargePowerOfTwo, multiplySignedLong060, cmpaZeroToTst030, multiplySignedWordSelectedConstants, foldAddressExpressionToLea, divuWordPowerOfTwo, divuLongPowerOfTwo, narrowMoveaImmediate, narrowAddaSubaImmediate, simplifyLongWordMasks, normalizeByteRotate, simplifyKnownRegisterRotate, roxlToAddx, lslByteSeven, knownRegisterShiftToClear, lsrByteSeven, asrByteSaturate, knownRegisterShiftReduction, knownRegisterAsrWordLowOnly, knownRegisterAsrLongHighReduction, knownRegisterAsrSaturate, foldAddressArithmeticToIndexedLea, flamewingMulsWordFullResultConstants, flamewingMulsWordLowWordOnly, flamewingMuluWordLowWordOnly, narrowCmpaImmediate, andAllOnesToTst, orZeroToTst, eorZeroToTst,
+  stackAlignedWordShiftByEight,
+  stackAlignedKnownRegisterShifts,
+  nullBranch,
+  preferAddq,
+  preferMoveq,
+  redundantLea,
+  preferSubq,
+  preferSubqForNegativeAdd,
+  preferAddqForNegativeSub,
+  preferNot,
+  preferTstZero,
+  preferBset,
+  preferBclr,
+  shiftToClear,
+  selfMove,
+  suspiciousNop,
+  staleConditionCode,
+  zeroSizedStorage,
+  conditionAfterPreservedCcr,
+  moveaWordSignExtension,
+  bitNumberWraparound,
+  partialRegisterWrite,
+  unexpectedAbsoluteAddress,
+  requireInstructionSize,
+  omitRedundantInstructionSize,
+  preferAddressRegisterMnemonics,
+  preferDbraAlias,
+  preferDbfAlias,
+  preferUnsignedConditionAliases,
+  preferCarryConditionAliases,
+  preferLeaQuick,
+  jsrRtsTailCall,
+  bsrRtsTailCall,
+  pushAddressPea,
+  preferMoveqZero,
+  preferStMinusOne,
+  preferAddForShiftOne,
+  preferMoveWordAddress,
+  zeroAddressRegister,
+  addqAddressWordSize,
+  subqAddressWordSize,
+  preferUnlkSequence,
+  preferLinkSequence,
+  btstSignBranch,
+  combineAdjacentClrBytes,
+  combineAdjacentClrWords,
+  combineAdjacentMoveBytes,
+  combineAdjacentMoveWords,
+  redundantZeroDisplacement,
+  addressAddToLea,
+  addressSubToLea,
+  pushImmediatePea,
+  singleRegisterMovem,
+  bsetLowWordMask,
+  bclrLowWordMask,
+  shiftTwoAdds,
+  knownZeroClear,
+  moveImmediateViaScratch,
+  cmpZeroAddressViaScratch,
+  combineConsecutiveAddq,
+  multiplyWordByZero,
+  multiplySignedWordByOne,
+  multiplyUnsignedWordByOne,
+  multiplySignedWordPowerOfTwo,
+  multiplyUnsignedWordPowerOfTwo,
+  multiplySignedWordHighPowerOfTwo,
+  multiplyUnsignedWordHighPowerOfTwo,
+  negateThenSubToAdd,
+  negateThenAddToSub,
+  negateAddPowerOfTwoToEor,
+  moveImmediateBelowMoveq,
+  moveImmediateByteComplement,
+  moveImmediateDoubleByte,
+  moveImmediateWordComplement,
+  moveImmediateSwap,
+  cancelAddqPredecrementMove,
+  zeroArithmeticToTst,
+  combineExtByte,
+  redundantTst,
+  bsetToTas,
+  leaZeroAddress,
+  longShiftSequence,
+  moveImmediateAddressToLea,
+  moveAddressThenAddToLea,
+  cancelMultiplePredecrementMoves,
+  cancelStackPeaSequence,
+  multiplyLongByOne,
+  multiplyLongSmallConstant,
+  multiplyLongLargePowerOfTwo,
+  multiplySignedLong060,
+  cmpaZeroToTst030,
+  multiplySignedWordSelectedConstants,
+  foldAddressExpressionToLea,
+  divuWordPowerOfTwo,
+  divuLongPowerOfTwo,
+  narrowMoveaImmediate,
+  narrowAddaSubaImmediate,
+  simplifyLongWordMasks,
+  normalizeByteRotate,
+  simplifyKnownRegisterRotate,
+  roxlToAddx,
+  lslByteSeven,
+  knownRegisterShiftToClear,
+  lsrByteSeven,
+  asrByteSaturate,
+  knownRegisterShiftReduction,
+  knownRegisterAsrWordLowOnly,
+  knownRegisterAsrLongHighReduction,
+  knownRegisterAsrSaturate,
+  foldAddressArithmeticToIndexedLea,
+  flamewingMulsWordFullResultConstants,
+  flamewingMulsWordLowWordOnly,
+  flamewingMuluWordLowWordOnly,
+  narrowCmpaImmediate,
+  andAllOnesToTst,
+  orZeroToTst,
+  eorZeroToTst,
 };
 
 export const defaultRules: readonly Rule[] = [

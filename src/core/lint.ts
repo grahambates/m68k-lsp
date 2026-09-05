@@ -7,7 +7,6 @@ import { defaultRules } from "../rules/index.js";
 import { measureDiagnosticImpact } from "../analysis/impact.js";
 import { createInlineSuppression } from "./inline-config.js";
 
-
 function matchesOptimizationGoal(diagnostic: Diagnostic, rule: Rule | undefined, config: LintConfig): boolean {
   const goal = config.goal ?? "balanced";
   if (goal === "balanced" || !diagnostic.suggestion) return true;
@@ -75,10 +74,13 @@ export function lintParsedFile(
   const unsuppressed = suppression ? rawDiagnostics.filter((diagnostic) => !suppression(diagnostic)) : rawDiagnostics;
   const measured = unsuppressed.map((diagnostic) => {
     if (config.measureImpact === false || !config.processors.includes("mc68000")) return diagnostic;
-    if (!diagnostic.suggestion || (diagnostic.category !== "optimization" && diagnostic.category !== "performance")) return diagnostic;
+    if (!diagnostic.suggestion || (diagnostic.category !== "optimization" && diagnostic.category !== "performance"))
+      return diagnostic;
     return measureDiagnosticImpact(diagnostic, file, source, ruleById.get(diagnostic.ruleId));
   });
-  const reported = measured.filter((diagnostic) => matchesOptimizationGoal(diagnostic, ruleById.get(diagnostic.ruleId), config));
+  const reported = measured.filter((diagnostic) =>
+    matchesOptimizationGoal(diagnostic, ruleById.get(diagnostic.ruleId), config),
+  );
 
   // Rules run in registration order, so without this diagnostics come back
   // grouped by rule rather than in the order a reader encounters them in the
@@ -86,10 +88,12 @@ export function lintParsedFile(
   // deterministic for two rules matching the same spot.
   return reported
     .map((diagnostic, order) => ({ diagnostic, order }))
-    .sort((a, b) =>
-      (a.diagnostic.loc.line ?? 0) - (b.diagnostic.loc.line ?? 0)
-      || a.diagnostic.loc.start - b.diagnostic.loc.start
-      || a.order - b.order)
+    .sort(
+      (a, b) =>
+        (a.diagnostic.loc.line ?? 0) - (b.diagnostic.loc.line ?? 0) ||
+        a.diagnostic.loc.start - b.diagnostic.loc.start ||
+        a.order - b.order,
+    )
     .map((entry) => entry.diagnostic);
 }
 

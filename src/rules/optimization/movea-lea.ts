@@ -40,7 +40,12 @@ export const moveImmediateAddressToLea: Rule = {
       message: `This MOVEA.${size} immediate can be expressed as an absolute LEA on 68000/68010`,
       loc: line.mnemonic!.loc,
       suggestion: { description: "Use LEA", replacement, applicability: "safe" },
-      notes: [{ message: "Both forms load the same address-register value and preserve CCR; ASP68K records a speed win on 68000/68010 with no size change." }],
+      notes: [
+        {
+          message:
+            "Both forms load the same address-register value and preserve CCR; ASP68K records a speed win on 68000/68010 with no size change.",
+        },
+      ],
     });
   },
 };
@@ -68,7 +73,13 @@ export const moveAddressThenAddToLea: Rule = {
     if (addSize !== "w" && addSize !== "l") return;
     const imm = immediateOperand(next.line, 0);
     const addDest = addressRegisterOperand(next.line, 1);
-    if (!imm || !addDest || addDest.register.toLowerCase() !== dest.register.toLowerCase() || imm.value.type === "string-literal") return;
+    if (
+      !imm ||
+      !addDest ||
+      addDest.register.toLowerCase() !== dest.register.toLowerCase() ||
+      imm.value.type === "string-literal"
+    )
+      return;
     const value = ctx.evaluate(imm.value);
     if (!value.known || value.value < -32768 || value.value > 32767) return;
 
@@ -81,7 +92,13 @@ export const moveAddressThenAddToLea: Rule = {
       message: "MOVEA plus immediate ADDA can be folded into one LEA",
       loc: line.mnemonic!.loc,
       suggestion: { description: "Fold the address copy and adjustment into LEA", replacement, applicability: "safe" },
-      notes: [{ message: "The .L source copy preserves the full base address, and the displacement is within the signed 16-bit LEA range." }, { message: "ASP68K records a 2/4-byte saving for this sequence across its listed CPUs." }],
+      notes: [
+        {
+          message:
+            "The .L source copy preserves the full base address, and the displacement is within the signed 16-bit LEA range.",
+        },
+        { message: "ASP68K records a 2/4-byte saving for this sequence across its listed CPUs." },
+      ],
       data: { secondInstructionIndex: next.index },
     });
   },

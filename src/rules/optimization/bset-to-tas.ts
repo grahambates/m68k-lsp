@@ -12,14 +12,17 @@ function hasInterveningLabel(ctx: Parameters<NonNullable<Rule["checkLine"]>>[0],
 }
 
 function isAlterableMemory(op: OperandNode | undefined): boolean {
-  return !!op && [
-    "address-register-indirect",
-    "address-register-indirect-postinc",
-    "address-register-indirect-predec",
-    "address-register-indirect-displacement",
-    "address-register-indirect-index",
-    "absolute-address",
-  ].includes(op.type);
+  return (
+    !!op &&
+    [
+      "address-register-indirect",
+      "address-register-indirect-postinc",
+      "address-register-indirect-predec",
+      "address-register-indirect-displacement",
+      "address-register-indirect-index",
+      "absolute-address",
+    ].includes(op.type)
+  );
 }
 
 export const bsetToTas: Rule = {
@@ -47,9 +50,7 @@ export const bsetToTas: Rule = {
     const size = instructionSize(line);
     if (dataDest ? size !== "l" : !memoryDest || size !== "b") return;
 
-    const allowed = dataDest
-      ? ["mc68000", "mc68010", "mc68030"]
-      : ["mc68000", "mc68010"];
+    const allowed = dataDest ? ["mc68000", "mc68010", "mc68030"] : ["mc68000", "mc68010"];
     if (!ctx.config.processors.every((cpu) => allowed.includes(cpu))) return;
 
     const destText = sourceOperand(ctx, line, 1);
@@ -79,7 +80,9 @@ export const bsetToTas: Rule = {
         },
         notes: [
           { message: "ASP68K lists the BSET bit-7 + BEQ/BNE → TAS + BPL/BMI forms." },
-          ...(safety.applicability === "safe" ? [] : [{ message: "The replacement leaves different CCR values after the branch; review later flag use." }]),
+          ...(safety.applicability === "safe"
+            ? []
+            : [{ message: "The replacement leaves different CCR values after the branch; review later flag use." }]),
         ],
         data: { secondInstructionIndex: next.index },
       });
@@ -98,10 +101,16 @@ export const bsetToTas: Rule = {
       confidence: safety.confidence,
       message: `BSET.${size} #7,${destText} can use TAS`,
       loc: line.mnemonic!.loc,
-      suggestion: { description: `Use TAS ${destText}`, replacement: `tas ${destText}`, applicability: safety.applicability },
+      suggestion: {
+        description: `Use TAS ${destText}`,
+        replacement: `tas ${destText}`,
+        applicability: safety.applicability,
+      },
       notes: [
         { message: "ASP68K lists this as a 2-byte saving on the supported targets." },
-        ...(safety.applicability === "safe" ? [] : [{ message: "BSET and TAS set condition codes differently; review any later CCR use." }]),
+        ...(safety.applicability === "safe"
+          ? []
+          : [{ message: "BSET and TAS set condition codes differently; review any later CCR use." }]),
       ],
     });
   },

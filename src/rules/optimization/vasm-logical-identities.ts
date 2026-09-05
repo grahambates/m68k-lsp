@@ -4,16 +4,19 @@ import { immediateExpressionOperand, instructionSize, isInstruction, operand } f
 import { sourceOperand } from "./helpers.js";
 
 function isTstDestination(op: OperandNode | undefined): boolean {
-  return !!op && [
-    "data-register",
-    "address-register-indirect",
-    "address-register-indirect-postinc",
-    "address-register-indirect-predec",
-    "address-register-indirect-displacement",
-    "address-register-indirect-index",
-    "memory-indirect",
-    "absolute-address",
-  ].includes(op.type);
+  return (
+    !!op &&
+    [
+      "data-register",
+      "address-register-indirect",
+      "address-register-indirect-postinc",
+      "address-register-indirect-predec",
+      "address-register-indirect-displacement",
+      "address-register-indirect-index",
+      "memory-indirect",
+      "absolute-address",
+    ].includes(op.type)
+  );
 }
 
 function makeIdentityRule(
@@ -43,7 +46,7 @@ function makeIdentityRule(
       if (!size || !["b", "w", "l"].includes(size)) return;
       if (expected === "all-ones") {
         const mask = size === "b" ? 0xff : size === "w" ? 0xffff : 0xffffffff;
-        if ((value.value >>> 0) !== mask && value.value !== -1) return;
+        if (value.value >>> 0 !== mask && value.value !== -1) return;
       } else if (value.value !== expected) return;
       const text = sourceOperand(ctx, line, 1);
       if (!text) return;
@@ -61,11 +64,19 @@ function makeIdentityRule(
           replacement: `tst.${size} ${text}`,
           applicability: registerOnly ? "safe" : "manual",
         },
-        notes: registerOnly ? [
-          { message: "The logical identity and TST produce the same value and N/Z/V/C state; X is preserved by both." },
-        ] : [
-          { message: "The value and CCR are equivalent, but the original instruction is a memory read-modify-write while TST is only a read. Review memory-mapped I/O or other write side effects." },
-        ],
+        notes: registerOnly
+          ? [
+              {
+                message:
+                  "The logical identity and TST produce the same value and N/Z/V/C state; X is preserved by both.",
+              },
+            ]
+          : [
+              {
+                message:
+                  "The value and CCR are equivalent, but the original instruction is a memory read-modify-write while TST is only a read. Review memory-mapped I/O or other write side effects.",
+              },
+            ],
       });
     },
   };
@@ -78,16 +89,6 @@ export const andAllOnesToTst = makeIdentityRule(
   "ANDI #-1/all-ones",
 );
 
-export const orZeroToTst = makeIdentityRule(
-  "optimization/ori-zero-to-tst",
-  "or",
-  0,
-  "ORI #0",
-);
+export const orZeroToTst = makeIdentityRule("optimization/ori-zero-to-tst", "or", 0, "ORI #0");
 
-export const eorZeroToTst = makeIdentityRule(
-  "optimization/eori-zero-to-tst",
-  "eor",
-  0,
-  "EORI #0",
-);
+export const eorZeroToTst = makeIdentityRule("optimization/eori-zero-to-tst", "eor", 0, "EORI #0");

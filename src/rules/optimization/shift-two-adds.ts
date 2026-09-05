@@ -22,9 +22,7 @@ export const shiftTwoAdds: Rule = {
     const value = ctx.evaluate(count.value);
     if (!value.known || value.value !== 2) return;
 
-    const allowed = shift === "asl"
-      ? ["mc68000", "mc68010", "mc68030", "mc68040"]
-      : ["mc68000", "mc68010", "mc68030"];
+    const allowed = shift === "asl" ? ["mc68000", "mc68010", "mc68030", "mc68040"] : ["mc68000", "mc68010", "mc68030"];
     if (!ctx.config.processors.every((cpu) => allowed.includes(cpu))) return;
 
     const safety = changedFlagsApplicability(ctx, index, ["X", "N", "Z", "V", "C"]);
@@ -36,10 +34,18 @@ export const shiftTwoAdds: Rule = {
       confidence: safety.confidence,
       message: `${shift.toUpperCase()}.${size} #2 can be faster as two ADDs on this target`,
       loc: line.mnemonic!.loc,
-      suggestion: { description: `Use two ${add.toUpperCase()} instructions`, replacement: `${add}\n${add}`, applicability: safety.applicability },
+      suggestion: {
+        description: `Use two ${add.toUpperCase()} instructions`,
+        replacement: `${add}\n${add}`,
+        applicability: safety.applicability,
+      },
       notes: [
         { message: "ASP68K lists this as a speed optimisation but it increases code size by 2 bytes." },
-        ...(safety.applicability === "safe" ? [] : [{ message: "Multi-bit shift and repeated ADD flag behaviour is not assumed equivalent; review CCR use." }]),
+        ...(safety.applicability === "safe"
+          ? []
+          : [
+              { message: "Multi-bit shift and repeated ADD flag behaviour is not assumed equivalent; review CCR use." },
+            ]),
       ],
     });
   },

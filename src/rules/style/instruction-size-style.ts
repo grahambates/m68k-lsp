@@ -3,17 +3,83 @@ import { canonicalMnemonic } from "../../semantics/mnemonics.js";
 import { instructionSize } from "../../util/ast.js";
 
 const REQUIRE_EXPLICIT_SIZE = new Set([
-  "move", "movea", "add", "adda", "addq", "addx", "sub", "suba", "subq", "subx",
-  "cmp", "cmpa", "cmpm", "and", "or", "eor", "clr", "neg", "negx", "not", "tst",
-  "asl", "asr", "lsl", "lsr", "rol", "ror", "roxl", "roxr", "movem", "movep", "ext",
+  "move",
+  "movea",
+  "add",
+  "adda",
+  "addq",
+  "addx",
+  "sub",
+  "suba",
+  "subq",
+  "subx",
+  "cmp",
+  "cmpa",
+  "cmpm",
+  "and",
+  "or",
+  "eor",
+  "clr",
+  "neg",
+  "negx",
+  "not",
+  "tst",
+  "asl",
+  "asr",
+  "lsl",
+  "lsr",
+  "rol",
+  "ror",
+  "roxl",
+  "roxr",
+  "movem",
+  "movep",
+  "ext",
 ]);
 
 const FIXED_SIZE = new Set([
-  "lea", "pea", "moveq", "swap", "exg", "jmp", "jsr", "nop", "reset", "rte", "rtr", "rts",
-  "stop", "trap", "illegal", "unlk", "tas", "nbcd", "abcd", "sbcd", "pack", "unpk",
+  "lea",
+  "pea",
+  "moveq",
+  "swap",
+  "exg",
+  "jmp",
+  "jsr",
+  "nop",
+  "reset",
+  "rte",
+  "rtr",
+  "rts",
+  "stop",
+  "trap",
+  "illegal",
+  "unlk",
+  "tas",
+  "nbcd",
+  "abcd",
+  "sbcd",
+  "pack",
+  "unpk",
 ]);
 
-const CONDITION_CODES = new Set(["t", "f", "hi", "ls", "cc", "cs", "ne", "eq", "vc", "vs", "pl", "mi", "ge", "lt", "gt", "le"]);
+const CONDITION_CODES = new Set([
+  "t",
+  "f",
+  "hi",
+  "ls",
+  "cc",
+  "cs",
+  "ne",
+  "eq",
+  "vc",
+  "vs",
+  "pl",
+  "mi",
+  "ge",
+  "lt",
+  "gt",
+  "le",
+]);
 
 function isFixedSizeConditionInstruction(mnemonic: string): boolean {
   if (mnemonic.startsWith("db") && CONDITION_CODES.has(mnemonic.slice(2))) return true;
@@ -50,7 +116,9 @@ export const requireInstructionSize: Rule = {
       confidence: "certain",
       message: `Specify the operand size explicitly for ${line.mnemonic.instruction.toUpperCase()}`,
       loc: line.mnemonic.loc,
-      notes: [{ message: "The intended size cannot be inferred safely by the linter; add .b, .w, or .l as appropriate." }],
+      notes: [
+        { message: "The intended size cannot be inferred safely by the linter; add .b, .w, or .l as appropriate." },
+      ],
     });
   },
 };
@@ -80,11 +148,13 @@ export const omitRedundantInstructionSize: Rule = {
       confidence: "certain",
       message: `${line.mnemonic.instruction.toUpperCase()} has no variable operand size; .${size} is redundant`,
       loc: line.mnemonic.loc,
-      suggestion: replacement ? {
-        description: "Remove the redundant size suffix",
-        replacement,
-        applicability: "safe",
-      } : undefined,
+      suggestion: replacement
+        ? {
+            description: "Remove the redundant size suffix",
+            replacement,
+            applicability: "safe",
+          }
+        : undefined,
     });
   },
 };

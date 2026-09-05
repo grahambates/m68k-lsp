@@ -6,13 +6,7 @@ export type Flag = (typeof FLAGS)[number];
 export type FlagSet = ReadonlySet<Flag>;
 
 export type ControlFlowKind =
-  | "fallthrough"
-  | "conditional-branch"
-  | "unconditional-branch"
-  | "call"
-  | "return"
-  | "dynamic-jump"
-  | "stop";
+  "fallthrough" | "conditional-branch" | "unconditional-branch" | "call" | "return" | "dynamic-jump" | "stop";
 
 export interface FlagSemantics {
   reads: FlagSet;
@@ -27,14 +21,24 @@ const NZVC = set("N", "Z", "V", "C");
 const XNZVC = set("X", "N", "Z", "V", "C");
 
 const conditionReads: Record<string, readonly Flag[]> = {
-  t: [], f: [],
-  hi: ["C", "Z"], ls: ["C", "Z"],
-  cc: ["C"], hs: ["C"], cs: ["C"], lo: ["C"],
-  ne: ["Z"], eq: ["Z"],
-  vc: ["V"], vs: ["V"],
-  pl: ["N"], mi: ["N"],
-  ge: ["N", "V"], lt: ["N", "V"],
-  gt: ["N", "V", "Z"], le: ["N", "V", "Z"],
+  t: [],
+  f: [],
+  hi: ["C", "Z"],
+  ls: ["C", "Z"],
+  cc: ["C"],
+  hs: ["C"],
+  cs: ["C"],
+  lo: ["C"],
+  ne: ["Z"],
+  eq: ["Z"],
+  vc: ["V"],
+  vs: ["V"],
+  pl: ["N"],
+  mi: ["N"],
+  ge: ["N", "V"],
+  lt: ["N", "V"],
+  gt: ["N", "V", "Z"],
+  le: ["N", "V", "Z"],
 };
 
 function conditionFromMnemonic(mnemonic: string): string | undefined {

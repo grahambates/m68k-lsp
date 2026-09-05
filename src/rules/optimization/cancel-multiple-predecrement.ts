@@ -1,5 +1,11 @@
 import type { Rule } from "../../core/rule.js";
-import { addressRegisterOperand, predecrementAddressRegister, immediateExpressionOperand, instructionSize, isInstruction } from "../../util/ast.js";
+import {
+  addressRegisterOperand,
+  predecrementAddressRegister,
+  immediateExpressionOperand,
+  instructionSize,
+  isInstruction,
+} from "../../util/ast.js";
 import { normalizeRegister, registersReadByOperand } from "../../semantics/registers.js";
 import { sourceOperand } from "./helpers.js";
 
@@ -45,7 +51,11 @@ export const cancelMultiplePredecrementMoves: Rule = {
 
     // Original ADDQ changes An before either source EA is evaluated. The folded
     // form leaves An unchanged, so both source EAs must be independent of An.
-    if (registersReadByOperand(first.line.operands?.[0]).has(addr) || registersReadByOperand(second.line.operands?.[0]).has(addr)) return;
+    if (
+      registersReadByOperand(first.line.operands?.[0]).has(addr) ||
+      registersReadByOperand(second.line.operands?.[0]).has(addr)
+    )
+      return;
 
     const src1 = sourceOperand(ctx, first.line, 0);
     const src2 = sourceOperand(ctx, second.line, 0);
@@ -68,8 +78,14 @@ export const cancelMultiplePredecrementMoves: Rule = {
         applicability: "safe",
       },
       notes: [
-        { message: "Both source effective addresses are independent of the adjusted address register, as required by ASP68K." },
-        { message: "The replacement performs the same stores in the same order and leaves the address register at the same final value." },
+        {
+          message:
+            "Both source effective addresses are independent of the adjusted address register, as required by ASP68K.",
+        },
+        {
+          message:
+            "The replacement performs the same stores in the same order and leaves the address register at the same final value.",
+        },
       ],
       data: { secondInstructionIndex: first.index, thirdInstructionIndex: second.index },
     });

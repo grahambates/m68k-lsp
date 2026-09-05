@@ -19,7 +19,7 @@ Exact deltas are classified as:
 - `regression`: at least one resource regresses and none improve.
 
 A regression does not invalidate semantic equivalence. It means the rule should be
-re-audited as an *optimization* for the 68000, including its original CPU gating and
+re-audited as an _optimization_ for the 68000, including its original CPU gating and
 historical timing assumptions.
 
 ## Limitations

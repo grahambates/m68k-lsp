@@ -14,8 +14,8 @@ describe("representative rule impact audit", () => {
   });
 
   test("representative 68000 cases trigger and are measurable", () => {
-    const bad = runRuleImpactAudit().filter((r) =>
-      r.status === "missing-case" || r.status === "not-triggered" || r.status === "unmeasured",
+    const bad = runRuleImpactAudit().filter(
+      (r) => r.status === "missing-case" || r.status === "not-triggered" || r.status === "unmeasured",
     );
     expect(bad).toEqual([]);
   });
@@ -26,9 +26,7 @@ describe("representative rule impact audit", () => {
   });
 
   test("audit fixtures are indented so instructions are not parsed as column-zero labels", () => {
-    expect(normalizeRuleImpactAuditSource("move.l #42,d0\n.x:\nrts")).toBe(
-      "\tmove.l #42,d0\n.x:\n\trts",
-    );
+    expect(normalizeRuleImpactAuditSource("move.l #42,d0\n.x:\nrts")).toBe("\tmove.l #42,d0\n.x:\n\trts");
   });
 
   test("column-zero label definitions are left in place", () => {
@@ -42,9 +40,7 @@ describe("representative rule impact audit", () => {
   });
 
   test("generated replacement snippets are indented before 68kcounter parsing", () => {
-    expect(normalizeCounterSnippet("moveq #42,d0\naddq.l #1,d0")).toBe(
-      "\tmoveq #42,d0\n\taddq.l #1,d0",
-    );
+    expect(normalizeCounterSnippet("moveq #42,d0\naddq.l #1,d0")).toBe("\tmoveq #42,d0\n\taddq.l #1,d0");
   });
 
   test("prefer-moveq representative case reaches the rule audit path", () => {
@@ -54,9 +50,7 @@ describe("representative rule impact audit", () => {
     expect(results).toHaveLength(1);
     expect(results[0].status).not.toBe("not-triggered");
   });
-
 });
-
 
 test("sequence folds measure their full source span", () => {
   const audit = runRuleImpactAudit();

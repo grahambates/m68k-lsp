@@ -5,10 +5,18 @@ import { immediateOperand, instructionSize, isInstruction, operand } from "../..
 import { sourceOperand } from "./helpers.js";
 
 function isMemoryDestination(op: OperandNode | undefined): boolean {
-  return !!op && [
-    "address-register-indirect", "address-register-indirect-postinc", "address-register-indirect-predec",
-    "address-register-indirect-displacement", "address-register-indirect-index", "memory-indirect", "absolute-address",
-  ].includes(op.type);
+  return (
+    !!op &&
+    [
+      "address-register-indirect",
+      "address-register-indirect-postinc",
+      "address-register-indirect-predec",
+      "address-register-indirect-displacement",
+      "address-register-indirect-index",
+      "memory-indirect",
+      "absolute-address",
+    ].includes(op.type)
+  );
 }
 
 export const moveImmediateViaScratch: Rule = {
@@ -49,7 +57,10 @@ export const moveImmediateViaScratch: Rule = {
         applicability: "safe",
       },
       notes: [
-        { message: "The scratch register is proven dead after the original instruction and is not used to form the destination address." },
+        {
+          message:
+            "The scratch register is proven dead after the original instruction and is not used to form the destination address.",
+        },
         { message: "ASP68K lists this transformation for -128..127 with a 2-byte size saving on early targets." },
       ],
     });

@@ -45,7 +45,8 @@ export const singleRegisterMovem: Rule = {
     const replacement = `${replacementMnemonic()}.${size} ${sourceText},${destText}`;
 
     // MOVEM preserves CCR. MOVE to Dn/memory writes NZVC; MOVE to An is MOVEA-like and preserves CCR.
-    const replacementPreservesFlags = registerIsDest && (register.toLowerCase().startsWith("a") || register.toLowerCase() === "sp");
+    const replacementPreservesFlags =
+      registerIsDest && (register.toLowerCase().startsWith("a") || register.toLowerCase() === "sp");
     const safety = replacementPreservesFlags
       ? { applicability: "safe" as const, confidence: "certain" as const }
       : changedFlagsApplicability(ctx, index, ["N", "Z", "V", "C"]);
@@ -60,7 +61,9 @@ export const singleRegisterMovem: Rule = {
       suggestion: { description: `Use ${replacement.toUpperCase()}`, replacement, applicability: safety.applicability },
       notes: [
         { message: "ASP68K lists single-register MOVEM → MOVE as a 2-byte saving on several CPUs." },
-        ...(safety.applicability === "safe" ? [] : [{ message: "MOVEM preserves CCR while the MOVE replacement may update N/Z/V/C; review flag use." }]),
+        ...(safety.applicability === "safe"
+          ? []
+          : [{ message: "MOVEM preserves CCR while the MOVE replacement may update N/Z/V/C; review flag use." }]),
       ],
     });
   },

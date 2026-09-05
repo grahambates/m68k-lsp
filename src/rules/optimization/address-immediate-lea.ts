@@ -24,9 +24,8 @@ function makeAddressImmediateLea(mnemonic: "add" | "sub"): Rule {
       const displacement = mnemonic === "add" ? value.value : -value.value;
       if (Math.abs(value.value) < 9 || displacement < -32767 || displacement > 32767) return;
 
-      const allowed = mnemonic === "add"
-        ? ["mc68000", "mc68010", "mc68030"]
-        : ["mc68000", "mc68010", "mc68030", "mc68040"];
+      const allowed =
+        mnemonic === "add" ? ["mc68000", "mc68010", "mc68030"] : ["mc68000", "mc68010", "mc68030", "mc68040"];
       if (!ctx.config.processors.every((cpu) => allowed.includes(cpu))) return;
 
       ctx.report({
@@ -41,7 +40,12 @@ function makeAddressImmediateLea(mnemonic: "add" | "sub"): Rule {
           replacement: `lea ${displacement}(${dest.register}),${dest.register}`,
           applicability: "safe",
         },
-        notes: [{ message: "Address-register ADD/SUB and LEA both preserve CCR; ASP68K gives this for signed 16-bit displacements outside the ADDQ/SUBQ range." }],
+        notes: [
+          {
+            message:
+              "Address-register ADD/SUB and LEA both preserve CCR; ASP68K gives this for signed 16-bit displacements outside the ADDQ/SUBQ range.",
+          },
+        ],
       });
     },
   };

@@ -3,13 +3,17 @@ import { addressRegisterOperand, isInstruction, operand } from "../../util/ast.j
 import { sourceOperand } from "./helpers.js";
 
 function sameAddressRegister(a: unknown, b: unknown): boolean {
-  return !!a && !!b &&
-    typeof a === "object" && typeof b === "object" &&
+  return (
+    !!a &&
+    !!b &&
+    typeof a === "object" &&
+    typeof b === "object" &&
     (a as { type?: string }).type === "address-register" &&
     (b as { type?: string }).type === "address-register" &&
     typeof (a as { register?: unknown }).register === "string" &&
     typeof (b as { register?: unknown }).register === "string" &&
-    (a as { register: string }).register.toLowerCase() === (b as { register: string }).register.toLowerCase();
+    (a as { register: string }).register.toLowerCase() === (b as { register: string }).register.toLowerCase()
+  );
 }
 
 export const preferLeaQuick: Rule = {
@@ -49,7 +53,9 @@ export const preferLeaQuick: Rule = {
         replacement: `${mnemonic}.w #${value},${register}`,
         applicability: "safe",
       },
-      notes: [{ message: "ASP68K gives ADDQ.W for +1..+8 and SUBQ.W for -1..-8 when LEA updates the same address register." }],
+      notes: [
+        { message: "ASP68K gives ADDQ.W for +1..+8 and SUBQ.W for -1..-8 when LEA updates the same address register." },
+      ],
     });
   },
 };

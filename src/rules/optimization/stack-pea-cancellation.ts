@@ -15,8 +15,11 @@ function isSpAddressRegister(line: ParsedLine, index: number): boolean {
 
 function predecSp(line: ParsedLine, index: number): boolean {
   const op = operand(line, index);
-  return op?.type === "address-register-indirect-predec" &&
-    op.register.type === "address-register" && isSpRegisterName(op.register.register);
+  return (
+    op?.type === "address-register-indirect-predec" &&
+    op.register.type === "address-register" &&
+    isSpRegisterName(op.register.register)
+  );
 }
 
 function peaAddressRegister(line: ParsedLine): string | undefined {
@@ -93,7 +96,9 @@ export const cancelStackPeaSequence: Rule = {
         },
         notes: [
           { message: "The stack pointer has the same final value and the longword is written to the same address." },
-          ...(ccr.applicability === "safe" ? [] : [{ message: "PEA preserves CCR, whereas the replacement MOVE.L writes N/Z/V/C." }]),
+          ...(ccr.applicability === "safe"
+            ? []
+            : [{ message: "PEA preserves CCR, whereas the replacement MOVE.L writes N/Z/V/C." }]),
         ],
         data: { secondInstructionIndex: first.index },
       });
@@ -114,7 +119,9 @@ export const cancelStackPeaSequence: Rule = {
       if (!src) return;
       const ccr = changedFlagsApplicability(ctx, second.index, ["N", "Z", "V", "C"]);
       ctx.report({
-        ruleId: this.meta.id, category: this.meta.category, severity: this.meta.defaultSeverity,
+        ruleId: this.meta.id,
+        category: this.meta.category,
+        severity: this.meta.defaultSeverity,
         confidence: ccr.confidence,
         message: "The stack adjustment is cancelled by a word predecrement and PEA",
         loc: line.mnemonic!.loc,
@@ -125,7 +132,14 @@ export const cancelStackPeaSequence: Rule = {
         },
         notes: [
           { message: "The source operand is independent of SP, so its effective address is unchanged." },
-          ...(ccr.applicability === "safe" ? [] : [{ message: "The final replacement MOVE.L writes N/Z/V/C whereas the original final PEA preserves the preceding MOVE.W flags." }]),
+          ...(ccr.applicability === "safe"
+            ? []
+            : [
+                {
+                  message:
+                    "The final replacement MOVE.L writes N/Z/V/C whereas the original final PEA preserves the preceding MOVE.W flags.",
+                },
+              ]),
         ],
         data: { secondInstructionIndex: first.index, thirdInstructionIndex: second.index },
       });
@@ -137,7 +151,9 @@ export const cancelStackPeaSequence: Rule = {
       const src = sourceOperand(ctx, second.line, 0);
       if (!src) return;
       ctx.report({
-        ruleId: this.meta.id, category: this.meta.category, severity: this.meta.defaultSeverity,
+        ruleId: this.meta.id,
+        category: this.meta.category,
+        severity: this.meta.defaultSeverity,
         confidence: "certain",
         message: "The stack adjustment is cancelled by PEA and a word predecrement",
         loc: line.mnemonic!.loc,
@@ -146,7 +162,12 @@ export const cancelStackPeaSequence: Rule = {
           replacement: `move.l ${firstPea},2(sp)\nmove.w ${src},(sp)`,
           applicability: "safe",
         },
-        notes: [{ message: "The final MOVE.W sets the same condition codes as the original final MOVE.W, and the source is independent of SP." }],
+        notes: [
+          {
+            message:
+              "The final MOVE.W sets the same condition codes as the original final MOVE.W, and the source is independent of SP.",
+          },
+        ],
         data: { secondInstructionIndex: first.index, thirdInstructionIndex: second.index },
       });
       return;
@@ -158,7 +179,9 @@ export const cancelStackPeaSequence: Rule = {
       if (!src) return;
       const ccr = changedFlagsApplicability(ctx, second.index, ["N", "Z", "V", "C"]);
       ctx.report({
-        ruleId: this.meta.id, category: this.meta.category, severity: this.meta.defaultSeverity,
+        ruleId: this.meta.id,
+        category: this.meta.category,
+        severity: this.meta.defaultSeverity,
         confidence: ccr.confidence,
         message: "The stack adjustment is cancelled by a longword predecrement and PEA",
         loc: line.mnemonic!.loc,
@@ -169,7 +192,14 @@ export const cancelStackPeaSequence: Rule = {
         },
         notes: [
           { message: "The source operand is independent of SP, so its effective address is unchanged." },
-          ...(ccr.applicability === "safe" ? [] : [{ message: "The final replacement MOVE.L writes N/Z/V/C whereas the original final PEA preserves the preceding MOVE.L flags." }]),
+          ...(ccr.applicability === "safe"
+            ? []
+            : [
+                {
+                  message:
+                    "The final replacement MOVE.L writes N/Z/V/C whereas the original final PEA preserves the preceding MOVE.L flags.",
+                },
+              ]),
         ],
         data: { secondInstructionIndex: first.index, thirdInstructionIndex: second.index },
       });
@@ -181,7 +211,9 @@ export const cancelStackPeaSequence: Rule = {
       const src = sourceOperand(ctx, second.line, 0);
       if (!src) return;
       ctx.report({
-        ruleId: this.meta.id, category: this.meta.category, severity: this.meta.defaultSeverity,
+        ruleId: this.meta.id,
+        category: this.meta.category,
+        severity: this.meta.defaultSeverity,
         confidence: "certain",
         message: "The stack adjustment is cancelled by PEA and a longword predecrement",
         loc: line.mnemonic!.loc,
@@ -190,7 +222,12 @@ export const cancelStackPeaSequence: Rule = {
           replacement: `move.l ${firstPea},4(sp)\nmove.l ${src},(sp)`,
           applicability: "safe",
         },
-        notes: [{ message: "The final MOVE.L sets the same condition codes as the original final MOVE.L, and the source is independent of SP." }],
+        notes: [
+          {
+            message:
+              "The final MOVE.L sets the same condition codes as the original final MOVE.L, and the source is independent of SP.",
+          },
+        ],
         data: { secondInstructionIndex: first.index, thirdInstructionIndex: second.index },
       });
       return;
@@ -200,7 +237,9 @@ export const cancelStackPeaSequence: Rule = {
     if (amount === 8 && firstPea && secondPea) {
       const ccr = changedFlagsApplicability(ctx, second.index, ["N", "Z", "V", "C"]);
       ctx.report({
-        ruleId: this.meta.id, category: this.meta.category, severity: this.meta.defaultSeverity,
+        ruleId: this.meta.id,
+        category: this.meta.category,
+        severity: this.meta.defaultSeverity,
         confidence: ccr.confidence,
         message: "The stack adjustment is cancelled by two following PEA instructions",
         loc: line.mnemonic!.loc,
@@ -210,7 +249,14 @@ export const cancelStackPeaSequence: Rule = {
           applicability: ccr.applicability,
         },
         notes: [
-          ...(ccr.applicability === "safe" ? [] : [{ message: "The original PEA instructions preserve CCR, while the replacement MOVE.L instructions write N/Z/V/C." }]),
+          ...(ccr.applicability === "safe"
+            ? []
+            : [
+                {
+                  message:
+                    "The original PEA instructions preserve CCR, while the replacement MOVE.L instructions write N/Z/V/C.",
+                },
+              ]),
         ],
         data: { secondInstructionIndex: first.index, thirdInstructionIndex: second.index },
       });

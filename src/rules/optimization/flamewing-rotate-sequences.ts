@@ -14,7 +14,8 @@ function hasInterveningLabel(ctx: RuleContext, from: number, to: number): boolea
 
 function knownMoveqBefore(ctx: RuleContext, index: number) {
   const previous = ctx.previousInstruction(index);
-  if (!previous || hasInterveningLabel(ctx, previous.index, index) || !isInstruction(previous.line, "moveq")) return undefined;
+  if (!previous || hasInterveningLabel(ctx, previous.index, index) || !isInstruction(previous.line, "moveq"))
+    return undefined;
   const expr = immediateExpressionOperand(previous.line, 0);
   const dst = dataRegisterOperand(previous.line, 1);
   if (!expr || !dst) return undefined;
@@ -23,7 +24,13 @@ function knownMoveqBefore(ctx: RuleContext, index: number) {
   return { ...previous, register: dst.register.toLowerCase(), count: value.value };
 }
 
-function countRegisterCanLoseMoveq(ctx: RuleContext, moveqIndex: number, rotateIndex: number, register: string, count: number): boolean {
+function countRegisterCanLoseMoveq(
+  ctx: RuleContext,
+  moveqIndex: number,
+  rotateIndex: number,
+  register: string,
+  count: number,
+): boolean {
   if (ctx.registers.isLiveAfter(rotateIndex, register) === "dead") return true;
   return ctx.registers.knownConstantBefore(moveqIndex, register) === count;
 }
@@ -91,8 +98,12 @@ export const simplifyKnownRegisterRotate: Rule = {
         applicability: safety.applicability,
       },
       notes: [
-        { message: `The removed ${countReg.register.toUpperCase()} value is ${ctx.registers.isLiveAfter(index, moveq.register) === "dead" ? "dead after the rotate" : "already equal to the MOVEQ constant before the sequence"}.` },
-        ...(safety.applicability === "safe" ? [] : [{ message: "The equivalent opposite-direction form can leave a different C flag." }]),
+        {
+          message: `The removed ${countReg.register.toUpperCase()} value is ${ctx.registers.isLiveAfter(index, moveq.register) === "dead" ? "dead after the rotate" : "already equal to the MOVEQ constant before the sequence"}.`,
+        },
+        ...(safety.applicability === "safe"
+          ? []
+          : [{ message: "The equivalent opposite-direction form can leave a different C flag." }]),
       ],
       data: { secondInstructionIndex: index, countRegister: moveq.register, rotateCount: count },
     });
@@ -119,7 +130,9 @@ export const roxlToAddx: Rule = {
     if (!value.known || (value.value !== 1 && value.value !== 2)) return;
     if (size === "l" && value.value !== 1) return;
 
-    const replacement = Array.from({ length: value.value }, () => `addx.${size} ${dst.register},${dst.register}`).join("\n");
+    const replacement = Array.from({ length: value.value }, () => `addx.${size} ${dst.register},${dst.register}`).join(
+      "\n",
+    );
     // ADDX implements the same rotate-through-X data path and final X/C/N;
     // its overflow and cumulative-Z semantics differ from ROXL.
     const safety = changedFlagsApplicability(ctx, index, ["Z", "V"]);
@@ -130,8 +143,15 @@ export const roxlToAddx: Rule = {
       confidence: safety.confidence,
       message: `ROXL.${size.toUpperCase()} #${value.value},${dst.register.toUpperCase()} can use ${value.value === 1 ? "ADDX" : "two ADDX instructions"} on 68000`,
       loc: line.mnemonic!.loc,
-      suggestion: { description: "Use ADDX for rotate-through-extend-left", replacement, applicability: safety.applicability },
-      notes: safety.applicability === "safe" ? undefined : [{ message: "ADDX has different V and cumulative-Z flag semantics from ROXL." }],
+      suggestion: {
+        description: "Use ADDX for rotate-through-extend-left",
+        replacement,
+        applicability: safety.applicability,
+      },
+      notes:
+        safety.applicability === "safe"
+          ? undefined
+          : [{ message: "ADDX has different V and cumulative-Z flag semantics from ROXL." }],
     });
   },
 };
@@ -169,7 +189,9 @@ export const lslByteSeven: Rule = {
       },
       notes: [
         { message: "This is a speed-for-size tradeoff: Flamewing reports it faster but four bytes larger." },
-        ...(safety.applicability === "safe" ? [] : [{ message: "X/C differ from the original LSL and must not be observed." }]),
+        ...(safety.applicability === "safe"
+          ? []
+          : [{ message: "X/C differ from the original LSL and must not be observed." }]),
       ],
     });
   },

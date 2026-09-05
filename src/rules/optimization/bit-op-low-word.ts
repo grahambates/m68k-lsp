@@ -23,7 +23,7 @@ function makeRule(kind: "bset" | "bclr"): Rule {
       if (!bit.known || bit.value < 0 || bit.value > 15) return;
       if (!ctx.config.processors.every((cpu) => ["mc68000", "mc68010", "mc68030", "mc68040"].includes(cpu))) return;
 
-      const mask = kind === "bset" ? (1 << bit.value) : (0xffff ^ (1 << bit.value));
+      const mask = kind === "bset" ? 1 << bit.value : 0xffff ^ (1 << bit.value);
       const op = kind === "bset" ? "or" : "and";
       const renderedMask = `$${(mask & 0xffff).toString(16).toUpperCase().padStart(4, "0")}`;
       const safety = changedFlagsApplicability(ctx, index, ["N", "Z", "V", "C"]);
@@ -41,8 +41,17 @@ function makeRule(kind: "bset" | "bclr"): Rule {
           applicability: safety.applicability,
         },
         notes: [
-          { message: `ASP68K lists ${kind.toUpperCase()}.L #n,Dn → ${op.toUpperCase()}.W #mask,Dn for bit numbers 0..15.` },
-          ...(safety.applicability === "safe" ? [] : [{ message: "The mask operation and bit operation leave different condition-code results; review CCR use." }]),
+          {
+            message: `ASP68K lists ${kind.toUpperCase()}.L #n,Dn → ${op.toUpperCase()}.W #mask,Dn for bit numbers 0..15.`,
+          },
+          ...(safety.applicability === "safe"
+            ? []
+            : [
+                {
+                  message:
+                    "The mask operation and bit operation leave different condition-code results; review CCR use.",
+                },
+              ]),
         ],
       });
     },

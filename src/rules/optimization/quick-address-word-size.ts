@@ -31,7 +31,11 @@ function makeRule(mnemonic: "addq" | "subq"): Rule {
           replacement: rendered ? `${mnemonic}.w #${rendered},${dest.register}` : undefined,
           applicability: "safe",
         },
-        notes: [{ message: `ASP68K lists ${mnemonic.toUpperCase()}.L #n,An → ${mnemonic.toUpperCase()}.W #n,An as faster on 68000/68010.` }],
+        notes: [
+          {
+            message: `ASP68K lists ${mnemonic.toUpperCase()}.L #n,An → ${mnemonic.toUpperCase()}.W #n,An as faster on 68000/68010.`,
+          },
+        ],
       });
     },
   };

@@ -31,8 +31,10 @@ export function replaceOperandInLine(
 
 export function changedFlagsApplicability(ctx: RuleContext, index: number, flags: readonly Flag[]) {
   const states = flags.map((flag) => ctx.flags.isLiveAfter(index, flag));
-  if (states.every((state) => state === "dead")) return { applicability: "safe" as const, confidence: "certain" as const };
-  if (states.some((state) => state === "live")) return { applicability: "conditional" as const, confidence: "high" as const };
+  if (states.every((state) => state === "dead"))
+    return { applicability: "safe" as const, confidence: "certain" as const };
+  if (states.some((state) => state === "live"))
+    return { applicability: "conditional" as const, confidence: "high" as const };
   return { applicability: "conditional" as const, confidence: "medium" as const };
 }
 

@@ -17,7 +17,8 @@ export const divuWordPowerOfTwo: Rule = {
     id: "optimization/divu-word-power-of-two",
     category: "optimization",
     defaultSeverity: "suggestion",
-    description: "Replace unsigned word division by a power of two with a logical shift when its remainder semantics are not needed",
+    description:
+      "Replace unsigned word division by a power of two with a logical shift when its remainder semantics are not needed",
     tags: ["asp68k", "divide", "shift", "remainder", "review"],
     docs: { source: "ASP68K" },
   },
@@ -37,7 +38,8 @@ export const divuWordPowerOfTwo: Rule = {
     if (shift <= 8) {
       replacement = `lsr.l #${shift},${dest.register}`;
     } else {
-      scratch = ctx.registers.deadDataRegistersAfter(index)
+      scratch = ctx.registers
+        .deadDataRegistersAfter(index)
         .find((register) => register.toLowerCase() !== dest.register.toLowerCase());
       if (!scratch) return;
       replacement = `moveq #${shift},${scratch}\nlsr.l ${scratch},${dest.register}`;
@@ -64,13 +66,15 @@ export const divuWordPowerOfTwo: Rule = {
         valueNote = `The known dividend ${dividend} would overflow DIVU.W's 16-bit quotient; a plain shift is not equivalent.`;
       }
     } else if (upperUse === "unused") {
-      valueNote = "The upper word of Dn is provably discarded before use, so the packed remainder is irrelevant; quotient-overflow range is still unproven.";
+      valueNote =
+        "The upper word of Dn is provably discarded before use, so the packed remainder is irrelevant; quotient-overflow range is still unproven.";
     } else {
       valueNote = "The analyser cannot prove whether Dn's upper-word remainder is observed after the division.";
     }
     const flags = changedFlagsApplicability(ctx, index, ["X", "N", "Z", "V", "C"]);
     const valueSafe = quotientFits && upperUse === "unused";
-    const applicability = valueSafe && flags.applicability === "safe" ? "safe" : upperUse === "unused" ? "conditional" : "manual";
+    const applicability =
+      valueSafe && flags.applicability === "safe" ? "safe" : upperUse === "unused" ? "conditional" : "manual";
     const confidence = valueSafe ? flags.confidence : upperUse === "unused" ? "high" : "medium";
 
     ctx.report({
@@ -87,10 +91,26 @@ export const divuWordPowerOfTwo: Rule = {
       },
       notes: [
         { message: valueNote },
-        { message: upperUse === "unused" ? "The packed remainder is provably not observed." : "Review whether Dn's upper word (the DIVU.W remainder) is used before it is overwritten." },
-        { message: flags.applicability === "safe" ? "The differing CCR outputs are dead." : "DIVU and LSR do not have identical CCR effects; review subsequent flag use." },
+        {
+          message:
+            upperUse === "unused"
+              ? "The packed remainder is provably not observed."
+              : "Review whether Dn's upper word (the DIVU.W remainder) is used before it is overwritten.",
+        },
+        {
+          message:
+            flags.applicability === "safe"
+              ? "The differing CCR outputs are dead."
+              : "DIVU and LSR do not have identical CCR effects; review subsequent flag use.",
+        },
       ],
-      data: { divisor: divisor.value, shift, scratch, upperWordUse: upperUse, quotientOverflowProvenSafe: quotientFits },
+      data: {
+        divisor: divisor.value,
+        shift,
+        scratch,
+        upperWordUse: upperUse,
+        quotientOverflowProvenSafe: quotientFits,
+      },
     });
   },
 };
@@ -121,7 +141,8 @@ export const divuLongPowerOfTwo: Rule = {
     if (shift <= 8) {
       replacement = `lsr.l #${shift},${dest.register}`;
     } else {
-      scratch = ctx.registers.deadDataRegistersAfter(index)
+      scratch = ctx.registers
+        .deadDataRegistersAfter(index)
         .find((register) => register.toLowerCase() !== dest.register.toLowerCase());
       if (!scratch) return;
       replacement = `moveq #${shift},${scratch}\nlsr.l ${scratch},${dest.register}`;
@@ -141,8 +162,16 @@ export const divuLongPowerOfTwo: Rule = {
         applicability: flags.applicability,
       },
       notes: [
-        { message: "Unlike DIVU.W, this two-operand long form does not leave a packed remainder in the upper word of Dn." },
-        { message: flags.applicability === "safe" ? "The differing CCR outputs are dead." : "DIVU.L and LSR do not have identical CCR effects; review subsequent flag use." },
+        {
+          message:
+            "Unlike DIVU.W, this two-operand long form does not leave a packed remainder in the upper word of Dn.",
+        },
+        {
+          message:
+            flags.applicability === "safe"
+              ? "The differing CCR outputs are dead."
+              : "DIVU.L and LSR do not have identical CCR effects; review subsequent flag use.",
+        },
       ],
       data: { divisor: unsignedDivisor, shift, scratch },
     });

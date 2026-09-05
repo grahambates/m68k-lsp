@@ -7,7 +7,12 @@ import type {
   ParsedLine,
   Size,
 } from "m68k-parser";
-import { canonicalMnemonicName, instructionFamily, instructionFamilyName, semanticMnemonic } from "../semantics/mnemonics.js";
+import {
+  canonicalMnemonicName,
+  instructionFamily,
+  instructionFamilyName,
+  semanticMnemonic,
+} from "../semantics/mnemonics.js";
 
 export function isInstruction(line: ParsedLine, mnemonic: string): boolean {
   return semanticMnemonic(line) === canonicalMnemonicName(mnemonic);
@@ -48,10 +53,7 @@ export function immediateExpressionOperand(line: ParsedLine, index: number): Exp
 }
 
 /** A -(An) operand with a concrete address register, not a symbol/macro placeholder. */
-export function predecrementAddressRegister(
-  line: ParsedLine,
-  index: number,
-): AddressRegisterNode | undefined {
+export function predecrementAddressRegister(line: ParsedLine, index: number): AddressRegisterNode | undefined {
   const value = operand(line, index);
   if (value?.type !== "address-register-indirect-predec") return undefined;
   return value.register.type === "address-register" ? value.register : undefined;

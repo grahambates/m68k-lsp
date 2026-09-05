@@ -24,7 +24,9 @@ export const preferAddq: Rule = {
     if (!value.known || value.value < 1 || value.value > 8) return;
 
     const suffix = size ? `.${size}` : "";
-    const originalDestination = destination ? ctx.sourceLine((line.lineNumber ?? 1) - 1)?.slice(destination.loc.start, destination.loc.end) : undefined;
+    const originalDestination = destination
+      ? ctx.sourceLine((line.lineNumber ?? 1) - 1)?.slice(destination.loc.start, destination.loc.end)
+      : undefined;
 
     ctx.report({
       ruleId: this.meta.id,
@@ -35,9 +37,7 @@ export const preferAddq: Rule = {
       loc: line.mnemonic!.loc,
       suggestion: {
         description: "Use ADDQ",
-        replacement: originalDestination
-          ? `addq${suffix} #${value.value},${originalDestination}`
-          : undefined,
+        replacement: originalDestination ? `addq${suffix} #${value.value},${originalDestination}` : undefined,
         applicability: "safe",
       },
       notes: [{ message: "ASP68K specifies ADDQ when 1 <= n <= 8." }],

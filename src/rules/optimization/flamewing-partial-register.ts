@@ -35,7 +35,13 @@ export const moveByteAndMaskViaMoveq: Rule = {
     if (!mask.known || mask.value < -128 || mask.value > 127) return;
 
     const previous = ctx.previousInstruction(index);
-    if (!previous || hasInterveningLabel(ctx, previous.index, index) || !isInstruction(previous.line, "move") || instructionSize(previous.line) !== "b") return;
+    if (
+      !previous ||
+      hasInterveningLabel(ctx, previous.index, index) ||
+      !isInstruction(previous.line, "move") ||
+      instructionSize(previous.line) !== "b"
+    )
+      return;
     const previousDst = dataRegisterOperand(previous.line, 1);
     if (!previousDst || previousDst.register.toLowerCase() !== dst.register.toLowerCase()) return;
     const source = previous.line.operands?.[0];
@@ -52,7 +58,7 @@ export const moveByteAndMaskViaMoveq: Rule = {
     const ea = sourceOperand(ctx, previous.line, 0);
     if (!ea) return;
 
-    const signedMask = mask.value << 24 >> 24;
+    const signedMask = (mask.value << 24) >> 24;
     ctx.report({
       ruleId: this.meta.id,
       category: this.meta.category,
@@ -67,7 +73,10 @@ export const moveByteAndMaskViaMoveq: Rule = {
       },
       notes: [
         { message: `The analyser proves bits 8-31 of ${dst.register.toUpperCase()} are discarded before any read.` },
-        { message: "The replacement's final AND.B sets the same N/Z/V/C result flags and preserves X, so no CCR caveat is required." },
+        {
+          message:
+            "The replacement's final AND.B sets the same N/Z/V/C result flags and preserves X, so no CCR caveat is required.",
+        },
       ],
       data: { secondInstructionIndex: index, differingBits: "8-31", provenance: "flamewing" },
     });

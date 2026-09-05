@@ -32,11 +32,17 @@ function commentText(line: string): string | undefined {
   for (let i = 0; i < line.length; i++) {
     const ch = line[i];
     if (quote) {
-      if (ch === "\\") { i++; continue; }
+      if (ch === "\\") {
+        i++;
+        continue;
+      }
       if (ch === quote) quote = undefined;
       continue;
     }
-    if (ch === "'" || ch === '"') { quote = ch; continue; }
+    if (ch === "'" || ch === '"') {
+      quote = ch;
+      continue;
+    }
     if (ch === ";") return line.slice(i + 1);
   }
   return undefined;
@@ -50,7 +56,12 @@ function parseDirective(line: string): Directive | undefined {
   const action = match[1].toLowerCase() as DirectiveAction;
   const remainder = match[2].replace(/\s+--\s+.*$/, "").trim();
   if (!remainder) return { action, rules: null };
-  const rules = new Set(remainder.split(/[\s,]+/).map((value) => value.trim()).filter(Boolean));
+  const rules = new Set(
+    remainder
+      .split(/[\s,]+/)
+      .map((value) => value.trim())
+      .filter(Boolean),
+  );
   return { action, rules: rules.size ? rules : null };
 }
 
@@ -59,7 +70,10 @@ function cloneLineSuppression(value?: LineSuppression): LineSuppression {
 }
 
 function addLineSuppression(target: LineSuppression, rules: Set<string> | null): void {
-  if (rules === null) { target.all = true; return; }
+  if (rules === null) {
+    target.all = true;
+    return;
+  }
   for (const rule of rules) target.rules.add(rule);
 }
 

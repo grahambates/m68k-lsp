@@ -17,44 +17,67 @@ export type ConstantResult =
 export type ConstantResolver = (name: string) => number | undefined;
 
 const known = (value: number): ConstantResult => ({ known: true, value });
-const unknown = (reason: Exclude<ConstantResult, { known: true }>['reason']): ConstantResult => ({
+const unknown = (reason: Exclude<ConstantResult, { known: true }>["reason"]): ConstantResult => ({
   known: false,
   reason,
 });
 
 function evalUnary(operator: UnaryOp, value: number): number {
   switch (operator) {
-    case "+": return value;
-    case "-": return -value;
-    case "~": return ~value;
-    case "!": return value ? 0 : 1;
-    default: return value;
+    case "+":
+      return value;
+    case "-":
+      return -value;
+    case "~":
+      return ~value;
+    case "!":
+      return value ? 0 : 1;
+    default:
+      return value;
   }
 }
 
 function evalBinary(operator: BinaryOp, left: number, right: number): ConstantResult {
   switch (operator) {
-    case "+": return known(left + right);
-    case "-": return known(left - right);
-    case "*": return known(left * right);
+    case "+":
+      return known(left + right);
+    case "-":
+      return known(left - right);
+    case "*":
+      return known(left * right);
     case "/":
-    case "//": return right === 0 ? unknown("division-by-zero") : known(Math.trunc(left / right));
-    case "%": return right === 0 ? unknown("division-by-zero") : known(left % right);
-    case "&": return known(left & right);
-    case "|": return known(left | right);
-    case "^": return known(left ^ right);
-    case "<<": return known(left << right);
-    case ">>": return known(left >> right);
-    case "&&": return known(left && right ? 1 : 0);
-    case "||": return known(left || right ? 1 : 0);
+    case "//":
+      return right === 0 ? unknown("division-by-zero") : known(Math.trunc(left / right));
+    case "%":
+      return right === 0 ? unknown("division-by-zero") : known(left % right);
+    case "&":
+      return known(left & right);
+    case "|":
+      return known(left | right);
+    case "^":
+      return known(left ^ right);
+    case "<<":
+      return known(left << right);
+    case ">>":
+      return known(left >> right);
+    case "&&":
+      return known(left && right ? 1 : 0);
+    case "||":
+      return known(left || right ? 1 : 0);
     case "=":
-    case "==": return known(left === right ? 1 : 0);
+    case "==":
+      return known(left === right ? 1 : 0);
     case "<>":
-    case "!=": return known(left !== right ? 1 : 0);
-    case "<": return known(left < right ? 1 : 0);
-    case ">": return known(left > right ? 1 : 0);
-    case "<=": return known(left <= right ? 1 : 0);
-    case ">=": return known(left >= right ? 1 : 0);
+    case "!=":
+      return known(left !== right ? 1 : 0);
+    case "<":
+      return known(left < right ? 1 : 0);
+    case ">":
+      return known(left > right ? 1 : 0);
+    case "<=":
+      return known(left <= right ? 1 : 0);
+    case ">=":
+      return known(left >= right ? 1 : 0);
     // VASM supports extra expression operators whose exact semantics should be
     // copied from the assembler/parser before we evaluate them here.
     case ",":

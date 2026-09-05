@@ -7,7 +7,8 @@ export const moveaWordSignExtension: Rule = {
     id: "suspicious/movea-word-sign-extension",
     category: "suspicious",
     defaultSeverity: "warning",
-    description: "Flag generic MOVE.W spellings to address registers because they have MOVEA.W sign-extension semantics",
+    description:
+      "Flag generic MOVE.W spellings to address registers because they have MOVEA.W sign-extension semantics",
     tags: ["address-registers", "sign-extension", "partial-width"],
     docs: {
       source: "Motorola 68000 Family Programmer's Reference Manual",
@@ -16,7 +17,8 @@ export const moveaWordSignExtension: Rule = {
   },
 
   checkLine(ctx, line) {
-    if (semanticMnemonic(line) !== "movea" || canonicalMnemonic(line) !== "move" || instructionSize(line) !== "w") return;
+    if (semanticMnemonic(line) !== "movea" || canonicalMnemonic(line) !== "move" || instructionSize(line) !== "w")
+      return;
     const destination = addressRegisterOperand(line, 1);
     if (!destination) return;
 
@@ -31,9 +33,7 @@ export const moveaWordSignExtension: Rule = {
         description: "Review whether a sign-extended 16-bit address is intended; use .L for a full 32-bit value",
         applicability: "manual",
       },
-      notes: [
-        { message: "This is not a 16-bit partial write: values $8000..$FFFF become $FFFF8000..$FFFFFFFF." },
-      ],
+      notes: [{ message: "This is not a 16-bit partial write: values $8000..$FFFF become $FFFF8000..$FFFFFFFF." }],
     });
   },
 };

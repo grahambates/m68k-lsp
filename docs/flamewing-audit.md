@@ -87,4 +87,4 @@ Using SP as a small, bounded scratch area is no longer itself grounds for deferr
 - known register count 24 `LSR.L` via `SWAP`, a 2-byte stack scratch word, and byte restore.
 - known register count 24 `ASR.L` via `SWAP`/`EXT`, a 2-byte stack scratch word, and byte sign-extension.
 
-All have `temporaryStackBytes=2`, `netStackBytes=0`, and restore SP exactly. They remain *conditional* rather than unconditionally safe because a register-only shift becomes stack memory traffic and may therefore expose stack-memory/bus-fault side effects. CCR differences are analysed separately.
+All have `temporaryStackBytes=2`, `netStackBytes=0`, and restore SP exactly. They remain _conditional_ rather than unconditionally safe because a register-only shift becomes stack memory traffic and may therefore expose stack-memory/bus-fault side effects. CCR differences are analysed separately.

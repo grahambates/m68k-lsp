@@ -1,12 +1,6 @@
 import type { Location } from "m68k-parser";
 
-export type RuleCategory =
-  | "correctness"
-  | "suspicious"
-  | "optimization"
-  | "performance"
-  | "portability"
-  | "style";
+export type RuleCategory = "correctness" | "suspicious" | "optimization" | "performance" | "portability" | "style";
 
 export type Severity = "error" | "warning" | "suggestion" | "info";
 export type Confidence = "certain" | "high" | "medium" | "low";

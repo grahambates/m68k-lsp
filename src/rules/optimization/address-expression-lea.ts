@@ -46,7 +46,11 @@ export const foldAddressExpressionToLea: Rule = {
 
     const second = ctx.nextInstruction(index);
     if (!second || hasLabelBetween(ctx, index, second.index)) return;
-    const secondMnemonic = isInstruction(second.line, "adda") ? "add" : isInstruction(second.line, "suba") ? "sub" : undefined;
+    const secondMnemonic = isInstruction(second.line, "adda")
+      ? "add"
+      : isInstruction(second.line, "suba")
+        ? "sub"
+        : undefined;
     if (!secondMnemonic) return;
     const immediate = immediateExpressionOperand(second.line, 0);
     const secondDest = addressRegisterOperand(second.line, 1);
@@ -83,7 +87,10 @@ export const foldAddressExpressionToLea: Rule = {
       },
       notes: [
         { message: "The full-width MOVEA copy, ADDA/SUBA immediate, indexed ADDA, and LEA all preserve CCR." },
-        { message: "The index size is kept explicitly (.W or .L), and the displacement is within the signed 16-bit brief-extension range." },
+        {
+          message:
+            "The index size is kept explicitly (.W or .L), and the displacement is within the signed 16-bit brief-extension range.",
+        },
       ],
       data: { secondInstructionIndex: second.index, thirdInstructionIndex: third.index },
     });

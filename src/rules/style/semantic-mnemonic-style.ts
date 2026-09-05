@@ -19,7 +19,8 @@ export const preferAddressRegisterMnemonics: Rule = {
     defaultSeverity: "info",
     enabledByDefault: false,
     presets: ["style"],
-    description: "Prefer MOVEA/ADDA/SUBA/CMPA spellings when an address-register destination selects that semantic form",
+    description:
+      "Prefer MOVEA/ADDA/SUBA/CMPA spellings when an address-register destination selects that semantic form",
     tags: ["style", "semantic-spelling", "address-register"],
   },
   checkLine(ctx, line, index) {
@@ -48,21 +49,24 @@ export const preferAddressRegisterMnemonics: Rule = {
       confidence: "certain",
       message: `Prefer explicit ${replacementMnemonic.toUpperCase()} spelling for address-register semantics`,
       loc: line.mnemonic.loc,
-      notes: [{ message: "This does not change the encoded instruction; it makes address-register width, sign-extension, and CCR semantics explicit." }],
-      suggestion: replacement ? {
-        description: `Use ${replacementMnemonic.toUpperCase()} spelling`,
-        replacement,
-        applicability: "safe",
-      } : undefined,
+      notes: [
+        {
+          message:
+            "This does not change the encoded instruction; it makes address-register width, sign-extension, and CCR semantics explicit.",
+        },
+      ],
+      suggestion: replacement
+        ? {
+            description: `Use ${replacementMnemonic.toUpperCase()} spelling`,
+            replacement,
+            applicability: "safe",
+          }
+        : undefined,
     });
   },
 };
 
-function aliasRule(
-  id: string,
-  description: string,
-  aliases: Readonly<Record<string, string>>,
-): Rule {
+function aliasRule(id: string, description: string, aliases: Readonly<Record<string, string>>): Rule {
   return {
     meta: {
       id,
@@ -86,35 +90,36 @@ function aliasRule(
         confidence: "certain",
         message: `Prefer ${target.toUpperCase()} over equivalent alias ${source.toUpperCase()}`,
         loc: line.mnemonic.loc,
-        suggestion: replacement ? {
-          description: `Use ${target.toUpperCase()}`,
-          replacement,
-          applicability: "safe",
-        } : undefined,
+        suggestion: replacement
+          ? {
+              description: `Use ${target.toUpperCase()}`,
+              replacement,
+              applicability: "safe",
+            }
+          : undefined,
       });
     },
   };
 }
 
-export const preferDbraAlias = aliasRule(
-  "style/prefer-dbra",
-  "Prefer DBRA spelling over the equivalent DBF alias",
-  { dbf: "dbra" },
-);
+export const preferDbraAlias = aliasRule("style/prefer-dbra", "Prefer DBRA spelling over the equivalent DBF alias", {
+  dbf: "dbra",
+});
 
-export const preferDbfAlias = aliasRule(
-  "style/prefer-dbf",
-  "Prefer DBF spelling over the equivalent DBRA alias",
-  { dbra: "dbf" },
-);
+export const preferDbfAlias = aliasRule("style/prefer-dbf", "Prefer DBF spelling over the equivalent DBRA alias", {
+  dbra: "dbf",
+});
 
 export const preferUnsignedConditionAliases = aliasRule(
   "style/prefer-unsigned-condition-aliases",
   "Prefer HS/LO condition aliases where available (BHS/BLO, DBHS/DBLO, SHS/SLO)",
   {
-    bcc: "bhs", bcs: "blo",
-    dbcc: "dbhs", dbcs: "dblo",
-    scc: "shs", scs: "slo",
+    bcc: "bhs",
+    bcs: "blo",
+    dbcc: "dbhs",
+    dbcs: "dblo",
+    scc: "shs",
+    scs: "slo",
   },
 );
 
@@ -122,8 +127,11 @@ export const preferCarryConditionAliases = aliasRule(
   "style/prefer-carry-condition-aliases",
   "Prefer CC/CS condition aliases where available (BCC/BCS, DBCC/DBCS, SCC/SCS)",
   {
-    bhs: "bcc", blo: "bcs",
-    dbhs: "dbcc", dblo: "dbcs",
-    shs: "scc", slo: "scs",
+    bhs: "bcc",
+    blo: "bcs",
+    dbhs: "dbcc",
+    dblo: "dbcs",
+    shs: "scc",
+    slo: "scs",
   },
 );

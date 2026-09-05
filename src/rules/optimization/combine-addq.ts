@@ -55,9 +55,7 @@ export const combineConsecutiveAddq: Rule = {
     const safety = isAddress
       ? { applicability: "safe" as const, confidence: "certain" as const }
       : changedFlagsApplicability(ctx, next.index, ["X", "V", "C"]);
-    const replacement = total <= 8
-      ? `addq.l #${total},${destText}`
-      : `add.l #${total},${destText}`;
+    const replacement = total <= 8 ? `addq.l #${total},${destText}` : `add.l #${total},${destText}`;
 
     ctx.report({
       ruleId: this.meta.id,
@@ -72,10 +70,20 @@ export const combineConsecutiveAddq: Rule = {
         applicability: safety.applicability,
       },
       notes: [
-        { message: total <= 8
-          ? "The combined value still fits ADDQ, so one ADDQ is preferable to a full immediate ADD."
-          : "ASP68K records the full-immediate form as a speed win on 68010/68030 too. Exact 68000 auditing found no CPU-cycle gain and a 2-byte cost, so that path is suppressed for mc68000." },
-        ...(isAddress || safety.applicability === "safe" ? [] : [{ message: "For data registers, the final N/Z result is the same but X/V/C can differ from the second ADDQ; review flag use." }]),
+        {
+          message:
+            total <= 8
+              ? "The combined value still fits ADDQ, so one ADDQ is preferable to a full immediate ADD."
+              : "ASP68K records the full-immediate form as a speed win on 68010/68030 too. Exact 68000 auditing found no CPU-cycle gain and a 2-byte cost, so that path is suppressed for mc68000.",
+        },
+        ...(isAddress || safety.applicability === "safe"
+          ? []
+          : [
+              {
+                message:
+                  "For data registers, the final N/Z result is the same but X/V/C can differ from the second ADDQ; review flag use.",
+              },
+            ]),
       ],
       data: { sourceEndIndex: next.index },
     });

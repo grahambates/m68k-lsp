@@ -9,13 +9,20 @@ import { operand } from "../../util/ast.js";
 // control-flow operands and forms where a missing '#' would simply be rejected
 // by the assembler, because those belong to syntax validation rather than lint.
 const IMMEDIATE_OR_ABSOLUTE_SOURCE = new Set([
-  "move", "movea",
-  "add", "adda",
-  "sub", "suba",
-  "cmp", "cmpa",
-  "and", "or",
-  "muls", "mulu",
-  "divs", "divu",
+  "move",
+  "movea",
+  "add",
+  "adda",
+  "sub",
+  "suba",
+  "cmp",
+  "cmpa",
+  "and",
+  "or",
+  "muls",
+  "mulu",
+  "divs",
+  "divu",
 ]);
 
 function isPureNumericExpression(expr: ExpressionNode): boolean {
@@ -54,9 +61,12 @@ export const unexpectedAbsoluteAddress: Rule = {
     // ORG is a strong signal that this source intentionally uses absolute
     // addresses. Without a full location-counter model, suppress the heuristic
     // for the whole file rather than second-guessing individual operands.
-    if (ctx.file.lines.some((line) =>
-      line.mnemonic?.type === "directive" && line.mnemonic.directive.toLowerCase() === "org"
-    )) return;
+    if (
+      ctx.file.lines.some(
+        (line) => line.mnemonic?.type === "directive" && line.mnemonic.directive.toLowerCase() === "org",
+      )
+    )
+      return;
 
     for (const line of ctx.file.lines) {
       const mnemonic = semanticMnemonic(line);
@@ -79,8 +89,14 @@ export const unexpectedAbsoluteAddress: Rule = {
         message: `Unexpected Amiga absolute source address ${hex(address)}; did you mean #${hex(address)}?`,
         loc: source.loc ?? line.mnemonic!.loc,
         notes: [
-          { message: "This may still be deliberate absolute addressing; the warning is intended to catch accidentally omitted immediate '#' prefixes." },
-          { message: "Expected Amiga absolute regions are $000000-$0000BC, $BFD000-$BFEFFF (CIA), and $DFF000-$DFF1FC (custom chips). Files containing ORG are exempt from this heuristic." },
+          {
+            message:
+              "This may still be deliberate absolute addressing; the warning is intended to catch accidentally omitted immediate '#' prefixes.",
+          },
+          {
+            message:
+              "Expected Amiga absolute regions are $000000-$0000BC, $BFD000-$BFEFFF (CIA), and $DFF000-$DFF1FC (custom chips). Files containing ORG are exempt from this heuristic.",
+          },
         ],
         suggestion: {
           description: `Review whether ${hex(address)} is an address or the immediate value #${hex(address)}`,

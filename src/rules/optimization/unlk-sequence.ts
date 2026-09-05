@@ -9,8 +9,11 @@ function isSpRegister(line: ParsedLine, operandIndex: number): boolean {
 
 function isSpPostinc(line: ParsedLine, operandIndex: number): boolean {
   const op = operand(line, operandIndex);
-  return op?.type === "address-register-indirect-postinc" &&
-    op.register.type === "address-register" && ["sp", "a7"].includes(op.register.register.toLowerCase());
+  return (
+    op?.type === "address-register-indirect-postinc" &&
+    op.register.type === "address-register" &&
+    ["sp", "a7"].includes(op.register.register.toLowerCase())
+  );
 }
 
 export const preferUnlkSequence: Rule = {
@@ -48,7 +51,14 @@ export const preferUnlkSequence: Rule = {
       },
       notes: [
         { message: "ASP68K lists MOVE.L An,SP + MOVE.L (SP)+,An → UNLK An." },
-        ...(manual ? [{ message: "The second instruction has a label; preserve externally reachable control-flow when rewriting." }] : []),
+        ...(manual
+          ? [
+              {
+                message:
+                  "The second instruction has a label; preserve externally reachable control-flow when rewriting.",
+              },
+            ]
+          : []),
       ],
       data: { secondInstructionIndex: next.index },
     });

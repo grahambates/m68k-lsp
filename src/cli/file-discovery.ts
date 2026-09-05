@@ -47,7 +47,10 @@ export function globToRegExp(pattern: string): RegExp {
       }
       continue;
     }
-    if (ch === "?") { out += "[^/]"; continue; }
+    if (ch === "?") {
+      out += "[^/]";
+      continue;
+    }
     if (ch === "[") {
       const close = p.indexOf("]", i + 1);
       if (close !== -1) {
@@ -81,7 +84,7 @@ async function walkFiles(root: string): Promise<string[]> {
   const entries = await readdir(root, { withFileTypes: true });
   for (const entry of entries) {
     const full = join(root, entry.name);
-    if (entry.isDirectory()) result.push(...await walkFiles(full));
+    if (entry.isDirectory()) result.push(...(await walkFiles(full)));
     else if (entry.isFile()) result.push(full);
   }
   return result;
@@ -108,8 +111,11 @@ export async function discoverFiles(inputs: readonly string[], options: FileDisc
       const absolutePattern = isAbsolute(raw) ? raw : resolve(cwd, raw);
       const base = resolve(globBase(absolutePattern));
       let candidates: string[];
-      try { candidates = await walkFiles(base); }
-      catch { continue; }
+      try {
+        candidates = await walkFiles(base);
+      } catch {
+        continue;
+      }
       const regex = globToRegExp(slash(absolutePattern));
       for (const file of candidates) {
         const absolute = resolve(file);
@@ -123,8 +129,11 @@ export async function discoverFiles(inputs: readonly string[], options: FileDisc
 
     const absolute = resolve(cwd, raw);
     let info;
-    try { info = await stat(absolute); }
-    catch { throw new Error(`Input path does not exist: ${raw}`); }
+    try {
+      info = await stat(absolute);
+    } catch {
+      throw new Error(`Input path does not exist: ${raw}`);
+    }
 
     if (info.isFile()) {
       if (!ignored(absolute, cwd, ignoreRegexes)) found.add(absolute);

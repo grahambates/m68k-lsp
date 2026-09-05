@@ -30,12 +30,7 @@ describe("correctness and suspicious footgun rules", () => {
   });
 
   test("stale unknown CCR remains owned by correctness rule, not suspicious preserved-CCR rule", () => {
-    const source = [
-      "    adda.w #4,a0",
-      "    beq .done",
-      ".done:",
-      "    rts",
-    ].join("\n");
+    const source = ["    adda.w #4,a0", "    beq .done", ".done:", "    rts"].join("\n");
     expect(ids(source)).toContain("correctness/stale-condition-code");
     expect(ids(source)).not.toContain("suspicious/condition-after-preserved-ccr");
   });
@@ -55,22 +50,12 @@ describe("correctness and suspicious footgun rules", () => {
   });
 
   test("flags partial MOVE writes when preserved upper bits are later consumed", () => {
-    const source = [
-      "    move.b (a0),d0",
-      "    move.l d0,d1",
-      "    rts",
-    ].join("\n");
+    const source = ["    move.b (a0),d0", "    move.l d0,d1", "    rts"].join("\n");
     expect(ids(source)).toContain("suspicious/partial-register-write");
   });
 
   test("does not flag partial MOVE when a full overwrite occurs before upper bits are used", () => {
-    const source = [
-      "    move.b (a0),d0",
-      "    moveq #0,d0",
-      "    move.l d0,d1",
-      "    rts",
-    ].join("\n");
+    const source = ["    move.b (a0),d0", "    moveq #0,d0", "    move.l d0,d1", "    rts"].join("\n");
     expect(ids(source)).not.toContain("suspicious/partial-register-write");
   });
-
 });

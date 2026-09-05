@@ -38,9 +38,17 @@ export const cmpZeroAddressViaScratch: Rule = {
         applicability: "safe",
       },
       notes: [
-        { message: "For the .L form, MOVE sets N/Z from the full address-register value and clears V/C, matching comparison with zero; X is preserved by both." },
-        { message: "ASP68K lists moving the address register to a scratch data register as an early-CPU optimisation." },
-        { message: "The .W form is deliberately not suggested because its flag semantics are not equivalent to CMPA.W #0,An." },
+        {
+          message:
+            "For the .L form, MOVE sets N/Z from the full address-register value and clears V/C, matching comparison with zero; X is preserved by both.",
+        },
+        {
+          message: "ASP68K lists moving the address register to a scratch data register as an early-CPU optimisation.",
+        },
+        {
+          message:
+            "The .W form is deliberately not suggested because its flag semantics are not equivalent to CMPA.W #0,An.",
+        },
       ],
     });
   },

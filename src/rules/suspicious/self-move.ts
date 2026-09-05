@@ -41,19 +41,26 @@ export const selfMove: Rule = {
       confidence: "high",
       message: `MOVE uses ${register.toUpperCase()} as both source and destination`,
       loc: line.mnemonic!.loc,
-      suggestion: semantic === "movea" ? {
-        description: "Remove the redundant address-register self-move",
-        replacement: "",
-        applicability: "safe",
-      } : {
-        description: "Review whether this self-move is intentional",
-        applicability: "manual",
-      },
-      notes: semantic === "movea" ? [
-        { message: "MOVEA preserves CCR, so a direct address-register self-move has no architectural effect." },
-      ] : [
-        { message: "MOVE updates condition codes, so this is not always safe to remove; it may be intentionally refreshing N/Z/V/C." },
-      ],
+      suggestion:
+        semantic === "movea"
+          ? {
+              description: "Remove the redundant address-register self-move",
+              replacement: "",
+              applicability: "safe",
+            }
+          : {
+              description: "Review whether this self-move is intentional",
+              applicability: "manual",
+            },
+      notes:
+        semantic === "movea"
+          ? [{ message: "MOVEA preserves CCR, so a direct address-register self-move has no architectural effect." }]
+          : [
+              {
+                message:
+                  "MOVE updates condition codes, so this is not always safe to remove; it may be intentionally refreshing N/Z/V/C.",
+              },
+            ],
     });
   },
 };

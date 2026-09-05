@@ -20,22 +20,28 @@ export const moveImmediateBelowMoveq: Rule = {
     docs: { source: "ASP68K" },
   },
   checkLine(ctx, line, index) {
-    const match = baseMatch(line); if (!match) return;
+    const match = baseMatch(line);
+    if (!match) return;
     const value = ctx.evaluate(match.value);
     if (!value.known || value.value < -136 || value.value > -129) return;
     const amount = value.value + 128; // -8 .. -1
-    const q = -amount;                // 1 .. 8
+    const q = -amount; // 1 .. 8
     const r = match.dest.register;
     const safety = changedFlagsApplicability(ctx, index, ["X", "V", "C"]);
     const replacement = `moveq #-128,${r}\nsubq.l #${q},${r}`;
     ctx.report({
-      ruleId: this.meta.id, category: this.meta.category, severity: this.meta.defaultSeverity,
+      ruleId: this.meta.id,
+      category: this.meta.category,
+      severity: this.meta.defaultSeverity,
       confidence: safety.confidence,
-      message: `${value.value} is just below the MOVEQ immediate range`, loc: line.mnemonic!.loc,
+      message: `${value.value} is just below the MOVEQ immediate range`,
+      loc: line.mnemonic!.loc,
       suggestion: { description: "Use MOVEQ plus SUBQ", replacement, applicability: safety.applicability },
       notes: [
         { message: "ASP68K records a 2-byte saving for -136 <= n <= -129." },
-        ...(safety.applicability === "safe" ? [] : [{ message: "SUBQ can leave different X/V/C values from MOVE.L; review later CCR use." }]),
+        ...(safety.applicability === "safe"
+          ? []
+          : [{ message: "SUBQ can leave different X/V/C values from MOVE.L; review later CCR use." }]),
       ],
     });
   },
@@ -51,7 +57,8 @@ export const moveImmediateByteComplement: Rule = {
     docs: { source: "ASP68K" },
   },
   checkLine(ctx, line, index) {
-    const match = baseMatch(line); if (!match) return;
+    const match = baseMatch(line);
+    if (!match) return;
     const value = ctx.evaluate(match.value);
     if (!value.known || value.value < 128 || value.value > 255) return;
     const m = 255 - value.value;
@@ -62,13 +69,20 @@ export const moveImmediateByteComplement: Rule = {
     const safety = changedFlagsApplicability(ctx, index, ["N", "Z", "V", "C"]);
     const replacement = `moveq #${m},${r}\nnot.b ${r}`;
     ctx.report({
-      ruleId: this.meta.id, category: this.meta.category, severity: this.meta.defaultSeverity,
+      ruleId: this.meta.id,
+      category: this.meta.category,
+      severity: this.meta.defaultSeverity,
       confidence: safety.confidence,
-      message: `${value.value} can be synthesized with MOVEQ plus NOT.B`, loc: line.mnemonic!.loc,
+      message: `${value.value} can be synthesized with MOVEQ plus NOT.B`,
+      loc: line.mnemonic!.loc,
       suggestion: { description: "Use MOVEQ plus NOT.B", replacement, applicability: safety.applicability },
       notes: [
         { message: "ASP68K records a 2-byte saving for 128 <= n <= 255." },
-        ...(safety.applicability === "safe" ? [] : [{ message: "The replacement leaves different condition-code details from MOVE.L; review later CCR use." }]),
+        ...(safety.applicability === "safe"
+          ? []
+          : [
+              { message: "The replacement leaves different condition-code details from MOVE.L; review later CCR use." },
+            ]),
       ],
     });
   },
@@ -84,7 +98,8 @@ export const moveImmediateDoubleByte: Rule = {
     docs: { source: "ASP68K" },
   },
   checkLine(ctx, line, index) {
-    const match = baseMatch(line); if (!match) return;
+    const match = baseMatch(line);
+    if (!match) return;
     const value = ctx.evaluate(match.value);
     if (!value.known || (value.value & 1) !== 0) return;
     const inRange = (value.value >= 128 && value.value <= 254) || (value.value >= -256 && value.value <= -130);
@@ -95,13 +110,18 @@ export const moveImmediateDoubleByte: Rule = {
     const safety = changedFlagsApplicability(ctx, index, ["X", "V", "C"]);
     const replacement = `moveq #${m},${r}\nadd.b ${r},${r}`;
     ctx.report({
-      ruleId: this.meta.id, category: this.meta.category, severity: this.meta.defaultSeverity,
+      ruleId: this.meta.id,
+      category: this.meta.category,
+      severity: this.meta.defaultSeverity,
       confidence: safety.confidence,
-      message: `${value.value} can be synthesized with MOVEQ plus a byte doubling`, loc: line.mnemonic!.loc,
+      message: `${value.value} can be synthesized with MOVEQ plus a byte doubling`,
+      loc: line.mnemonic!.loc,
       suggestion: { description: "Use MOVEQ plus ADD.B", replacement, applicability: safety.applicability },
       notes: [
         { message: "ASP68K records a 2-byte saving for the documented even immediate ranges." },
-        ...(safety.applicability === "safe" ? [] : [{ message: "ADD.B can leave different X/V/C values from MOVE.L; review later CCR use." }]),
+        ...(safety.applicability === "safe"
+          ? []
+          : [{ message: "ADD.B can leave different X/V/C values from MOVE.L; review later CCR use." }]),
       ],
     });
   },

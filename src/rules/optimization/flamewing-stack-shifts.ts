@@ -15,7 +15,8 @@ function hasInterveningLabel(ctx: RuleContext, from: number, to: number): boolea
 
 function precedingMoveq(ctx: RuleContext, index: number, register: string, count: number) {
   const previous = ctx.previousInstruction(index);
-  if (!previous || hasInterveningLabel(ctx, previous.index, index) || !isInstruction(previous.line, "moveq")) return undefined;
+  if (!previous || hasInterveningLabel(ctx, previous.index, index) || !isInstruction(previous.line, "moveq"))
+    return undefined;
   const expr = immediateExpressionOperand(previous.line, 0);
   const dst = dataRegisterOperand(previous.line, 1);
   if (!expr || !dst || dst.register.toLowerCase() !== register) return undefined;
@@ -24,7 +25,13 @@ function precedingMoveq(ctx: RuleContext, index: number, register: string, count
   return previous;
 }
 
-function canRemoveCountSetup(ctx: RuleContext, setupIndex: number, shiftIndex: number, register: string, count: number): boolean {
+function canRemoveCountSetup(
+  ctx: RuleContext,
+  setupIndex: number,
+  shiftIndex: number,
+  register: string,
+  count: number,
+): boolean {
   if (ctx.registers.isLiveAfter(shiftIndex, register) === "dead") return true;
   return ctx.registers.knownConstantBefore(setupIndex, register) === count;
 }
@@ -33,7 +40,10 @@ function stackNotes(flagSafe: boolean, countNote?: string) {
   return [
     ...(countNote ? [{ message: countNote }] : []),
     { message: "SP is restored exactly; the replacement temporarily uses 2 bytes of stack." },
-    { message: "The replacement writes stack memory and introduces memory/bus-fault observability that the original register shift did not have." },
+    {
+      message:
+        "The replacement writes stack memory and introduces memory/bus-fault observability that the original register shift did not have.",
+    },
     ...(flagSafe ? [] : [{ message: "CCR results differ from the original shift; changed flags must be unobserved." }]),
   ];
 }

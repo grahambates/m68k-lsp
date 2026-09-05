@@ -33,7 +33,10 @@ export const leaZeroAddress: Rule = {
         applicability: "safe",
       },
       notes: [
-        { message: "ASP68K lists LEA 0.w,An → SUB.L An,An on 68000/68010/68030; using the explicit SUBA spelling makes the CCR-preserving address-register form clear." },
+        {
+          message:
+            "ASP68K lists LEA 0.w,An → SUB.L An,An on 68000/68010/68030; using the explicit SUBA spelling makes the CCR-preserving address-register form clear.",
+        },
       ],
     });
   },

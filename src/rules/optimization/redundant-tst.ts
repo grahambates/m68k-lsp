@@ -65,7 +65,8 @@ export const redundantTst: Rule = {
     const previous = ctx.previousInstruction(index);
     if (!previous || hasInterveningLabel(ctx, previous.index, index)) return;
     const producer = producerInfo(previous.line);
-    if (!producer || producer.register.toLowerCase() !== tested.register.toLowerCase() || producer.size !== tstSize) return;
+    if (!producer || producer.register.toLowerCase() !== tested.register.toLowerCase() || producer.size !== tstSize)
+      return;
 
     // MOVE/logical/CLR/NOT/EXT/SWAP produce the same N/Z/V/C values TST
     // would produce for the result. Arithmetic and shifts agree on N/Z, but
@@ -87,8 +88,18 @@ export const redundantTst: Rule = {
         applicability: "safe",
       },
       notes: producer.exactTstFlags
-        ? [{ message: "The preceding instruction produces the same N/Z/V/C state as TST for this result; X is preserved by TST in either case." }]
-        : [{ message: "The preceding arithmetic/shift produces the same N/Z result, and V/C are proven dead before any use." }],
+        ? [
+            {
+              message:
+                "The preceding instruction produces the same N/Z/V/C state as TST for this result; X is preserved by TST in either case.",
+            },
+          ]
+        : [
+            {
+              message:
+                "The preceding arithmetic/shift produces the same N/Z result, and V/C are proven dead before any use.",
+            },
+          ],
       data: { producerInstructionIndex: previous.index },
     });
   },

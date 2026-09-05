@@ -13,29 +13,14 @@
       "minItems": 1,
       "uniqueItems": true,
       "items": {
-        "enum": [
-          "mc68000",
-          "mc68010",
-          "mc68020",
-          "mc68030",
-          "mc68040",
-          "mc68060",
-          "cpu32"
-        ]
+        "enum": ["mc68000", "mc68010", "mc68020", "mc68030", "mc68040", "mc68060", "cpu32"]
       }
     },
     "platform": {
-      "enum": [
-        "generic",
-        "amiga"
-      ]
+      "enum": ["generic", "amiga"]
     },
     "goal": {
-      "enum": [
-        "balanced",
-        "speed",
-        "size"
-      ]
+      "enum": ["balanced", "speed", "size"]
     },
     "measureImpact": {
       "type": "boolean"
@@ -48,10 +33,7 @@
       "type": "array",
       "uniqueItems": true,
       "items": {
-        "enum": [
-          "recommended",
-          "style"
-        ]
+        "enum": ["recommended", "style"]
       },
       "description": "Optional rule presets. recommended is the normal baseline; style enables subjective convention rules."
     },
@@ -120,13 +102,7 @@
     "rules": {
       "type": "object",
       "additionalProperties": {
-        "enum": [
-          "off",
-          "error",
-          "warning",
-          "suggestion",
-          "info"
-        ]
+        "enum": ["off", "error", "warning", "suggestion", "info"]
       }
     }
   }

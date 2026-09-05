@@ -42,8 +42,18 @@ export const normalizeByteRotate: Rule = {
         applicability: safety.applicability,
       },
       notes: [
-        { message: "For an 8-bit value, rotating k bits one way is value-equivalent to rotating 8-k bits the other way." },
-        ...(safety.applicability === "safe" ? [] : [{ message: "The equivalent opposite-direction rotate can leave a different C flag; review carry use before applying." }]),
+        {
+          message:
+            "For an 8-bit value, rotating k bits one way is value-equivalent to rotating 8-k bits the other way.",
+        },
+        ...(safety.applicability === "safe"
+          ? []
+          : [
+              {
+                message:
+                  "The equivalent opposite-direction rotate can leave a different C flag; review carry use before applying.",
+              },
+            ]),
       ],
     });
   },

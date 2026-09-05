@@ -16,11 +16,7 @@ export const zeroArithmeticToTst: Rule = {
   },
 
   checkLine(ctx, line, index) {
-    const mnemonic = isInstruction(line, "add")
-      ? "add"
-      : isInstruction(line, "sub")
-        ? "sub"
-        : undefined;
+    const mnemonic = isInstruction(line, "add") ? "add" : isInstruction(line, "sub") ? "sub" : undefined;
     if (!mnemonic) return;
 
     // ASP68K records the win on 000/010/030; 020 is unknown and 040/060 are not wins.

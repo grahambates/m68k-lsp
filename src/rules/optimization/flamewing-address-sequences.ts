@@ -1,5 +1,11 @@
 import type { Rule } from "../../core/rule.js";
-import { addressRegisterOperand, dataRegisterOperand, immediateExpressionOperand, instructionSize, isInstruction } from "../../util/ast.js";
+import {
+  addressRegisterOperand,
+  dataRegisterOperand,
+  immediateExpressionOperand,
+  instructionSize,
+  isInstruction,
+} from "../../util/ast.js";
 
 function sameRegister(a: string, b: string): boolean {
   return a.toLowerCase() === b.toLowerCase();
@@ -47,7 +53,8 @@ export const foldAddressArithmeticToIndexedLea: Rule = {
     if (!next || hasInterveningLabel(ctx, index, next.index) || !isInstruction(next.line, "adda")) return;
     const nextDest = addressRegisterOperand(next.line, 1);
     const indexSize = instructionSize(next.line);
-    if (!nextDest || !sameRegister(nextDest.register, dest.register) || (indexSize !== "w" && indexSize !== "l")) return;
+    if (!nextDest || !sameRegister(nextDest.register, dest.register) || (indexSize !== "w" && indexSize !== "l"))
+      return;
 
     const dataIndex = dataRegisterOperand(next.line, 0);
     const addressIndex = addressRegisterOperand(next.line, 0);

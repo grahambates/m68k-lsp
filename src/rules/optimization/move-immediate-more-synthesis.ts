@@ -2,11 +2,22 @@ import type { Rule } from "../../core/rule.js";
 import { dataRegisterOperand, immediateOperand, instructionSize, isInstruction } from "../../util/ast.js";
 import { changedFlagsApplicability } from "./helpers.js";
 
-function u32(n: number): number { return n >>> 0; }
-function s32(n: number): number { const v = n >>> 0; return v >= 0x80000000 ? v - 0x100000000 : v; }
-function moveqValue(m: number): number { return m < 0 ? (0x100000000 + m) >>> 0 : m >>> 0; }
-function notWord(v: number): number { return ((v & 0xffff0000) | ((~v) & 0xffff)) >>> 0; }
-function swapWord(v: number): number { return (((v & 0xffff) << 16) | ((v >>> 16) & 0xffff)) >>> 0; }
+function u32(n: number): number {
+  return n >>> 0;
+}
+function s32(n: number): number {
+  const v = n >>> 0;
+  return v >= 0x80000000 ? v - 0x100000000 : v;
+}
+function moveqValue(m: number): number {
+  return m < 0 ? (0x100000000 + m) >>> 0 : m >>> 0;
+}
+function notWord(v: number): number {
+  return ((v & 0xffff0000) | (~v & 0xffff)) >>> 0;
+}
+function swapWord(v: number): number {
+  return (((v & 0xffff) << 16) | ((v >>> 16) & 0xffff)) >>> 0;
+}
 
 function findMoveqSeed(target: number, transform: (v: number) => number): number | undefined {
   const wanted = u32(target);
@@ -40,7 +51,7 @@ function synthesisRule(
       const seed = findMoveqSeed(value.value, transform);
       if (seed === undefined) return;
 
-      const changed = transformName === "not.w" ? ["N", "Z", "V", "C"] as const : ["N", "Z", "V", "C"] as const;
+      const changed = transformName === "not.w" ? (["N", "Z", "V", "C"] as const) : (["N", "Z", "V", "C"] as const);
       const safety = changedFlagsApplicability(ctx, index, changed);
       const replacement = `moveq #${seed},${dest.register}\n${transformName} ${dest.register}`;
       ctx.report({
@@ -50,10 +61,22 @@ function synthesisRule(
         confidence: safety.confidence,
         message: `Immediate ${s32(u32(value.value))} can be synthesized with MOVEQ + ${transformName.toUpperCase()}`,
         loc: line.mnemonic!.loc,
-        suggestion: { description: `Use MOVEQ #${seed} then ${transformName.toUpperCase()}`, replacement, applicability: safety.applicability },
+        suggestion: {
+          description: `Use MOVEQ #${seed} then ${transformName.toUpperCase()}`,
+          replacement,
+          applicability: safety.applicability,
+        },
         notes: [
-          { message: `ASP68K transformation row ${sourceLine}; candidate sequence is derived by evaluating all MOVEQ seeds rather than relying on the document's range notation.` },
-          ...(safety.applicability === "safe" ? [] : [{ message: "The sequence can leave different condition-code values from MOVE.L; review later CCR use." }]),
+          {
+            message: `ASP68K transformation row ${sourceLine}; candidate sequence is derived by evaluating all MOVEQ seeds rather than relying on the document's range notation.`,
+          },
+          ...(safety.applicability === "safe"
+            ? []
+            : [
+                {
+                  message: "The sequence can leave different condition-code values from MOVE.L; review later CCR use.",
+                },
+              ]),
         ],
       });
     },

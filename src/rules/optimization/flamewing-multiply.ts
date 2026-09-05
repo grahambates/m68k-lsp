@@ -6,7 +6,11 @@ function m68000Only(ctx: Parameters<NonNullable<Rule["checkLine"]>>[0]): boolean
   return ctx.config.processors.every((cpu) => cpu === "mc68000");
 }
 
-function deadScratch(ctx: Parameters<NonNullable<Rule["checkLine"]>>[0], index: number, dest: string): string | undefined {
+function deadScratch(
+  ctx: Parameters<NonNullable<Rule["checkLine"]>>[0],
+  index: number,
+  dest: string,
+): string | undefined {
   return ctx.registers.deadDataRegistersAfter(index).find((r) => r !== dest.toLowerCase());
 }
 
@@ -26,7 +30,8 @@ const fullResultRecipes: Readonly<Record<number, (d: string, s: string) => strin
   19: (d, s) => `ext.l ${d}\nmove.l ${d},${s}\nasl.l #3,${d}\nadd.l ${s},${d}\nadd.l ${d},${d}\nadd.l ${s},${d}`,
   20: (d, s) => `ext.l ${d}\nmove.l ${d},${s}\nasl.l #2,${d}\nadd.l ${s},${d}\nasl.l #2,${d}`,
   21: (d, s) => `ext.l ${d}\nmove.l ${d},${s}\nasl.l #2,${d}\nadd.l ${s},${d}\nasl.l #2,${d}\nadd.l ${s},${d}`,
-  22: (d, s) => `ext.l ${d}\nadd.l ${d},${d}\nmove.l ${d},${s}\nadd.l ${s},${d}\nadd.l ${s},${d}\nasl.l #2,${d}\nsub.l ${s},${d}`,
+  22: (d, s) =>
+    `ext.l ${d}\nadd.l ${d},${d}\nmove.l ${d},${s}\nadd.l ${s},${d}\nadd.l ${s},${d}\nasl.l #2,${d}\nsub.l ${s},${d}`,
   23: (d, s) => `ext.l ${d}\nmove.l ${d},${s}\nadd.l ${s},${d}\nadd.l ${s},${d}\nasl.l #3,${d}\nsub.l ${s},${d}`,
   24: (d, s) => `ext.l ${d}\nmove.l ${d},${s}\nadd.l ${s},${d}\nadd.l ${s},${d}\nasl.l #3,${d}`,
   25: (d, s) => `ext.l ${d}\nmove.l ${d},${s}\nadd.l ${s},${d}\nadd.l ${s},${d}\nasl.l #3,${d}\nadd.l ${s},${d}`,
@@ -57,7 +62,8 @@ export const flamewingMulsWordFullResultConstants: Rule = {
     if (!value.known) return;
     const recipe = fullResultRecipes[value.value];
     if (!recipe) return;
-    if ([15, 17, 31].includes(value.value) && ctx.registers.upperWordUseAfter(index, dest.register) === "unused") return;
+    if ([15, 17, 31].includes(value.value) && ctx.registers.upperWordUseAfter(index, dest.register) === "unused")
+      return;
 
     const scratch = deadScratch(ctx, index, dest.register);
     if (!scratch) return;
@@ -78,8 +84,13 @@ export const flamewingMulsWordFullResultConstants: Rule = {
       },
       notes: [
         { message: `${scratch.toUpperCase()} is proven dead after the original multiply and may be clobbered.` },
-        { message: "The recipe preserves the complete signed 16×constant 32-bit result; it is not one of Flamewing's low-word-only variants." },
-        ...(safety.applicability === "safe" ? [] : [{ message: "X/V/C can differ from MULS.W and must not be observed." }]),
+        {
+          message:
+            "The recipe preserves the complete signed 16×constant 32-bit result; it is not one of Flamewing's low-word-only variants.",
+        },
+        ...(safety.applicability === "safe"
+          ? []
+          : [{ message: "X/V/C can differ from MULS.W and must not be observed." }]),
       ],
       data: { factor: value.value, scratch, provenance: "flamewing" },
     });
@@ -138,9 +149,13 @@ export const flamewingMulsWordLowWordOnly: Rule = {
         applicability: safety.applicability,
       },
       notes: [
-        { message: `The analyser proves the old upper word of ${dest.register.toUpperCase()} is discarded before it is read.` },
+        {
+          message: `The analyser proves the old upper word of ${dest.register.toUpperCase()} is discarded before it is read.`,
+        },
         { message: `${scratch.toUpperCase()} is proven dead and can be used as scratch.` },
-        ...(safety.applicability === "safe" ? [] : [{ message: "The word-only arithmetic sequence has different CCR behaviour from MULS.W." }]),
+        ...(safety.applicability === "safe"
+          ? []
+          : [{ message: "The word-only arithmetic sequence has different CCR behaviour from MULS.W." }]),
       ],
       data: { factor: value.value, scratch, upperWordUse, provenance: "flamewing" },
     });
@@ -214,7 +229,9 @@ export const flamewingMuluWordLowWordOnly: Rule = {
       notes: [
         { message: `The analyser proves bits 16-31 of ${dest.register.toUpperCase()} are discarded before any read.` },
         ...(scratch ? [{ message: `${scratch.toUpperCase()} is proven dead and may be clobbered.` }] : []),
-        ...(safety.applicability === "safe" ? [] : [{ message: "The word-only replacement has different CCR behaviour from MULU.W." }]),
+        ...(safety.applicability === "safe"
+          ? []
+          : [{ message: "The word-only replacement has different CCR behaviour from MULU.W." }]),
       ],
       data: { factor: value.value, scratch, differingBits: "16-31", provenance: "flamewing" },
     });

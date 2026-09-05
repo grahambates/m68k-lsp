@@ -35,7 +35,9 @@ export const multiplyLongByOne: Rule = {
       },
       notes: [
         { message: "ASP68K records this as a 6-byte saving and a speed win on 68060." },
-        ...(ccr.applicability === "safe" ? [] : [{ message: "Removing MUL preserves the previous CCR instead of writing the multiply result flags." }]),
+        ...(ccr.applicability === "safe"
+          ? []
+          : [{ message: "Removing MUL preserves the previous CCR instead of writing the multiply result flags." }]),
       ],
     });
   },

@@ -18,7 +18,16 @@ export interface RuleImpactAuditCase {
 
 export interface RuleImpactAuditResult {
   ruleId: string;
-  status: "improvement" | "tradeoff" | "neutral" | "regression" | "partial" | "unmeasured" | "not-triggered" | "exempt" | "missing-case";
+  status:
+    | "improvement"
+    | "tradeoff"
+    | "neutral"
+    | "regression"
+    | "partial"
+    | "unmeasured"
+    | "not-triggered"
+    | "exempt"
+    | "missing-case";
   source?: string;
   replacement?: string;
   assessment?: OptimizationAssessment;
@@ -67,7 +76,11 @@ export const ruleImpactAuditCases: readonly RuleImpactAuditCase[] = [
   { ruleId: "optimization/known-zero-clear", source: "moveq #0,d7\nclr.l -(a0)\nmoveq #1,d7" },
   { ruleId: "optimization/move-immediate-via-scratch", source: "move.l #42,(a0)\nmoveq #0,d7" },
   { ruleId: "optimization/cmp-zero-address-via-scratch", source: "cmp.l #0,a0\nmoveq #0,d7" },
-  { ruleId: "optimization/combine-consecutive-addq", caseId: "sum-in-quick-range", source: "addq.l #2,d0\naddq.l #3,d0" },
+  {
+    ruleId: "optimization/combine-consecutive-addq",
+    caseId: "sum-in-quick-range",
+    source: "addq.l #2,d0\naddq.l #3,d0",
+  },
   { ruleId: "optimization/multiply-word-by-zero", source: "mulu.w #0,d0\nmoveq #0,d7" },
   { ruleId: "optimization/muls-word-by-one", source: "muls.w #1,d0\nmoveq #0,d7" },
   { ruleId: "optimization/mulu-word-by-one", source: "mulu.w #1,d0\nmoveq #0,d7" },
@@ -85,7 +98,10 @@ export const ruleImpactAuditCases: readonly RuleImpactAuditCase[] = [
   { ruleId: "optimization/move-immediate-word-complement", source: "move.l #65534,d0\nmoveq #0,d7" },
   { ruleId: "optimization/move-immediate-swap", source: "move.l #2752512,d0\nmoveq #0,d7" },
   { ruleId: "optimization/cancel-addq-predecrement-move", source: "addq.l #4,a0\nmove.l d0,-(a0)" },
-  { ruleId: "optimization/cancel-multiple-predecrement-moves", source: "addq.l #8,a0\nmove.l d0,-(a0)\nmove.l d1,-(a0)" },
+  {
+    ruleId: "optimization/cancel-multiple-predecrement-moves",
+    source: "addq.l #8,a0\nmove.l d0,-(a0)\nmove.l d1,-(a0)",
+  },
   { ruleId: "optimization/zero-arithmetic-to-tst", source: "add.l #0,d0\nbeq .x\n.x:" },
   { ruleId: "optimization/redundant-tst", source: "move.w d0,d1\ntst.w d1\nbeq .x\n.x:" },
   { ruleId: "optimization/bset-to-tas", source: "bset.b #7,(a0)\nmoveq #0,d7" },
@@ -95,8 +111,14 @@ export const ruleImpactAuditCases: readonly RuleImpactAuditCase[] = [
   { ruleId: "optimization/movea-add-to-lea", source: "move.l a0,a1\nadd.l #12,a1" },
   { ruleId: "optimization/address-expression-to-lea", source: "move.l a0,a2\nadd.l #12,a2\nadd.l d3,a2" },
   { ruleId: "optimization/cancel-stack-pea-sequence", source: "addq.l #4,sp\npea (a0)\nmoveq #0,d7" },
-  { ruleId: "optimization/multiply-long-small-constant", exempt: "source MUL?.L form is not measurable by 68kcounter on 68000" },
-  { ruleId: "optimization/multiply-long-large-power-of-two", exempt: "source MUL?.L form is not measurable by 68kcounter on 68000" },
+  {
+    ruleId: "optimization/multiply-long-small-constant",
+    exempt: "source MUL?.L form is not measurable by 68kcounter on 68000",
+  },
+  {
+    ruleId: "optimization/multiply-long-large-power-of-two",
+    exempt: "source MUL?.L form is not measurable by 68kcounter on 68000",
+  },
   { ruleId: "optimization/narrow-movea-immediate-word", source: "movea.l #1234,a0" },
   { ruleId: "optimization/narrow-address-immediate-word", source: "adda.l #1234,a0" },
   { ruleId: "optimization/simplify-long-word-mask", source: "andi.l #$ffff0000,d0\nmoveq #0,d7" },
@@ -108,7 +130,10 @@ export const ruleImpactAuditCases: readonly RuleImpactAuditCase[] = [
   { ruleId: "optimization/lsr-byte-seven", source: "lsr.b #7,d0\nmoveq #0,d7" },
   { ruleId: "optimization/asr-byte-saturate", source: "asr.b #7,d0\nmoveq #0,d7" },
   { ruleId: "optimization/known-register-shift-reduction", source: "moveq #12,d1\nlsl.w d1,d0\nmoveq #0,d1" },
-  { ruleId: "optimization/known-register-asr-word-low-only", source: "moveq #12,d1\nasr.w d1,d0\nmoveq #0,d1\nmove.w d0,d2\nmove.l #0,d0" },
+  {
+    ruleId: "optimization/known-register-asr-word-low-only",
+    source: "moveq #12,d1\nasr.w d1,d0\nmoveq #0,d1\nmove.w d0,d2\nmove.l #0,d0",
+  },
   { ruleId: "optimization/known-register-asr-long-high", source: "moveq #28,d1\nasr.l d1,d0\nmoveq #0,d1" },
   { ruleId: "optimization/known-register-asr-saturate", source: "moveq #31,d1\nasr.l d1,d0\nmoveq #0,d1" },
   { ruleId: "optimization/address-arithmetic-indexed-lea", source: "adda.w #12,a0\nadda.l d1,a0" },
@@ -122,7 +147,10 @@ export const ruleImpactAuditCases: readonly RuleImpactAuditCase[] = [
   { ruleId: "optimization/ori-zero-to-tst", source: "ori.l #0,d0" },
   { ruleId: "optimization/eori-zero-to-tst", source: "eori.l #0,d0" },
   { ruleId: "optimization/compare-long-immediate-via-moveq", source: "cmp.l #42,d0\nmoveq #0,d7" },
-  { ruleId: "optimization/destructive-small-compare-branch", source: "cmp.w #3,d0\nbne alt\nmoveq #0,d0\naddq.l #1,d1\nbra done\nalt:\nmoveq #0,d0\naddq.l #1,d1\ndone:\nnop" },
+  {
+    ruleId: "optimization/destructive-small-compare-branch",
+    source: "cmp.w #3,d0\nbne alt\nmoveq #0,d0\naddq.l #1,d1\nbra done\nalt:\nmoveq #0,d0\naddq.l #1,d1\ndone:\nnop",
+  },
   { ruleId: "optimization/jsr-jmp-tail-dispatch", source: "jsr sub\njmp next\nsub:\nrts\nnext:\nrts" },
   { ruleId: "optimization/prefer-st-minus-one", source: "move.b #-1,(a0)\nmoveq #0,d7" },
   { ruleId: "optimization/btst-sign-branch", source: "btst #7,d0\nbne .x\n.x:\nmoveq #0,d7" },
@@ -134,8 +162,14 @@ export const ruleImpactAuditCases: readonly RuleImpactAuditCase[] = [
   // changes stack depth, so the rewrite is flagged "manual" for a human rather
   // than offered as a substitution. With nothing to substitute there is nothing
   // for 68kcounter to measure.
-  { ruleId: "optimization/jsr-rts-tail-call", exempt: "advisory rule with no replacement text; the JMP rewrite changes stack depth and stays manual" },
-  { ruleId: "optimization/bsr-rts-tail-call", exempt: "advisory rule with no replacement text; the BRA rewrite changes stack depth and stays manual" },
+  {
+    ruleId: "optimization/jsr-rts-tail-call",
+    exempt: "advisory rule with no replacement text; the JMP rewrite changes stack depth and stays manual",
+  },
+  {
+    ruleId: "optimization/bsr-rts-tail-call",
+    exempt: "advisory rule with no replacement text; the BRA rewrite changes stack depth and stays manual",
+  },
   { ruleId: "optimization/null-branch", source: "bra next\nnext:\nnop" },
 
   // No 68000 measurement is meaningful/available for these target-specific rules.
@@ -143,9 +177,16 @@ export const ruleImpactAuditCases: readonly RuleImpactAuditCase[] = [
   { ruleId: "optimization/cmpa-zero-to-tst-030", exempt: "68030-only" },
   { ruleId: "optimization/multiply-long-by-one", exempt: "68060-only" },
   { ruleId: "optimization/muls-long-060-simple", exempt: "68060-only" },
-  { ruleId: "optimization/divu-word-power-of-two", source: "move.l #100,d0\ndivu.w #4,d0\nmove.w d0,d1\nmove.l #0,d0\nmoveq #0,d7" },
+  {
+    ruleId: "optimization/divu-word-power-of-two",
+    source: "move.l #100,d0\ndivu.w #4,d0\nmove.w d0,d1\nmove.l #0,d0\nmoveq #0,d7",
+  },
   { ruleId: "optimization/divu-long-power-of-two", exempt: "68020+ long DIV form; 68kcounter is 68000-only" },
-  { ruleId: "optimization/narrow-cmpa-immediate-word", exempt: "vasm provenance rule retained primarily for later CPU/address-form audit; duplicate 68000 coverage exists in address-width rules" },
+  {
+    ruleId: "optimization/narrow-cmpa-immediate-word",
+    exempt:
+      "vasm provenance rule retained primarily for later CPU/address-form audit; duplicate 68000 coverage exists in address-width rules",
+  },
   { ruleId: "optimization/negative-signed-multiply", exempt: "68020+ long MUL form; 68kcounter is 68000-only" },
 ];
 
@@ -177,11 +218,9 @@ const COLUMN_ZERO_DEFINITION = /^\S+(:|\s+(equ|equr|fequ|set|reg|rs\.[bwl]|=)\b)
 export function normalizeRuleImpactAuditSource(source: string): string {
   return source
     .split("\n")
-    .map((line) => (
-      line.trim().length === 0 || /^[ \t]/.test(line) || COLUMN_ZERO_DEFINITION.test(line)
-        ? line
-        : `\t${line}`
-    ))
+    .map((line) =>
+      line.trim().length === 0 || /^[ \t]/.test(line) || COLUMN_ZERO_DEFINITION.test(line) ? line : `\t${line}`,
+    )
     .join("\n");
 }
 
@@ -195,64 +234,79 @@ export function runRuleImpactAudit(rules: readonly Rule[] = defaultRules): RuleI
       continue;
     }
     for (const auditCase of auditCases) {
-    if (auditCase.exempt) {
-      results.push({ ruleId: rule.meta.id, status: "exempt", exempt: auditCase.exempt, detail: auditCase.caseId });
-      continue;
-    }
-    const rawSource = auditCase.source!;
-    const source = normalizeRuleImpactAuditSource(rawSource);
-    // Audit the rule directly. This deliberately bypasses normal rule enablement,
-    // category, goal and output filtering: the purpose here is to validate the
-    // rule's own representative transformation, not the lint orchestration.
-    const file = parseFile(source);
-    const config = {
-      processors: [auditCase.processor ?? "mc68000"],
-      goal: "balanced" as const,
-      measureImpact: false,
-    };
-    const ctx = new DefaultRuleContext(file, source, config);
-    if (rule.checkLine) {
-      file.lines.forEach((line, index) => rule.checkLine?.(ctx, line, index));
-    }
-    rule.checkFile?.(ctx);
-    const emitted = ctx.getDiagnostics().find((d) => d.ruleId === rule.meta.id);
-    if (!emitted) {
-      const parseDetail = file.errors.length
-        ? `parse errors: ${file.errors.map((error) => error.message).join(" | ")}`
-        : `parsed: ${file.lines.map((line) => {
-            const mnemonic = line.mnemonic?.type === "instruction" ? line.mnemonic.instruction : line.mnemonic?.type ?? "-";
-            const operands = line.operands?.map((operand) => operand.type).join(",") ?? "";
-            return `${mnemonic}${operands ? ` [${operands}]` : ""}`;
-          }).join("; ")}`;
-      results.push({ ruleId: rule.meta.id, status: "not-triggered", source, detail: `${auditCase.caseId ? `${auditCase.caseId}: ` : ""}${parseDetail}` });
-      continue;
-    }
-    const diagnostic = measureDiagnosticImpact(emitted, file, source, rule);
-    const impact = diagnostic.suggestion?.impact;
-    if (!impact?.assessment) {
-      results.push({ ruleId: rule.meta.id, status: "unmeasured", source, replacement: diagnostic.suggestion?.replacement, detail: auditCase.caseId });
-      continue;
-    }
-    const executionMeasured = impact.execution?.cpuCycles !== undefined;
-    const onlyMeasuredRegressionIsSize = impact.assessment === "regression"
-      && impact.sizeBytes?.delta !== undefined
-      && impact.sizeBytes.delta > 0
-      && !executionMeasured
-      && impact.execution?.readCycles === undefined
-      && impact.execution?.writeCycles === undefined;
-    const auditStatus = onlyMeasuredRegressionIsSize ? "partial" as const : impact.assessment;
-    results.push({
-      ruleId: rule.meta.id,
-      status: auditStatus,
-      assessment: impact.assessment,
-      source,
-      replacement: diagnostic.suggestion?.replacement,
-      sizeDelta: impact.sizeBytes?.delta,
-      cpuDelta: impact.execution?.cpuCycles?.delta,
-      readDelta: impact.execution?.readCycles?.delta,
-      writeDelta: impact.execution?.writeCycles?.delta,
-      detail: auditCase.caseId,
-    });
+      if (auditCase.exempt) {
+        results.push({ ruleId: rule.meta.id, status: "exempt", exempt: auditCase.exempt, detail: auditCase.caseId });
+        continue;
+      }
+      const rawSource = auditCase.source!;
+      const source = normalizeRuleImpactAuditSource(rawSource);
+      // Audit the rule directly. This deliberately bypasses normal rule enablement,
+      // category, goal and output filtering: the purpose here is to validate the
+      // rule's own representative transformation, not the lint orchestration.
+      const file = parseFile(source);
+      const config = {
+        processors: [auditCase.processor ?? "mc68000"],
+        goal: "balanced" as const,
+        measureImpact: false,
+      };
+      const ctx = new DefaultRuleContext(file, source, config);
+      if (rule.checkLine) {
+        file.lines.forEach((line, index) => rule.checkLine?.(ctx, line, index));
+      }
+      rule.checkFile?.(ctx);
+      const emitted = ctx.getDiagnostics().find((d) => d.ruleId === rule.meta.id);
+      if (!emitted) {
+        const parseDetail = file.errors.length
+          ? `parse errors: ${file.errors.map((error) => error.message).join(" | ")}`
+          : `parsed: ${file.lines
+              .map((line) => {
+                const mnemonic =
+                  line.mnemonic?.type === "instruction" ? line.mnemonic.instruction : (line.mnemonic?.type ?? "-");
+                const operands = line.operands?.map((operand) => operand.type).join(",") ?? "";
+                return `${mnemonic}${operands ? ` [${operands}]` : ""}`;
+              })
+              .join("; ")}`;
+        results.push({
+          ruleId: rule.meta.id,
+          status: "not-triggered",
+          source,
+          detail: `${auditCase.caseId ? `${auditCase.caseId}: ` : ""}${parseDetail}`,
+        });
+        continue;
+      }
+      const diagnostic = measureDiagnosticImpact(emitted, file, source, rule);
+      const impact = diagnostic.suggestion?.impact;
+      if (!impact?.assessment) {
+        results.push({
+          ruleId: rule.meta.id,
+          status: "unmeasured",
+          source,
+          replacement: diagnostic.suggestion?.replacement,
+          detail: auditCase.caseId,
+        });
+        continue;
+      }
+      const executionMeasured = impact.execution?.cpuCycles !== undefined;
+      const onlyMeasuredRegressionIsSize =
+        impact.assessment === "regression" &&
+        impact.sizeBytes?.delta !== undefined &&
+        impact.sizeBytes.delta > 0 &&
+        !executionMeasured &&
+        impact.execution?.readCycles === undefined &&
+        impact.execution?.writeCycles === undefined;
+      const auditStatus = onlyMeasuredRegressionIsSize ? ("partial" as const) : impact.assessment;
+      results.push({
+        ruleId: rule.meta.id,
+        status: auditStatus,
+        assessment: impact.assessment,
+        source,
+        replacement: diagnostic.suggestion?.replacement,
+        sizeDelta: impact.sizeBytes?.delta,
+        cpuDelta: impact.execution?.cpuCycles?.delta,
+        readDelta: impact.execution?.readCycles?.delta,
+        writeDelta: impact.execution?.writeCycles?.delta,
+        detail: auditCase.caseId,
+      });
     }
   }
   return results;

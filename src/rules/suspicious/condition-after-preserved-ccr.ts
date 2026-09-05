@@ -34,9 +34,15 @@ export const conditionAfterPreservedCcr: Rule = {
     const definitions = readFlags.flatMap((flag) => ctx.flags.reachingDefinitionsBefore(index, flag));
     if (definitions.length === 0 || definitions.some((definition) => definition.kind !== "instruction")) return;
 
-    const producerIndexes = [...new Set(definitions
-      .filter((definition): definition is { kind: "instruction"; index: number } => definition.kind === "instruction")
-      .map((definition) => definition.index))];
+    const producerIndexes = [
+      ...new Set(
+        definitions
+          .filter(
+            (definition): definition is { kind: "instruction"; index: number } => definition.kind === "instruction",
+          )
+          .map((definition) => definition.index),
+      ),
+    ];
     if (producerIndexes.length === 0) return;
 
     const producers = producerIndexes
@@ -58,8 +64,13 @@ export const conditionAfterPreservedCcr: Rule = {
         applicability: "manual",
       },
       notes: [
-        { message: `${previousName.toUpperCase()} does not update CCR; the condition comes from ${producers.length ? producers.join("/") : "an earlier instruction"}.` },
-        { message: "This can be a useful 68k idiom, but it is fragile if an apparently harmless flag-setting instruction is inserted later." },
+        {
+          message: `${previousName.toUpperCase()} does not update CCR; the condition comes from ${producers.length ? producers.join("/") : "an earlier instruction"}.`,
+        },
+        {
+          message:
+            "This can be a useful 68k idiom, but it is fragile if an apparently harmless flag-setting instruction is inserted later.",
+        },
       ],
     });
   },

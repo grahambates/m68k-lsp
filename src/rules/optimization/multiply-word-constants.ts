@@ -39,11 +39,17 @@ export const multiplySignedWordSelectedConstants: Rule = {
 
     if (factor === 2) {
       ctx.report({
-        ruleId: this.meta.id, category: this.meta.category, severity: this.meta.defaultSeverity,
+        ruleId: this.meta.id,
+        category: this.meta.category,
+        severity: this.meta.defaultSeverity,
         confidence: safety.confidence,
         message: "MULS.W #2 can use EXT.L followed by ADD.L Dn,Dn",
         loc: line.mnemonic!.loc,
-        suggestion: { description: "Sign-extend then double", replacement: `ext.l ${d}\nadd.l ${d},${d}`, applicability: safety.applicability },
+        suggestion: {
+          description: "Sign-extend then double",
+          replacement: `ext.l ${d}\nadd.l ${d},${d}`,
+          applicability: safety.applicability,
+        },
         notes: [{ message: "ASP68K lists this value-equivalent form; X/V/C can differ and are checked." }],
       });
       return;
@@ -54,14 +60,23 @@ export const multiplySignedWordSelectedConstants: Rule = {
     const scratch = ctx.registers.deadDataRegistersAfter(index).find((r) => r !== d.toLowerCase());
     if (!scratch) return;
     ctx.report({
-      ruleId: this.meta.id, category: this.meta.category, severity: this.meta.defaultSeverity,
+      ruleId: this.meta.id,
+      category: this.meta.category,
+      severity: this.meta.defaultSeverity,
       confidence: safety.confidence,
       message: `MULS.W #${factor} can use an EXT/shift/add sequence with dead scratch ${scratch.toUpperCase()}`,
       loc: line.mnemonic!.loc,
-      suggestion: { description: `Replace MULS.W #${factor}`, replacement: recipe(d, scratch), applicability: safety.applicability },
+      suggestion: {
+        description: `Replace MULS.W #${factor}`,
+        replacement: recipe(d, scratch),
+        applicability: safety.applicability,
+      },
       notes: [
         { message: `${scratch.toUpperCase()} is proven dead after the original multiply.` },
-        { message: "The replacement computes the same signed 16×constant low-32-bit result; X/V/C can differ from MULS." },
+        {
+          message:
+            "The replacement computes the same signed 16×constant low-32-bit result; X/V/C can differ from MULS.",
+        },
       ],
     });
   },

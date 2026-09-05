@@ -4,7 +4,15 @@ import { readFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { parseFile, type ParseError } from "m68k-parser";
 import { lintParsedFile } from "../core/lint.js";
-import { defaultConfig, type LintConfig, type OptimizationGoal, type Platform, type Processor, type RulePreset, type RuleSetting } from "../core/config.js";
+import {
+  defaultConfig,
+  type LintConfig,
+  type OptimizationGoal,
+  type Platform,
+  type Processor,
+  type RulePreset,
+  type RuleSetting,
+} from "../core/config.js";
 import type { Diagnostic, RuleCategory, Severity } from "../core/diagnostic.js";
 import { defaultRules } from "../rules/index.js";
 import { asp68kCoverage, asp68kCoverageSummary } from "../coverage-asp68k.js";
@@ -14,11 +22,14 @@ import { findProjectConfig, loadProjectConfig, type ProjectConfig } from "./proj
 
 const VERSION = "0.46.2";
 
-const processors: readonly Processor[] = [
-  "mc68000", "mc68010", "mc68020", "mc68030", "mc68040", "mc68060", "cpu32",
-];
+const processors: readonly Processor[] = ["mc68000", "mc68010", "mc68020", "mc68030", "mc68040", "mc68060", "cpu32"];
 const categories: readonly RuleCategory[] = [
-  "correctness", "suspicious", "optimization", "performance", "portability", "style",
+  "correctness",
+  "suspicious",
+  "optimization",
+  "performance",
+  "portability",
+  "style",
 ];
 const settings: readonly RuleSetting[] = ["off", "error", "warning", "suggestion", "info"];
 const severityRank: Record<Severity, number> = { error: 0, warning: 1, suggestion: 2, info: 3 };
@@ -63,7 +74,10 @@ function requireValue(argv: string[], index: number, option: string): string {
 }
 
 function parseCsv<T extends string>(value: string, allowed: readonly T[], option: string): T[] {
-  const values = value.split(",").map((v) => v.trim()).filter(Boolean);
+  const values = value
+    .split(",")
+    .map((v) => v.trim())
+    .filter(Boolean);
   for (const item of values) {
     if (!allowed.includes(item as T)) {
       throw new Error(`${option}: unknown value '${item}'. Expected one of: ${allowed.join(", ")}`);
@@ -74,64 +88,133 @@ function parseCsv<T extends string>(value: string, allowed: readonly T[], option
 
 function parseArgs(argv: string[]): CliOptions | "help" | "version" {
   const options: CliOptions = {
-    files: [], useConfig: true, ignorePatterns: [], presets: [], disabledCategories: [], rules: {}, format: "pretty", failOn: "error",
-    color: process.stdout.isTTY && !process.env.NO_COLOR, listRules: false, asp68kCoverage: false, impactSummary: false, auditRuleImpact: false,
+    files: [],
+    useConfig: true,
+    ignorePatterns: [],
+    presets: [],
+    disabledCategories: [],
+    rules: {},
+    format: "pretty",
+    failOn: "error",
+    color: process.stdout.isTTY && !process.env.NO_COLOR,
+    listRules: false,
+    asp68kCoverage: false,
+    impactSummary: false,
+    auditRuleImpact: false,
   };
 
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
     if (arg === "-h" || arg === "--help") return "help";
     if (arg === "-v" || arg === "--version") return "version";
-    if (arg === "--no-color") { options.color = false; continue; }
-    if (arg === "--impact") { options.measureImpact = true; continue; }
-    if (arg === "--no-impact") { options.measureImpact = false; continue; }
-    if (arg === "--no-config") { options.useConfig = false; continue; }
-    if (arg === "--inline-config") { options.inlineConfig = true; continue; }
-    if (arg === "--no-inline-config") { options.inlineConfig = false; continue; }
-    if (arg === "--impact-summary") { options.impactSummary = true; continue; }
-    if (arg === "--audit-rule-impact") { options.auditRuleImpact = true; continue; }
-    if (arg === "--list-rules") { options.listRules = true; continue; }
-    if (arg === "--asp68k-coverage") { options.asp68kCoverage = true; continue; }
+    if (arg === "--no-color") {
+      options.color = false;
+      continue;
+    }
+    if (arg === "--impact") {
+      options.measureImpact = true;
+      continue;
+    }
+    if (arg === "--no-impact") {
+      options.measureImpact = false;
+      continue;
+    }
+    if (arg === "--no-config") {
+      options.useConfig = false;
+      continue;
+    }
+    if (arg === "--inline-config") {
+      options.inlineConfig = true;
+      continue;
+    }
+    if (arg === "--no-inline-config") {
+      options.inlineConfig = false;
+      continue;
+    }
+    if (arg === "--impact-summary") {
+      options.impactSummary = true;
+      continue;
+    }
+    if (arg === "--audit-rule-impact") {
+      options.auditRuleImpact = true;
+      continue;
+    }
+    if (arg === "--list-rules") {
+      options.listRules = true;
+      continue;
+    }
+    if (arg === "--asp68k-coverage") {
+      options.asp68kCoverage = true;
+      continue;
+    }
     if (arg === "--config") {
-      options.configPath = requireValue(argv, i, arg); i++; continue;
+      options.configPath = requireValue(argv, i, arg);
+      i++;
+      continue;
     }
     if (arg === "--ext") {
-      options.extensions = normalizeExtensions([...(options.extensions ?? []), ...requireValue(argv, i, arg).split(",").map((v) => v.trim()).filter(Boolean)]); i++; continue;
+      options.extensions = normalizeExtensions([
+        ...(options.extensions ?? []),
+        ...requireValue(argv, i, arg)
+          .split(",")
+          .map((v) => v.trim())
+          .filter(Boolean),
+      ]);
+      i++;
+      continue;
     }
     if (arg === "--ignore-pattern") {
-      options.ignorePatterns.push(requireValue(argv, i, arg)); i++; continue;
+      options.ignorePatterns.push(requireValue(argv, i, arg));
+      i++;
+      continue;
     }
     if (arg === "--cpu") {
-      options.processors = parseCsv(requireValue(argv, i, arg), processors, arg); i++; continue;
+      options.processors = parseCsv(requireValue(argv, i, arg), processors, arg);
+      i++;
+      continue;
     }
     if (arg === "--platform") {
       const value = requireValue(argv, i, arg) as Platform;
       if (!platforms.includes(value)) throw new Error("--platform must be generic or amiga");
-      options.platform = value; i++; continue;
+      options.platform = value;
+      i++;
+      continue;
     }
     if (arg === "--preset") {
-      options.presets.push(...parseCsv(requireValue(argv, i, arg), presets, arg)); i++; continue;
+      options.presets.push(...parseCsv(requireValue(argv, i, arg), presets, arg));
+      i++;
+      continue;
     }
     if (arg === "--goal") {
       const value = requireValue(argv, i, arg) as OptimizationGoal;
       if (!goals.includes(value)) throw new Error("--goal must be balanced, speed, or size");
-      options.goal = value; i++; continue;
+      options.goal = value;
+      i++;
+      continue;
     }
     if (arg === "--only") {
-      options.onlyCategories = parseCsv(requireValue(argv, i, arg), categories, arg); i++; continue;
+      options.onlyCategories = parseCsv(requireValue(argv, i, arg), categories, arg);
+      i++;
+      continue;
     }
     if (arg === "--disable-category") {
-      options.disabledCategories.push(...parseCsv(requireValue(argv, i, arg), categories, arg)); i++; continue;
+      options.disabledCategories.push(...parseCsv(requireValue(argv, i, arg), categories, arg));
+      i++;
+      continue;
     }
     if (arg === "--format") {
       const value = requireValue(argv, i, arg);
       if (value !== "pretty" && value !== "json") throw new Error("--format must be 'pretty' or 'json'");
-      options.format = value; i++; continue;
+      options.format = value;
+      i++;
+      continue;
     }
     if (arg === "--fail-on") {
       const value = requireValue(argv, i, arg) as Severity;
       if (!(value in severityRank)) throw new Error("--fail-on must be error, warning, suggestion, or info");
-      options.failOn = value; i++; continue;
+      options.failOn = value;
+      i++;
+      continue;
     }
     if (arg === "--rule") {
       const value = requireValue(argv, i, arg);
@@ -140,7 +223,9 @@ function parseArgs(argv: string[]): CliOptions | "help" | "version" {
       const id = value.slice(0, split);
       const setting = value.slice(split + 1) as RuleSetting;
       if (!settings.includes(setting)) throw new Error(`Unknown rule setting '${setting}'`);
-      options.rules[id] = setting; i++; continue;
+      options.rules[id] = setting;
+      i++;
+      continue;
     }
     if (arg.startsWith("-")) throw new Error(`Unknown option '${arg}'`);
     options.files.push(arg);
@@ -199,13 +284,19 @@ function formatDiagnostic(file: string, source: string, diagnostic: Diagnostic, 
   const header = `${file}:${line}:${col}  ${severityLabel(diagnostic.severity, color)}  ${diagnostic.message}  ${paint(color, 90, `[${diagnostic.ruleId}]`)}`;
   const lines = [header, ...sourceContext(source, line, diagnostic.loc.start, diagnostic.loc.end, color)];
   if (diagnostic.suggestion) {
-    lines.push(`  ${paint(color, 36, "suggestion:")} ${diagnostic.suggestion.description} (${diagnostic.suggestion.applicability})`);
-    if (diagnostic.suggestion.replacement) lines.push(`  ${paint(color, 90, "replace with:")} ${diagnostic.suggestion.replacement}`);
+    lines.push(
+      `  ${paint(color, 36, "suggestion:")} ${diagnostic.suggestion.description} (${diagnostic.suggestion.applicability})`,
+    );
+    if (diagnostic.suggestion.replacement)
+      lines.push(`  ${paint(color, 90, "replace with:")} ${diagnostic.suggestion.replacement}`);
     const impact = diagnostic.suggestion.impact;
     if (impact?.sizeBytes) {
       const m = impact.sizeBytes;
       const d = m.delta;
-      const values = m.before !== undefined && m.after !== undefined ? `${m.before} → ${m.after} (${d > 0 ? "+" : ""}${d})` : `${d > 0 ? "+" : ""}${d}`;
+      const values =
+        m.before !== undefined && m.after !== undefined
+          ? `${m.before} → ${m.after} (${d > 0 ? "+" : ""}${d})`
+          : `${d > 0 ? "+" : ""}${d}`;
       lines.push(`  ${paint(color, 90, "size:")} ${values} bytes (${m.confidence})`);
     }
     if (impact?.assessment) {
@@ -221,14 +312,19 @@ function formatDiagnostic(file: string, source: string, diagnostic: Diagnostic, 
       for (const [label, metric] of metrics) {
         if (!metric) continue;
         const d = metric.delta;
-        const values = metric.before !== undefined && metric.after !== undefined ? `${metric.before} → ${metric.after} (${d > 0 ? "+" : ""}${d})` : `${d > 0 ? "+" : ""}${d}`;
+        const values =
+          metric.before !== undefined && metric.after !== undefined
+            ? `${metric.before} → ${metric.after} (${d > 0 ? "+" : ""}${d})`
+            : `${d > 0 ? "+" : ""}${d}`;
         lines.push(`  ${paint(color, 90, `${label}:`)} ${values} on ${e.processor} (${metric.confidence})`);
       }
     }
     for (const claim of impact?.sourceClaims ?? []) {
       if (claim.sizeBytes) {
         const d = claim.sizeBytes.delta;
-        lines.push(`  ${paint(color, 90, "source size claim:")} ${d > 0 ? "+" : ""}${d} bytes${claim.source ? ` (${claim.source})` : ""}`);
+        lines.push(
+          `  ${paint(color, 90, "source size claim:")} ${d > 0 ? "+" : ""}${d} bytes${claim.source ? ` (${claim.source})` : ""}`,
+        );
       }
     }
   }
@@ -263,7 +359,8 @@ function formatImpactSummary(diagnostics: Diagnostic[]): string | undefined {
   }
   if (!byRule.size) return undefined;
 
-  const rank = (counts: Record<string, number>) => counts.regression * 1000 + counts.tradeoff * 100 + counts.neutral * 10 + counts.improvement;
+  const rank = (counts: Record<string, number>) =>
+    counts.regression * 1000 + counts.tradeoff * 100 + counts.neutral * 10 + counts.improvement;
   const rows = [...byRule.entries()].sort((a, b) => rank(b[1]) - rank(a[1]) || a[0].localeCompare(b[0]));
   const lines = ["68000 impact summary by rule:", "assessment\trule\tcount"];
   for (const [rule, counts] of rows) {
@@ -283,15 +380,22 @@ async function lintOne(path: string, options: CliOptions, config: LintConfig) {
 
 async function main(): Promise<number> {
   let parsedArgs: CliOptions | "help" | "version";
-  try { parsedArgs = parseArgs(process.argv.slice(2)); }
-  catch (error) {
+  try {
+    parsedArgs = parseArgs(process.argv.slice(2));
+  } catch (error) {
     console.error(`m68k-lint: ${error instanceof Error ? error.message : String(error)}\n`);
     console.error(usage());
     return 2;
   }
 
-  if (parsedArgs === "help") { console.log(usage()); return 0; }
-  if (parsedArgs === "version") { console.log(VERSION); return 0; }
+  if (parsedArgs === "help") {
+    console.log(usage());
+    return 0;
+  }
+  if (parsedArgs === "version") {
+    console.log(VERSION);
+    return 0;
+  }
 
   const options = parsedArgs;
   if (options.listRules) {
@@ -308,17 +412,38 @@ async function main(): Promise<number> {
     if (options.format === "json") {
       console.log(JSON.stringify({ version: VERSION, audit }, null, 2));
     } else {
-      const order = { regression: 0, tradeoff: 1, partial: 2, neutral: 3, unmeasured: 4, "not-triggered": 5, "missing-case": 6, improvement: 7, exempt: 8 } as const;
-      for (const r of [...audit].sort((a, b) => order[a.status] - order[b.status] || a.ruleId.localeCompare(b.ruleId))) {
-        const deltas = r.status === "improvement" || r.status === "tradeoff" || r.status === "neutral" || r.status === "regression" || r.status === "partial"
-          ? `\tsize ${r.sizeDelta ?? "?"}\tcpu ${r.cpuDelta ?? "?"}\tr ${r.readDelta ?? "?"}\tw ${r.writeDelta ?? "?"}`
-          : "";
-        console.log(`${r.status}\t${r.ruleId}${deltas}${r.exempt ? `\t${r.exempt}` : ""}${r.detail ? `\t${r.detail}` : ""}`);
+      const order = {
+        regression: 0,
+        tradeoff: 1,
+        partial: 2,
+        neutral: 3,
+        unmeasured: 4,
+        "not-triggered": 5,
+        "missing-case": 6,
+        improvement: 7,
+        exempt: 8,
+      } as const;
+      for (const r of [...audit].sort(
+        (a, b) => order[a.status] - order[b.status] || a.ruleId.localeCompare(b.ruleId),
+      )) {
+        const deltas =
+          r.status === "improvement" ||
+          r.status === "tradeoff" ||
+          r.status === "neutral" ||
+          r.status === "regression" ||
+          r.status === "partial"
+            ? `\tsize ${r.sizeDelta ?? "?"}\tcpu ${r.cpuDelta ?? "?"}\tr ${r.readDelta ?? "?"}\tw ${r.writeDelta ?? "?"}`
+            : "";
+        console.log(
+          `${r.status}\t${r.ruleId}${deltas}${r.exempt ? `\t${r.exempt}` : ""}${r.detail ? `\t${r.detail}` : ""}`,
+        );
       }
       const counts = new Map<string, number>();
       for (const r of audit) counts.set(r.status, (counts.get(r.status) ?? 0) + 1);
       const auditedRuleCount = new Set(audit.map((r) => r.ruleId)).size;
-      console.log(`\nRule impact audit: ${audit.length} cases across ${auditedRuleCount} rules; ${counts.get("regression") ?? 0} regressions, ${counts.get("tradeoff") ?? 0} tradeoffs, ${counts.get("partial") ?? 0} partial, ${counts.get("improvement") ?? 0} improvements, ${counts.get("unmeasured") ?? 0} unmeasured, ${counts.get("not-triggered") ?? 0} bad examples, ${counts.get("missing-case") ?? 0} missing cases, ${counts.get("exempt") ?? 0} exempt.`);
+      console.log(
+        `\nRule impact audit: ${audit.length} cases across ${auditedRuleCount} rules; ${counts.get("regression") ?? 0} regressions, ${counts.get("tradeoff") ?? 0} tradeoffs, ${counts.get("partial") ?? 0} partial, ${counts.get("improvement") ?? 0} improvements, ${counts.get("unmeasured") ?? 0} unmeasured, ${counts.get("not-triggered") ?? 0} bad examples, ${counts.get("missing-case") ?? 0} missing cases, ${counts.get("exempt") ?? 0} exempt.`,
+      );
     }
     // "unmeasured" is a failure too: docs/rule-impact-audit.md requires a rule the
     // 68000 counter cannot measure to carry an explicit exemption, so that new
@@ -328,10 +453,16 @@ async function main(): Promise<number> {
   }
   if (options.asp68kCoverage) {
     const summary = asp68kCoverageSummary();
-    console.log(`ASP68K coverage: ${summary.implementedRows}/${summary.totalTransformRows} rows implemented; ${summary.trackedRows} rows tracked`);
-    console.log(`Tracked status counts: implemented ${summary.byStatus.implemented}, partial ${summary.byStatus.partial}, deferred ${summary.byStatus.deferred}, rejected ${summary.byStatus.rejected}, skipped ${summary.byStatus.skipped}`);
+    console.log(
+      `ASP68K coverage: ${summary.implementedRows}/${summary.totalTransformRows} rows implemented; ${summary.trackedRows} rows tracked`,
+    );
+    console.log(
+      `Tracked status counts: implemented ${summary.byStatus.implemented}, partial ${summary.byStatus.partial}, deferred ${summary.byStatus.deferred}, rejected ${summary.byStatus.rejected}, skipped ${summary.byStatus.skipped}`,
+    );
     for (const entry of asp68kCoverage) {
-      console.log(`${entry.status}\t${entry.sourceLines.join(",")}\t${entry.rule ?? "-"}${entry.note ? `\t${entry.note}` : ""}`);
+      console.log(
+        `${entry.status}\t${entry.sourceLines.join(",")}\t${entry.rule ?? "-"}${entry.note ? `\t${entry.note}` : ""}`,
+      );
     }
     return 0;
   }
@@ -342,7 +473,11 @@ async function main(): Promise<number> {
     return 2;
   }
   try {
-    projectConfigPath = options.configPath ? resolve(options.configPath) : options.useConfig ? await findProjectConfig() : undefined;
+    projectConfigPath = options.configPath
+      ? resolve(options.configPath)
+      : options.useConfig
+        ? await findProjectConfig()
+        : undefined;
     if (projectConfigPath) projectConfig = await loadProjectConfig(projectConfigPath);
   } catch (error) {
     console.error(`m68k-lint: ${error instanceof Error ? error.message : String(error)}`);
@@ -364,14 +499,21 @@ async function main(): Promise<number> {
     inputFiles = await discoverFiles(rawInputs, {
       cwd: projectRoot,
       extensions: options.extensions ?? projectConfig.extensions ?? defaultAssemblyExtensions,
-      ignorePatterns: ["node_modules/**", ".git/**", ...(projectConfig.ignores ?? projectConfig.ignorePatterns ?? []), ...options.ignorePatterns],
+      ignorePatterns: [
+        "node_modules/**",
+        ".git/**",
+        ...(projectConfig.ignores ?? projectConfig.ignorePatterns ?? []),
+        ...options.ignorePatterns,
+      ],
     });
   } catch (error) {
     console.error(`m68k-lint: ${error instanceof Error ? error.message : String(error)}`);
     return 2;
   }
   if (!inputFiles.length) {
-    console.error(`m68k-lint: no matching assembly files (extensions: ${(options.extensions ?? projectConfig.extensions ?? defaultAssemblyExtensions).join(", ")})`);
+    console.error(
+      `m68k-lint: no matching assembly files (extensions: ${(options.extensions ?? projectConfig.extensions ?? defaultAssemblyExtensions).join(", ")})`,
+    );
     return 2;
   }
 
@@ -379,16 +521,34 @@ async function main(): Promise<number> {
   const results = [];
   let ioFailed = false;
   for (const file of inputFiles) {
-    try { results.push(await lintOne(file, options, config)); }
-    catch (error) {
+    try {
+      results.push(await lintOne(file, options, config));
+    } catch (error) {
       ioFailed = true;
-      if (options.format === "json") results.push({ path: file, ioError: error instanceof Error ? error.message : String(error) });
-      else console.error(`${file}: ${paint(options.color, 31, "error")}: ${error instanceof Error ? error.message : String(error)}`);
+      if (options.format === "json")
+        results.push({ path: file, ioError: error instanceof Error ? error.message : String(error) });
+      else
+        console.error(
+          `${file}: ${paint(options.color, 31, "error")}: ${error instanceof Error ? error.message : String(error)}`,
+        );
     }
   }
 
   if (options.format === "json") {
-    console.log(JSON.stringify({ version: VERSION, configFile: projectConfigPath, processors: config.processors, platform: config.platform, goal: config.goal, files: results }, null, 2));
+    console.log(
+      JSON.stringify(
+        {
+          version: VERSION,
+          configFile: projectConfigPath,
+          processors: config.processors,
+          platform: config.platform,
+          goal: config.goal,
+          files: results,
+        },
+        null,
+        2,
+      ),
+    );
   } else {
     for (const result of results) {
       if (!("source" in result)) continue;
@@ -400,7 +560,7 @@ async function main(): Promise<number> {
     }
 
     const parseErrorCount = results.reduce((n, r) => n + ("parseErrors" in r ? r.parseErrors.length : 0), 0);
-    const diagnostics = results.flatMap((r) => "diagnostics" in r ? r.diagnostics : []);
+    const diagnostics = results.flatMap((r) => ("diagnostics" in r ? r.diagnostics : []));
     if (options.impactSummary) {
       const summary = formatImpactSummary(diagnostics);
       if (summary) console.log(`\n${summary}`);
@@ -409,16 +569,22 @@ async function main(): Promise<number> {
     for (const d of diagnostics) counts[d.severity]++;
     const total = parseErrorCount + diagnostics.length;
     if (total) {
-      console.log(`\n${total} issue${total === 1 ? "" : "s"}: ${parseErrorCount + counts.error} error, ${counts.warning} warning, ${counts.suggestion} suggestion, ${counts.info} info`);
+      console.log(
+        `\n${total} issue${total === 1 ? "" : "s"}: ${parseErrorCount + counts.error} error, ${counts.warning} warning, ${counts.suggestion} suggestion, ${counts.info} info`,
+      );
     }
   }
 
-  const allDiagnostics = results.flatMap((r) => "diagnostics" in r ? r.diagnostics : []);
+  const allDiagnostics = results.flatMap((r) => ("diagnostics" in r ? r.diagnostics : []));
   const hasParseErrors = results.some((r) => "parseErrors" in r && r.parseErrors.length > 0);
   return ioFailed || hasParseErrors || failsThreshold(allDiagnostics, options.failOn) ? 1 : 0;
 }
 
-main().then((code) => { process.exitCode = code; }).catch((error) => {
-  console.error(`m68k-lint: ${error instanceof Error ? error.stack ?? error.message : String(error)}`);
-  process.exitCode = 2;
-});
+main()
+  .then((code) => {
+    process.exitCode = code;
+  })
+  .catch((error) => {
+    console.error(`m68k-lint: ${error instanceof Error ? (error.stack ?? error.message) : String(error)}`);
+    process.exitCode = 2;
+  });

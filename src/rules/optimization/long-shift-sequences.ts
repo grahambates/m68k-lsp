@@ -31,9 +31,7 @@ export const longShiftSequence: Rule = {
 
     // ASP68K only records these as wins on the following targets. 68020 is
     // deliberately excluded because the source has no timing data for it.
-    const allowed = kind === "lsr" && amount.value === 16
-      ? ["mc68000", "mc68010", "mc68030"]
-      : ["mc68000", "mc68010"];
+    const allowed = kind === "lsr" && amount.value === 16 ? ["mc68000", "mc68010", "mc68030"] : ["mc68000", "mc68010"];
     if (!targetsAre(ctx, allowed)) return;
 
     const r = dest.register;
@@ -66,7 +64,10 @@ export const longShiftSequence: Rule = {
         applicability: safety.applicability,
       },
       notes: [
-        { message: "ASP68K records the replacement as faster on the selected CPU(s), while also noting that condition codes differ." },
+        {
+          message:
+            "ASP68K records the replacement as faster on the selected CPU(s), while also noting that condition codes differ.",
+        },
         ...(safety.applicability === "safe"
           ? [{ message: "All differing condition-code values are proven dead here." }]
           : [{ message: "Review later condition-code use before applying this replacement." }]),

@@ -71,7 +71,9 @@ export const pushAddressPea: Rule = {
       },
       notes: [
         { message: "ASP68K lists MOVE.L An,-(SP) followed by ADD/SUB on (SP) as a PEA folding opportunity." },
-        ...(changed.applicability === "safe" ? [] : [{ message: "PEA preserves CCR, while the original arithmetic writes flags; review any later CCR use." }]),
+        ...(changed.applicability === "safe"
+          ? []
+          : [{ message: "PEA preserves CCR, while the original arithmetic writes flags; review any later CCR use." }]),
       ],
       data: { secondInstructionIndex: next.index },
     });

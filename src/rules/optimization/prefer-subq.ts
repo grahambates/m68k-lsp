@@ -3,15 +3,37 @@ import { immediateOperand, instructionSize, isAddqDestination, isInstructionFami
 import { sourceOperand } from "./helpers.js";
 
 export const preferSubq: Rule = {
-  meta: { id: "optimization/prefer-subq", category: "optimization", defaultSeverity: "suggestion", description: "Prefer SUBQ for immediate subtractions from 1 through 8", tags: ["asp68k", "size", "speed"], docs: { source: "ASP68K" } },
+  meta: {
+    id: "optimization/prefer-subq",
+    category: "optimization",
+    defaultSeverity: "suggestion",
+    description: "Prefer SUBQ for immediate subtractions from 1 through 8",
+    tags: ["asp68k", "size", "speed"],
+    docs: { source: "ASP68K" },
+  },
   checkLine(ctx, line) {
     if (!isInstructionFamily(line, "sub")) return;
-    const imm = immediateOperand(line, 0); const dest = operand(line, 1); const size = instructionSize(line);
+    const imm = immediateOperand(line, 0);
+    const dest = operand(line, 1);
+    const size = instructionSize(line);
     if (!imm || imm.value.type === "string-literal" || !isAddqDestination(dest, size)) return;
-    const value = ctx.evaluate(imm.value); if (!value.known || value.value < 1 || value.value > 8) return;
-    const suffix = size ? `.${size}` : ""; const d = sourceOperand(ctx, line, 1);
-    ctx.report({ ruleId: this.meta.id, category: this.meta.category, severity: this.meta.defaultSeverity, confidence: "certain", message: `Immediate ${value.value} fits the SUBQ range`, loc: line.mnemonic!.loc,
-      suggestion: { description: "Use SUBQ", replacement: d ? `subq${suffix} #${value.value},${d}` : undefined, applicability: "safe" },
-      notes: [{ message: "ASP68K specifies SUBQ when 1 <= n <= 8." }] });
+    const value = ctx.evaluate(imm.value);
+    if (!value.known || value.value < 1 || value.value > 8) return;
+    const suffix = size ? `.${size}` : "";
+    const d = sourceOperand(ctx, line, 1);
+    ctx.report({
+      ruleId: this.meta.id,
+      category: this.meta.category,
+      severity: this.meta.defaultSeverity,
+      confidence: "certain",
+      message: `Immediate ${value.value} fits the SUBQ range`,
+      loc: line.mnemonic!.loc,
+      suggestion: {
+        description: "Use SUBQ",
+        replacement: d ? `subq${suffix} #${value.value},${d}` : undefined,
+        applicability: "safe",
+      },
+      notes: [{ message: "ASP68K specifies SUBQ when 1 <= n <= 8." }],
+    });
   },
 };

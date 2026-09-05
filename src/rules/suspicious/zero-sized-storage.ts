@@ -40,8 +40,14 @@ export const zeroSizedStorage: Rule = {
         applicability: "manual",
       },
       notes: [
-        { message: "DS with a zero count reserves no payload. If the label is later treated as storage, a write can land on following data (after any assembler alignment effect)." },
-        { message: "Some assemblers also use zero-sized DS forms as alignment idioms, so this remains a suspicious rather than correctness diagnostic." },
+        {
+          message:
+            "DS with a zero count reserves no payload. If the label is later treated as storage, a write can land on following data (after any assembler alignment effect).",
+        },
+        {
+          message:
+            "Some assemblers also use zero-sized DS forms as alignment idioms, so this remains a suspicious rather than correctness diagnostic.",
+        },
       ],
     });
   },

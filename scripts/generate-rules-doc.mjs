@@ -58,14 +58,18 @@ for (const category of CATEGORY_ORDER) {
   lines.push("| Rule | Default | Description | Source |", "| --- | --- | --- | --- |");
   for (const rule of rules) {
     const platforms = rule.meta.platforms?.length ? ` *(${rule.meta.platforms.join(", ")} only)*` : "";
-    lines.push([
-      "",
-      `\`${escape(rule.meta.id)}\``,
-      escape(defaultState(rule)),
-      `${escape(rule.meta.description)}${platforms}`,
-      escape(rule.meta.docs?.source ?? "—"),
-      "",
-    ].join(" | ").trim());
+    lines.push(
+      [
+        "",
+        `\`${escape(rule.meta.id)}\``,
+        escape(defaultState(rule)),
+        `${escape(rule.meta.description)}${platforms}`,
+        escape(rule.meta.docs?.source ?? "—"),
+        "",
+      ]
+        .join(" | ")
+        .trim(),
+    );
   }
   lines.push("");
 }

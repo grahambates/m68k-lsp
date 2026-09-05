@@ -44,8 +44,13 @@ export const knownZeroClear: Rule = {
         applicability: "conditional",
       },
       notes: [
-        { message: "The resulting register value and N/Z/V/C are equivalent because the source register is proven zero." },
-        { message: "Review memory-mapped I/O: CLR and MOVE can have different bus-cycle behaviour on some 68k systems." },
+        {
+          message:
+            "The resulting register value and N/Z/V/C are equivalent because the source register is proven zero.",
+        },
+        {
+          message: "Review memory-mapped I/O: CLR and MOVE can have different bus-cycle behaviour on some 68k systems.",
+        },
       ],
     });
   },

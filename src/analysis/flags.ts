@@ -4,10 +4,7 @@ import { FLAGS, getFlagSemantics, type Flag } from "../semantics/flags.js";
 
 export type FlagLiveness = "dead" | "live" | "unknown";
 
-export type FlagDefinition =
-  | { kind: "instruction"; index: number }
-  | { kind: "entry" }
-  | { kind: "unknown" };
+export type FlagDefinition = { kind: "instruction"; index: number } | { kind: "entry" } | { kind: "unknown" };
 
 function equalDefinitions(a: ReadonlySet<string>, b: ReadonlySet<string>): boolean {
   if (a.size !== b.size) return false;
@@ -56,13 +53,16 @@ export function analyzeFlags(file: ParsedFile): FlagAnalysis {
         for (const successor of cfg.successors[i]) {
           out = mergeLiveness(out, liveIn[successor].get(flag) ?? "dead");
         }
-        const before = semantics.controlFlow === "call"
-          ? (semantics.reads.has(flag) ? "live" : "unknown")
-          : transferLiveness(
-              out,
-              semantics.reads.has(flag),
-              semantics.writes.has(flag) || semantics.undefined.has(flag),
-            );
+        const before =
+          semantics.controlFlow === "call"
+            ? semantics.reads.has(flag)
+              ? "live"
+              : "unknown"
+            : transferLiveness(
+                out,
+                semantics.reads.has(flag),
+                semantics.writes.has(flag) || semantics.undefined.has(flag),
+              );
 
         if (liveOut[i].get(flag) !== out) {
           liveOut[i].set(flag, out);
@@ -124,11 +124,12 @@ export function analyzeFlags(file: ParsedFile): FlagAnalysis {
     }
   }
 
-  const decode = (keys: ReadonlySet<string>): FlagDefinition[] => [...keys].map((key) => {
-    if (key === "entry") return { kind: "entry" } as const;
-    if (key === "unknown") return { kind: "unknown" } as const;
-    return { kind: "instruction", index: Number(key.slice(2)) } as const;
-  });
+  const decode = (keys: ReadonlySet<string>): FlagDefinition[] =>
+    [...keys].map((key) => {
+      if (key === "entry") return { kind: "entry" } as const;
+      if (key === "unknown") return { kind: "unknown" } as const;
+      return { kind: "instruction", index: Number(key.slice(2)) } as const;
+    });
 
   return {
     cfg,

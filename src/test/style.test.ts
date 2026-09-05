@@ -48,12 +48,22 @@ describe("semantic mnemonic style rules", () => {
   test("DBRA/DBF preference is individually opt-in", () => {
     const defaultDiagnostics = lintSource("    dbf d0,loop\nloop:\n    nop\n", { ...base, presets: ["style"] });
     expect(defaultDiagnostics.some((d) => d.ruleId === "style/prefer-dbra")).toBe(false);
-    const diagnostics = lintSource("    dbf d0,loop\nloop:\n    nop\n", { ...base, rules: { "style/prefer-dbra": "info" } });
-    expect(diagnostics.find((d) => d.ruleId === "style/prefer-dbra")?.suggestion?.replacement).toContain("dbra d0,loop");
+    const diagnostics = lintSource("    dbf d0,loop\nloop:\n    nop\n", {
+      ...base,
+      rules: { "style/prefer-dbra": "info" },
+    });
+    expect(diagnostics.find((d) => d.ruleId === "style/prefer-dbra")?.suggestion?.replacement).toContain(
+      "dbra d0,loop",
+    );
   });
 
   test("unsigned condition alias preference is individually opt-in", () => {
-    const diagnostics = lintSource("    bcc target\ntarget:\n    nop\n", { ...base, rules: { "style/prefer-unsigned-condition-aliases": "info" } });
-    expect(diagnostics.find((d) => d.ruleId === "style/prefer-unsigned-condition-aliases")?.suggestion?.replacement).toContain("bhs target");
+    const diagnostics = lintSource("    bcc target\ntarget:\n    nop\n", {
+      ...base,
+      rules: { "style/prefer-unsigned-condition-aliases": "info" },
+    });
+    expect(
+      diagnostics.find((d) => d.ruleId === "style/prefer-unsigned-condition-aliases")?.suggestion?.replacement,
+    ).toContain("bhs target");
   });
 });

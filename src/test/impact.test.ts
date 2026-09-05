@@ -20,11 +20,7 @@ const oneLineFile = {
 
 describe("68000 impact measurement", () => {
   test("measures MOVE.L immediate to MOVEQ as an improvement", () => {
-    const result = measureDiagnosticImpact(
-      diagnostic("moveq #1,d0"),
-      oneLineFile,
-      "move.l #1,d0",
-    );
+    const result = measureDiagnosticImpact(diagnostic("moveq #1,d0"), oneLineFile, "move.l #1,d0");
     const impact = result.suggestion?.impact;
     expect(impact?.sizeBytes?.before).toBeGreaterThan(impact?.sizeBytes?.after ?? Infinity);
     expect(impact?.execution?.cpuCycles?.before).toBeGreaterThan(impact?.execution?.cpuCycles?.after ?? Infinity);

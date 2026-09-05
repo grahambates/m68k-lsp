@@ -25,7 +25,10 @@ export const amigaTasUnsupported: Rule = {
       message: "TAS is not supported on Amiga hardware",
       loc: line.mnemonic!.loc,
       notes: [
-        { message: "The Amiga custom-chip DMA architecture does not support the 68000 TAS bus-locking protocol; replace TAS with an Amiga-safe synchronization/design pattern." },
+        {
+          message:
+            "The Amiga custom-chip DMA architecture does not support the 68000 TAS bus-locking protocol; replace TAS with an Amiga-safe synchronization/design pattern.",
+        },
       ],
     });
   },

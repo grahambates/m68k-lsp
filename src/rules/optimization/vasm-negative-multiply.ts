@@ -9,8 +9,9 @@ function powerOfTwoExponent(value: number): number | undefined {
 }
 
 function supportsLongMultiply(ctx: Parameters<NonNullable<Rule["checkLine"]>>[0]): boolean {
-  return ctx.config.processors.length > 0 && ctx.config.processors.every((cpu) =>
-    ["mc68020", "mc68030", "mc68040", "mc68060"].includes(cpu),
+  return (
+    ctx.config.processors.length > 0 &&
+    ctx.config.processors.every((cpu) => ["mc68020", "mc68030", "mc68040", "mc68060"].includes(cpu))
   );
 }
 
