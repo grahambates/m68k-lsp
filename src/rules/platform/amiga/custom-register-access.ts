@@ -15,35 +15,134 @@ interface CustomRegister {
   access: RegisterAccess;
 }
 
-// Conservative initial subset from the Amiga Hardware Reference Manual's
-// address-ordered register summary. This table is intentionally extensible;
-// only registers whose access direction is unambiguous are listed here.
-export const amigaCustomRegisters = new Map<number, CustomRegister>([
-  [0xdff000, { name: "BLTDDAT", access: "read-only" }],
-  [0xdff002, { name: "DMACONR", access: "read-only" }],
-  [0xdff004, { name: "VPOSR", access: "read-only" }],
-  [0xdff006, { name: "VHPOSR", access: "read-only" }],
-  [0xdff008, { name: "DSKDATR", access: "read-only" }],
-  [0xdff00a, { name: "JOY0DAT", access: "read-only" }],
-  [0xdff00c, { name: "JOY1DAT", access: "read-only" }],
-  [0xdff00e, { name: "CLXDAT", access: "read-only" }],
-  [0xdff010, { name: "ADKCONR", access: "read-only" }],
-  [0xdff012, { name: "POT0DAT", access: "read-only" }],
-  [0xdff014, { name: "POT1DAT", access: "read-only" }],
-  [0xdff016, { name: "POTGOR", access: "read-only" }],
-  [0xdff018, { name: "SERDATR", access: "read-only" }],
-  [0xdff01a, { name: "DSKBYTR", access: "read-only" }],
-  [0xdff01c, { name: "INTENAR", access: "read-only" }],
-  [0xdff01e, { name: "INTREQR", access: "read-only" }],
+// Address-ordered register list from the Amiga Hardware Reference Manual
+// appendix. Direction is a property of the chip: the custom chips decode reads
+// and writes separately, so most registers are strictly one or the other.
+//
+// Omission is safe here and commission is not - a register absent from the
+// table simply produces no diagnostic, while a wrong direction produces a
+// confident false error. The ECS/AGA display-sync block at $1C0-$1FE is
+// therefore left out pending verification; it mixes directions (HHPOSR at $1DA
+// is readable) and its ECS/AGA availability varies.
+const OCS_READ_ONLY: readonly [number, string][] = [
+  [0x000, "BLTDDAT"],
+  [0x002, "DMACONR"],
+  [0x004, "VPOSR"],
+  [0x006, "VHPOSR"],
+  [0x008, "DSKDATR"],
+  [0x00a, "JOY0DAT"],
+  [0x00c, "JOY1DAT"],
+  [0x00e, "CLXDAT"],
+  [0x010, "ADKCONR"],
+  [0x012, "POT0DAT"],
+  [0x014, "POT1DAT"],
+  [0x016, "POTGOR"],
+  [0x018, "SERDATR"],
+  [0x01a, "DSKBYTR"],
+  [0x01c, "INTENAR"],
+  [0x01e, "INTREQR"],
+];
 
-  [0xdff096, { name: "DMACON", access: "write-only" }],
-  [0xdff09a, { name: "INTENA", access: "write-only" }],
-  [0xdff09c, { name: "INTREQ", access: "write-only" }],
-  [0xdff09e, { name: "ADKCON", access: "write-only" }],
-  [0xdff100, { name: "BPLCON0", access: "write-only" }],
-  [0xdff102, { name: "BPLCON1", access: "write-only" }],
-  [0xdff104, { name: "BPLCON2", access: "write-only" }],
-  [0xdff180, { name: "COLOR00", access: "write-only" }],
+// Irregular write-only registers. The repetitive families below are generated
+// rather than transcribed, because that is where a slip would hide.
+const OCS_WRITE_ONLY: readonly [number, string][] = [
+  [0x020, "DSKPTH"],
+  [0x022, "DSKPTL"],
+  [0x024, "DSKLEN"],
+  [0x026, "DSKDAT"],
+  [0x028, "REFPTR"],
+  [0x02a, "VPOSW"],
+  [0x02c, "VHPOSW"],
+  [0x02e, "COPCON"],
+  [0x030, "SERDAT"],
+  [0x032, "SERPER"],
+  [0x034, "POTGO"],
+  [0x036, "JOYTEST"],
+  [0x038, "STREQU"],
+  [0x03a, "STRVBL"],
+  [0x03c, "STRHOR"],
+  [0x03e, "STRLONG"],
+  [0x040, "BLTCON0"],
+  [0x042, "BLTCON1"],
+  [0x044, "BLTAFWM"],
+  [0x046, "BLTALWM"],
+  [0x048, "BLTCPTH"],
+  [0x04a, "BLTCPTL"],
+  [0x04c, "BLTBPTH"],
+  [0x04e, "BLTBPTL"],
+  [0x050, "BLTAPTH"],
+  [0x052, "BLTAPTL"],
+  [0x054, "BLTDPTH"],
+  [0x056, "BLTDPTL"],
+  [0x058, "BLTSIZE"],
+  [0x05a, "BLTCON0L"],
+  [0x05c, "BLTSIZV"],
+  [0x05e, "BLTSIZH"],
+  [0x060, "BLTCMOD"],
+  [0x062, "BLTBMOD"],
+  [0x064, "BLTAMOD"],
+  [0x066, "BLTDMOD"],
+  [0x070, "BLTCDAT"],
+  [0x072, "BLTBDAT"],
+  [0x074, "BLTADAT"],
+  [0x07e, "DSKSYNC"],
+  [0x080, "COP1LCH"],
+  [0x082, "COP1LCL"],
+  [0x084, "COP2LCH"],
+  [0x086, "COP2LCL"],
+  [0x088, "COPJMP1"],
+  [0x08a, "COPJMP2"],
+  [0x08c, "COPINS"],
+  [0x08e, "DIWSTRT"],
+  [0x090, "DIWSTOP"],
+  [0x092, "DDFSTRT"],
+  [0x094, "DDFSTOP"],
+  [0x096, "DMACON"],
+  [0x098, "CLXCON"],
+  [0x09a, "INTENA"],
+  [0x09c, "INTREQ"],
+  [0x09e, "ADKCON"],
+  [0x100, "BPLCON0"],
+  [0x102, "BPLCON1"],
+  [0x104, "BPLCON2"],
+  [0x106, "BPLCON3"],
+  [0x108, "BPL1MOD"],
+  [0x10a, "BPL2MOD"],
+];
+
+function generatedWriteOnly(): [number, string][] {
+  const entries: [number, string][] = [];
+  // Audio: four channels of LCH/LCL/LEN/PER/VOL/DAT, 16 bytes apart.
+  const audio = ["LCH", "LCL", "LEN", "PER", "VOL", "DAT"];
+  for (let channel = 0; channel < 4; channel++) {
+    audio.forEach((field, i) => entries.push([0x0a0 + channel * 0x10 + i * 2, `AUD${channel}${field}`]));
+  }
+  // Bitplane pointers BPL1PTH..BPL6PTL and data BPL1DAT..BPL6DAT.
+  for (let plane = 1; plane <= 6; plane++) {
+    entries.push([0x0e0 + (plane - 1) * 4, `BPL${plane}PTH`]);
+    entries.push([0x0e2 + (plane - 1) * 4, `BPL${plane}PTL`]);
+    entries.push([0x110 + (plane - 1) * 2, `BPL${plane}DAT`]);
+  }
+  // Sprite pointers, then POS/CTL/DATA/DATB per sprite.
+  for (let sprite = 0; sprite < 8; sprite++) {
+    entries.push([0x120 + sprite * 4, `SPR${sprite}PTH`]);
+    entries.push([0x122 + sprite * 4, `SPR${sprite}PTL`]);
+    ["POS", "CTL", "DATA", "DATB"].forEach((field, i) =>
+      entries.push([0x140 + sprite * 8 + i * 2, `SPR${sprite}${field}`]),
+    );
+  }
+  // COLOR00..COLOR31.
+  for (let colour = 0; colour < 32; colour++) {
+    entries.push([0x180 + colour * 2, `COLOR${String(colour).padStart(2, "0")}`]);
+  }
+  return entries;
+}
+
+export const amigaCustomRegisters = new Map<number, CustomRegister>([
+  ...OCS_READ_ONLY.map(([offset, name]) => [0xdff000 + offset, { name, access: "read-only" as const }] as const),
+  ...[...OCS_WRITE_ONLY, ...generatedWriteOnly()].map(
+    ([offset, name]) => [0xdff000 + offset, { name, access: "write-only" as const }] as const,
+  ),
 ]);
 
 const CUSTOM_BASE = 0xdff000;

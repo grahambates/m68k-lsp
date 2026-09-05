@@ -1325,6 +1325,54 @@ describe("platform modes", () => {
   });
 });
 
+describe("Amiga custom-register direction table", () => {
+  const amiga = { processors: ["mc68000"], platform: "amiga", measureImpact: false } as LintConfig;
+  const ID = "correctness/amiga-custom-register-access";
+  const flags = (source: string) => ids(source, amiga).includes(ID);
+
+  test("catches the classic readable-mirror confusions", () => {
+    // Each of these has a separate read address; using the write one is a bug.
+    for (const [writeOnly, readable] of [
+      ["$dff096", "$dff002"], // DMACON  / DMACONR
+      ["$dff09a", "$dff01c"], // INTENA  / INTENAR
+      ["$dff09c", "$dff01e"], // INTREQ  / INTREQR
+      ["$dff09e", "$dff010"], // ADKCON  / ADKCONR
+      ["$dff034", "$dff016"], // POTGO   / POTGOR
+    ]) {
+      expect([writeOnly, flags(`move.w ${writeOnly},d0`)]).toEqual([writeOnly, true]);
+      expect([readable, flags(`move.w ${readable},d0`)]).toEqual([readable, false]);
+    }
+  });
+
+  test("covers the generated register families", () => {
+    for (const address of [
+      "$dff0a0", // AUD0LCH
+      "$dff0da", // AUD3DAT
+      "$dff0e0", // BPL1PTH
+      "$dff11a", // BPL6DAT
+      "$dff120", // SPR0PTH
+      "$dff17e", // SPR7DATB
+      "$dff180", // COLOR00
+      "$dff1be", // COLOR31
+    ]) {
+      expect([address, flags(`move.w ${address},d0`)]).toEqual([address, true]);
+      expect([address, flags(`move.w #0,${address}`)]).toEqual([address, false]);
+    }
+  });
+
+  test("resolves the added registers through the CUSTOM base convention", () => {
+    expect(flags("    lea CUSTOM,a6\n    move.w COLOR00(a6),d0")).toBe(true);
+    expect(flags("    lea CUSTOM,a6\n    move.w #0,COLOR00(a6)")).toBe(false);
+  });
+
+  test("stays silent on the deliberately omitted ECS/AGA sync block", () => {
+    // $1C0-$1FE mixes directions and varies by chipset, so it is not tabulated.
+    // Omission must produce no diagnostic rather than a guess.
+    expect(flags("move.w $dff1c0,d0")).toBe(false);
+    expect(flags("move.w #0,$dff1c0")).toBe(false);
+  });
+});
+
 describe("Atari absolute-address footguns", () => {
   const st = {
     processors: ["mc68000"],
