@@ -9,10 +9,6 @@ export type FlagDefinition =
   | { kind: "entry" }
   | { kind: "unknown" };
 
-function definitionKey(def: FlagDefinition): string {
-  return def.kind === "instruction" ? `i:${def.index}` : def.kind;
-}
-
 function equalDefinitions(a: ReadonlySet<string>, b: ReadonlySet<string>): boolean {
   if (a.size !== b.size) return false;
   for (const value of a) if (!b.has(value)) return false;

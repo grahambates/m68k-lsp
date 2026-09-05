@@ -1,6 +1,6 @@
 import type { ParsedLine } from "m68k-parser";
 import type { Rule } from "../../core/rule.js";
-import { flagsReadByCondition, getFlagSemantics, isAddressRegisterWriteWithoutCCR, type Flag } from "../../semantics/flags.js";
+import { flagsReadByCondition, getFlagSemantics, isAddressRegisterWriteWithoutCCR } from "../../semantics/flags.js";
 import { semanticMnemonic } from "../../semantics/mnemonics.js";
 
 function mnemonic(line: ParsedLine | undefined): string | undefined {
@@ -34,7 +34,7 @@ export const staleConditionCode: Rule = {
     // reaching definition. If a CMP/TST/etc. reaches through MOVEA/LEA, that is
     // valid intentional use of preserved flags and should stay quiet.
     const suspectFlags = readFlags.filter((flag) => {
-      const defs = ctx.flags.reachingDefinitionsBefore(index, flag as Flag);
+      const defs = ctx.flags.reachingDefinitionsBefore(index, flag);
       return defs.length === 0 || defs.some((def) => def.kind !== "instruction");
     });
     if (suspectFlags.length === 0) return;

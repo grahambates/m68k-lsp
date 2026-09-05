@@ -1,7 +1,7 @@
 import type { OperandNode, ParsedLine } from "m68k-parser";
 import type { Rule } from "../../core/rule.js";
 import { addressRegisterOperand, immediateOperand, instructionSize, isInstruction, operand } from "../../util/ast.js";
-import { normalizeRegister, registersReadByOperand } from "../../semantics/registers.js";
+import { registersReadByOperand } from "../../semantics/registers.js";
 import { changedFlagsApplicability, sourceOperand } from "./helpers.js";
 
 function isSpRegisterName(name: string): boolean {

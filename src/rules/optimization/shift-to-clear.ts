@@ -1,5 +1,5 @@
 import type { Rule } from "../../core/rule.js";
-import { dataRegisterOperand, immediateOperand, instructionSize, isInstruction } from "../../util/ast.js";
+import { dataRegisterOperand, immediateOperand, instructionSize } from "../../util/ast.js";
 import { changedFlagsApplicability } from "./helpers.js";
 import { canonicalMnemonic } from "../../semantics/mnemonics.js";
 

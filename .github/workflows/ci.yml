@@ -27,7 +27,13 @@ jobs:
       # Typechecks src and src/test. The test suite was silently skipped for a
       # long time because a compile error in a test file only surfaces here.
       - name: Typecheck
+        run: npm run typecheck
+
+      - name: Lint
         run: npm run lint
+
+      - name: Format check
+        run: npm run format:check
 
       - name: Test
         run: npm test

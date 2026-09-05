@@ -1,4 +1,4 @@
-import type { OperandNode, RegisterListNode, ParsedLine } from "m68k-parser";
+import type { OperandNode } from "m68k-parser";
 import type { Rule } from "../../core/rule.js";
 import { instructionSize, isInstruction, operand } from "../../util/ast.js";
 import { changedFlagsApplicability, sourceOperand } from "./helpers.js";
@@ -10,12 +10,10 @@ function singleRegister(op: OperandNode | undefined): string | undefined {
   return undefined;
 }
 
-function isRegisterOperand(op: OperandNode | undefined): op is RegisterListNode | Extract<OperandNode, { type: "data-register" | "address-register" }> {
-  return !!singleRegister(op);
-}
-
-function replacementMnemonic(register: string, destination: boolean): string {
-  return destination && (register.toLowerCase().startsWith("a") || register.toLowerCase() === "sp") ? "move" : "move";
+function replacementMnemonic(): string {
+  // Both branches of the original ternary returned "move". Kept as a function so
+  // the call sites stay unchanged if MOVEA is ever wanted for address destinations.
+  return "move";
 }
 
 export const singleRegisterMovem: Rule = {
@@ -44,7 +42,7 @@ export const singleRegisterMovem: Rule = {
     const sourceText = sourceOperand(ctx, line, 0);
     const destText = sourceOperand(ctx, line, 1);
     if (!sourceText || !destText) return;
-    const replacement = `${replacementMnemonic(register, registerIsDest)}.${size} ${sourceText},${destText}`;
+    const replacement = `${replacementMnemonic()}.${size} ${sourceText},${destText}`;
 
     // MOVEM preserves CCR. MOVE to Dn/memory writes NZVC; MOVE to An is MOVEA-like and preserves CCR.
     const replacementPreservesFlags = registerIsDest && (register.toLowerCase().startsWith("a") || register.toLowerCase() === "sp");

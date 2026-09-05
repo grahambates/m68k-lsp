@@ -10,7 +10,7 @@ export const leaZeroAddress: Rule = {
     tags: ["asp68k", "68000", "68010", "68030", "ccr", "size"],
     docs: { source: "ASP68K" },
   },
-  checkLine(ctx, line, index) {
+  checkLine(ctx, line) {
     if (!isInstruction(line, "lea")) return;
     const source = operand(line, 0);
     const dest = addressRegisterOperand(line, 1);

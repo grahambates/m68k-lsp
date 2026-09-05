@@ -304,12 +304,17 @@ Further reading: [`docs/impact-measurement.md`](docs/impact-measurement.md),
 
 ```sh
 npm ci
-npm run lint          # typecheck src and src/test
+npm run typecheck     # tsc over src and src/test
+npm run lint          # eslint
+npm run format        # prettier --write
 npm test
 npm run build
 npm run audit:impact
 npm run docs:rules    # regenerate docs/rules.md
 ```
+
+CI runs all of these. `npm run lint:fix` and `npm run format:check` are also
+available.
 
 Rule fixtures in `src/test` are written in compact column-zero form and indented
 by the helpers in `src/test/helpers.ts`, which share one indent rule with the

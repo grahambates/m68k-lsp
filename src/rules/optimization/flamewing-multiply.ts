@@ -154,7 +154,7 @@ export const flamewingMulsWordLowWordOnly: Rule = {
  * proven unobserved before a definite overwrite.
  */
 const muluLowWordRecipes: Readonly<Record<number, (d: string, s?: string) => string>> = {
-  1: (d) => ``,
+  1: () => "",
   2: (d) => `add.w ${d},${d}`,
   3: (d, s) => `move.w ${d},${s}\nadd.w ${d},${d}\nadd.w ${s},${d}`,
   4: (d) => `add.w ${d},${d}\nadd.w ${d},${d}`,

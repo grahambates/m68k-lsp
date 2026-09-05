@@ -72,7 +72,7 @@ export const knownRegisterShiftToClear: Rule = {
       severity: this.meta.defaultSeverity,
       confidence: safety.confidence,
       message: `${mnemonic.toUpperCase()}.${size.toUpperCase()} uses a known count of ${effectiveCount}, which necessarily clears the ${width}-bit result on 68000`,
-      loc: (removeSetup ? setup!.line.mnemonic : line.mnemonic)!.loc,
+      loc: (removeSetup ? setup.line.mnemonic : line.mnemonic)!.loc,
       suggestion: {
         description: removeSetup ? "Replace the count setup and shift with a clear" : "Replace the shift with a clear",
         replacement,

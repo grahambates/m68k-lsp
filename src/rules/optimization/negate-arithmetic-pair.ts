@@ -1,4 +1,4 @@
-import type { ParsedLine } from "m68k-parser";
+import type {  } from "m68k-parser";
 import type { Rule } from "../../core/rule.js";
 import type { RuleContext } from "../../core/context.js";
 import { dataRegisterOperand, instructionSize, isInstruction } from "../../util/ast.js";

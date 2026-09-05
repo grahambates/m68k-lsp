@@ -1,4 +1,4 @@
-import type { ExpressionNode, OperandNode, ParsedFile, ParsedLine } from "m68k-parser";
+import type { ExpressionNode, ParsedFile, ParsedLine } from "m68k-parser";
 import { buildControlFlowGraph, type ControlFlowGraph } from "./cfg.js";
 import { evaluateConstant } from "./constants.js";
 import {
@@ -44,36 +44,6 @@ function directRegister(line: ParsedLine, index: number): Register | undefined {
 }
 
 
-function directDataRegisterUseWidth(line: ParsedLine, register: Register): "none" | "lower" | "upper" | "unknown" {
-  let result: "none" | "lower" | "upper" | "unknown" = "none";
-  const size = instructionSize(line);
-  const merge = (next: typeof result) => {
-    if (result === "upper" || next === "upper") result = "upper";
-    else if (result === "unknown" || next === "unknown") result = "unknown";
-    else if (result === "lower" || next === "lower") result = "lower";
-  };
-  const inspect = (op: OperandNode | undefined) => {
-    if (!op) return;
-    if (op.type === "data-register" && normalizeRegister(op.register) === register) {
-      merge(size === "b" || size === "w" ? "lower" : "upper");
-      return;
-    }
-    if (op.type === "register-list" && op.registers.some((r: string) => normalizeRegister(r) === register)) {
-      merge(size === "w" ? "lower" : "upper");
-      return;
-    }
-    if (op.type === "address-register-indirect-index" || op.type === "pc-relative-index" || op.type === "memory-indirect") {
-      const idx = op.indexRegister;
-      if (idx?.type === "data-register" && normalizeRegister(idx.register) === register) {
-        const idxSize = op.indexSize?.type === "size" ? op.indexSize.size : undefined;
-        merge(idxSize === "w" ? "lower" : idxSize === "l" ? "upper" : "unknown");
-      }
-    }
-  };
-  for (const op of line.operands ?? []) inspect(op);
-  return result;
-}
-
 function isFullDataRegisterOverwriteWithoutUpperRead(line: ParsedLine, register: Register): boolean {
   if (!register.startsWith("d")) return false;
   const mnemonic = semanticMnemonic(line);
@@ -87,18 +57,28 @@ function isFullDataRegisterOverwriteWithoutUpperRead(line: ParsedLine, register:
   return false;
 }
 
+/**
+ * A register named in any assembler spelling. Callers pass raw source text such
+ * as "D0", "sp" or "a7", which `normalizeRegister` resolves to a `Register`.
+ *
+ * The `Register` half widens to `string` at the type level, so this is `string`
+ * in practice; `& {}` keeps the union from collapsing so editors still offer the
+ * canonical names as completions.
+ */
+export type RegisterLike = Register | (string & {});
+
 export type RegisterBitsUse = "unused" | "used" | "unknown";
 export type UpperWordUse = RegisterBitsUse;
 
 export interface RegisterAnalysis {
   readonly cfg: ControlFlowGraph;
-  isLiveAfter(index: number, register: Register | string): RegisterLiveness;
-  valueBefore(index: number, register: Register | string): RegisterValue;
-  valueAfter(index: number, register: Register | string): RegisterValue;
-  knownConstantBefore(index: number, register: Register | string): number | undefined;
+  isLiveAfter(index: number, register: RegisterLike): RegisterLiveness;
+  valueBefore(index: number, register: RegisterLike): RegisterValue;
+  valueAfter(index: number, register: RegisterLike): RegisterValue;
+  knownConstantBefore(index: number, register: RegisterLike): number | undefined;
   deadDataRegistersAfter(index: number): readonly Register[];
-  dataRegisterBitsUseAfter(index: number, register: Register | string, mask: number): RegisterBitsUse;
-  upperWordUseAfter(index: number, register: Register | string): UpperWordUse;
+  dataRegisterBitsUseAfter(index: number, register: RegisterLike, mask: number): RegisterBitsUse;
+  upperWordUseAfter(index: number, register: RegisterLike): UpperWordUse;
 }
 
 export function analyzeRegisters(
@@ -272,8 +252,8 @@ export function analyzeRegisters(
     }
   }
 
-  const reg = (value: Register | string) => normalizeRegister(value) ?? value as Register;
-  const dataRegisterBitsUseAfter = (index: number, register: Register | string, differingMask: number): RegisterBitsUse => {
+  const reg = (value: RegisterLike) => normalizeRegister(value) ?? value as Register;
+  const dataRegisterBitsUseAfter = (index: number, register: RegisterLike, differingMask: number): RegisterBitsUse => {
     const target = reg(register);
     if (!target.startsWith("d")) return "unknown";
     const mask = differingMask >>> 0;

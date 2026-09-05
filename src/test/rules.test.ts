@@ -1,4 +1,5 @@
-import { fixtureContext, ids, lint } from "./helpers.js";
+import type { LintConfig } from "../core/config.js";
+import { fixtureContext, ids, lint, parseFixture } from "./helpers.js";
 
 // Fixtures that need "all changed flags are dead" end with `add.l dX,dY` rather
 // than `move.l dX,dY`. MOVE sets N/Z and clears V/C but *preserves X*, so with a
@@ -361,12 +362,12 @@ describe("CCR analysis", () => {
     expect(diagnostics.map((d) => d.ruleId)).not.toContain("correctness/stale-condition-code");
   });
 
-  test("flags become unknown at RTS if they survive to return", async () => {
+  test("flags become unknown at RTS if they survive to return", () => {
     const ctx = fixtureContext(["add.l d0,d1", "rts"].join("\n"));
     expect(ctx.flags.isLiveAfter(0, "Z")).toBe("unknown");
   });
 
-  test("a definite overwrite before RTS makes the older NZVC dead", async () => {
+  test("a definite overwrite before RTS makes the older NZVC dead", () => {
     const source = ["add.l d0,d1", "move.l d2,d3", "rts"].join("\n");
     const ctx = fixtureContext(source);
     expect(ctx.flags.isLiveAfter(0, "Z")).toBe("dead");
@@ -374,7 +375,7 @@ describe("CCR analysis", () => {
     expect(ctx.flags.isLiveAfter(0, "X")).toBe("unknown");
   });
 
-  test("flags become unknown across a call with no summary", async () => {
+  test("flags become unknown across a call with no summary", () => {
     const source = ["cmp.l d0,d1", "jsr helper", "beq .same", ".same:", "rts"].join("\n");
     const ctx = fixtureContext(source);
     expect(ctx.flags.reachingDefinitionsBefore(2, "Z").some((d) => d.kind === "unknown")).toBe(true);
@@ -590,7 +591,7 @@ describe("register analysis", () => {
     expect(diagnostic?.suggestion?.applicability).toBe("conditional");
   });
 
-  test("does not assume a register is dead merely because the routine returns", async () => {
+  test("does not assume a register is dead merely because the routine returns", () => {
     const source = ["move.l #42,(a0)", "rts"].join("\n");
     const ctx = fixtureContext(source);
     expect(ctx.registers.isLiveAfter(0, "d0")).toBe("unknown");
@@ -671,13 +672,13 @@ describe("v0.11 register-driven rules", () => {
     expect(diagnostic?.suggestion?.applicability).toBe("conditional");
   });
 
-  test("tracks constants through simple full-register arithmetic", async () => {
+  test("tracks constants through simple full-register arithmetic", () => {
     const source = ["moveq #4,d7", "sub.l #4,d7", "clr.l -(a0)", "rts"].join("\n");
     const ctx = fixtureContext(source);
     expect(ctx.registers.knownConstantBefore(2, "d7")).toBe(0);
   });
 
-  test("MOVEM register lists participate in register liveness", async () => {
+  test("MOVEM register lists participate in register liveness", () => {
     const source = ["move.l #42,(a0)", "movem.l d0-d2,-(sp)", "rts"].join("\n");
     const ctx = fixtureContext(source);
     expect(ctx.registers.isLiveAfter(0, "d0")).toBe("live");
@@ -716,7 +717,7 @@ describe("v0.12 simple multiply rules", () => {
     expect(live?.suggestion?.applicability).toBe("conditional");
   });
 
-  test("propagates constant results through word multiply", async () => {
+  test("propagates constant results through word multiply", () => {
     const source = ["moveq #7,d0", "muls.w #8,d0", "rts"].join("\n");
     const ctx = fixtureContext(source);
     expect(ctx.registers.valueAfter(1, "d0")).toEqual({ kind: "constant", value: 56 });
@@ -832,6 +833,16 @@ import { isInstruction, isInstructionFamily } from "../util/ast.js";
 import { canonicalMnemonicName } from "../semantics/mnemonics.js";
 
 describe("mnemonic canonicalisation", () => {
+  test("matches semantic mnemonics through source aliases", () => {
+    const file = parseFixture("addi.l #1,d0\nadda.l #1,a0");
+    expect(isInstruction(file.lines[0], "add")).toBe(true);
+    // ADDA is deliberately distinct from ADD: it sets no condition codes.
+    expect(isInstruction(file.lines[1], "add")).toBe(false);
+    expect(isInstruction(file.lines[1], "adda")).toBe(true);
+    // Rules valid across both forms opt into the broader family matcher.
+    expect(isInstructionFamily(file.lines[1], "add")).toBe(true);
+  });
+
   test("normalises immediate instruction spellings", () => {
     expect(canonicalMnemonicName("ADDI")).toBe("add");
     expect(canonicalMnemonicName("SUBI")).toBe("sub");
@@ -1277,7 +1288,7 @@ describe("platform modes", () => {
   });
 
   test("Amiga mode checks custom-register access direction", () => {
-    const config = { processors: ["mc68000"], platform: "amiga", goal: "balanced", measureImpact: false } as import("../core/config.js").LintConfig;
+    const config = { processors: ["mc68000"], platform: "amiga", goal: "balanced", measureImpact: false } as LintConfig;
     expect(lint("move.w #1,$dff002", config).map((d) => d.ruleId)).toContain("correctness/amiga-custom-register-access");
     expect(lint("move.w $dff09a,d0", config).map((d) => d.ruleId)).toContain("correctness/amiga-custom-register-access");
     expect(lint("move.w $dff002,d0", config).map((d) => d.ruleId)).not.toContain("correctness/amiga-custom-register-access");
@@ -1297,7 +1308,7 @@ describe("platform modes", () => {
 describe("Amiga suspicious absolute-address footguns", () => {
   const amiga = {
     processors: ["mc68000"], platform: "amiga", goal: "balanced", measureImpact: false,
-  } as import("../core/config.js").LintConfig;
+  } as LintConfig;
 
   test("flags an unusual numeric absolute source that may be a missing immediate prefix", () => {
     const result = lint("move.w $1234,d0\n", amiga);

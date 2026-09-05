@@ -59,11 +59,11 @@ export async function loadProjectConfig(path: string): Promise<ProjectConfig> {
   const absolute = resolve(path);
   let raw: string;
   try { raw = await readFile(absolute, "utf8"); }
-  catch (error) { throw new Error(`Unable to read config ${path}: ${error instanceof Error ? error.message : String(error)}`); }
+  catch (error) { throw new Error(`Unable to read config ${path}: ${error instanceof Error ? error.message : String(error)}`, { cause: error }); }
 
   let value: unknown;
   try { value = JSON.parse(raw); }
-  catch (error) { throw new Error(`Invalid JSON in ${path}: ${error instanceof Error ? error.message : String(error)}`); }
+  catch (error) { throw new Error(`Invalid JSON in ${path}: ${error instanceof Error ? error.message : String(error)}`, { cause: error }); }
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error(`${path} must contain a JSON object`);
   const config = value as Record<string, unknown>;
   const knownFields = new Set(["$schema", "processors", "platform", "goal", "measureImpact", "inlineConfig", "presets", "rules", "categories", "extensions", "files", "ignores", "include", "ignorePatterns"]);
@@ -95,7 +95,7 @@ export async function loadProjectConfig(path: string): Promise<ProjectConfig> {
     }
   }
 
-  return config as unknown as ProjectConfig;
+  return config;
 }
 
 export function lintConfigFromProject(config: ProjectConfig): Partial<LintConfig> {
@@ -108,5 +108,5 @@ export function lintConfigFromProject(config: ProjectConfig): Partial<LintConfig
     presets: config.presets,
     rules: config.rules,
     categories: config.categories,
-  } as Partial<LintConfig>;
+  };
 }
