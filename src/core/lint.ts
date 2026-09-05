@@ -78,7 +78,19 @@ export function lintParsedFile(
     if (!diagnostic.suggestion || (diagnostic.category !== "optimization" && diagnostic.category !== "performance")) return diagnostic;
     return measureDiagnosticImpact(diagnostic, file, source, ruleById.get(diagnostic.ruleId));
   });
-  return measured.filter((diagnostic) => matchesOptimizationGoal(diagnostic, ruleById.get(diagnostic.ruleId), config));
+  const reported = measured.filter((diagnostic) => matchesOptimizationGoal(diagnostic, ruleById.get(diagnostic.ruleId), config));
+
+  // Rules run in registration order, so without this diagnostics come back
+  // grouped by rule rather than in the order a reader encounters them in the
+  // file. Sort by position, keeping rule order as the tie-break so output stays
+  // deterministic for two rules matching the same spot.
+  return reported
+    .map((diagnostic, order) => ({ diagnostic, order }))
+    .sort((a, b) =>
+      (a.diagnostic.loc.line ?? 0) - (b.diagnostic.loc.line ?? 0)
+      || a.diagnostic.loc.start - b.diagnostic.loc.start
+      || a.order - b.order)
+    .map((entry) => entry.diagnostic);
 }
 
 export function lintSource(

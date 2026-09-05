@@ -185,7 +185,11 @@ function sourceContext(source: string, line?: number, start = 0, end = start + 1
   const text = source.replace(/\r\n/g, "\n").replace(/\r/g, "\n").split("\n")[line - 1];
   if (text === undefined) return [];
   const width = Math.max(1, end - start);
-  const pointer = `${" ".repeat(Math.max(0, start))}${"^"}${"~".repeat(Math.max(0, width - 1))}`;
+  // Assembly is tab-indented, and a tab is one character but several columns.
+  // Reuse the source's own tabs in the pointer prefix so the caret lines up
+  // whatever tab width the terminal uses.
+  const prefix = text.slice(0, Math.max(0, start)).replace(/[^\t]/g, " ");
+  const pointer = `${prefix}${"^"}${"~".repeat(Math.max(0, width - 1))}`;
   return [`  ${text}`, paint(color, 90, `  ${pointer}`)];
 }
 

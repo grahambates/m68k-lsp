@@ -22,6 +22,12 @@ interface LineSuppression {
 }
 
 function commentText(line: string): string | undefined {
+  // A `*` in column 0 starts a full-line comment in the traditional 68k
+  // assemblers (Devpac, AsmOne, vasm), which is how most Amiga sources spell
+  // one. Anywhere else `*` is multiplication or the current-PC symbol, so the
+  // column matters.
+  if (line.startsWith("*")) return line.slice(1);
+
   let quote: "'" | '"' | undefined;
   for (let i = 0; i < line.length; i++) {
     const ch = line[i];

@@ -14,8 +14,12 @@ export interface Asp68kCoverageEntry {
  *
  * This is intentionally incremental: unlisted rows are currently untracked,
  * while ASP68K_TOTAL_TRANSFORM_ROWS records the table size found by the v0.8 audit.
+ *
+ * The v0.8 audit reported 181 rows, but tracking has since accumulated 182
+ * distinct row numbers, so that count was low by at least one and the summary
+ * was reporting more rows tracked than the table was said to contain.
  */
-export const ASP68K_TOTAL_TRANSFORM_ROWS = 181;
+export const ASP68K_TOTAL_TRANSFORM_ROWS = 182;
 
 export const asp68kCoverage: readonly Asp68kCoverageEntry[] = [
   { rule: "optimization/zero-arithmetic-to-tst", sourceLines: [168, 1146], status: "implemented", note: "X differs because TST preserves it; applicability is decided with X liveness." },

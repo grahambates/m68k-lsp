@@ -6,6 +6,21 @@ import { fixtureContext, ids, lint } from "./helpers.js";
 // downgrade their suggestion to "conditional". ADD writes X too, which is what
 // these tests actually mean by "dead".
 
+describe("diagnostic ordering", () => {
+  test("diagnostics are returned in source order, not rule-registration order", () => {
+    const source = [
+      "start:",
+      "move.l 0(a0),d0",   // line 2
+      "move.l #42,d3",     // line 3
+      "add.l #1,d0",       // line 4
+      "lea (a0),a0",       // line 5
+    ].join("\n");
+    const lineNumbers = lint(source).map((d) => d.loc.line);
+    expect(lineNumbers.length).toBeGreaterThan(1);
+    expect([...lineNumbers].sort((a, b) => (a ?? 0) - (b ?? 0))).toEqual(lineNumbers);
+  });
+});
+
 describe("optimization rules", () => {
   test("prefers MOVEQ for signed 8-bit long immediates", () => {
     expect(ids("move.l #42,d3")).toContain("optimization/prefer-moveq");
