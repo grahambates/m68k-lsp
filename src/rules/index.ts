@@ -80,6 +80,7 @@ import { leaZeroAddress } from "./optimization/lea-zero-address.js";
 import { moveImmediateWordComplement, moveImmediateSwap } from "./optimization/move-immediate-more-synthesis.js";
 import { longShiftSequence } from "./optimization/long-shift-sequences.js";
 import { moveImmediateAddressToLea, moveAddressThenAddToLea } from "./optimization/movea-lea.js";
+import { preferLeaForAddressSymbol } from "./optimization/lea-address-symbol.js";
 import { cancelMultiplePredecrementMoves } from "./optimization/cancel-multiple-predecrement.js";
 import { cancelStackPeaSequence } from "./optimization/stack-pea-cancellation.js";
 import { multiplyLongByOne } from "./optimization/multiply-long-by-one.js";
@@ -218,6 +219,7 @@ export {
   longShiftSequence,
   moveImmediateAddressToLea,
   moveAddressThenAddToLea,
+  preferLeaForAddressSymbol,
   cancelMultiplePredecrementMoves,
   cancelStackPeaSequence,
   multiplyLongByOne,
@@ -308,6 +310,7 @@ export const defaultRules: readonly Rule[] = [
   longShiftSequence,
   moveImmediateAddressToLea,
   moveAddressThenAddToLea,
+  preferLeaForAddressSymbol,
   cancelMultiplePredecrementMoves,
   moveImmediateWordComplement,
   moveImmediateSwap,

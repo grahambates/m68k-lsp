@@ -108,6 +108,7 @@ export const ruleImpactAuditCases: readonly RuleImpactAuditCase[] = [
   { ruleId: "optimization/lea-zero-address", source: "lea 0.w,a0" },
   { ruleId: "optimization/long-shift-sequence", source: "lsl.l #16,d0\nmoveq #0,d7" },
   { ruleId: "optimization/movea-immediate-to-lea", source: "move.l #100,a0" },
+  { ruleId: "optimization/prefer-lea-for-address-symbol", source: "move.l #target,a0\ntarget:\nrts" },
   { ruleId: "optimization/movea-add-to-lea", source: "move.l a0,a1\nadd.l #12,a1" },
   { ruleId: "optimization/address-expression-to-lea", source: "move.l a0,a2\nadd.l #12,a2\nadd.l d3,a2" },
   { ruleId: "optimization/cancel-stack-pea-sequence", source: "addq.l #4,sp\npea (a0)\nmoveq #0,d7" },

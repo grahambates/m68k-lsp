@@ -1200,6 +1200,57 @@ describe("v0.37 vasm source + optimization goals", () => {
   });
 });
 
+describe("LEA for symbolic address loads", () => {
+  const cfg = { processors: ["mc68000" as const], measureImpact: false };
+  const ID = "optimization/prefer-lea-for-address-symbol";
+
+  test("prefers LEA for a long immediate symbolic address", () => {
+    const diagnostic = lint("move.l #label,a0\nlabel:\nrts", cfg).find((d) => d.ruleId === ID);
+    expect(diagnostic?.suggestion?.replacement).toBe("lea label,a0");
+    expect(diagnostic?.suggestion?.applicability).toBe("safe");
+  });
+
+  test("emits no size suffix, so the assembler can relax to PC-relative", () => {
+    // An explicit .L would pin the operand to absolute long and defeat the
+    // relaxation that is the entire point of the rule.
+    const diagnostic = lint("move.l #label,a0\nlabel:\nrts", cfg).find((d) => d.ruleId === ID);
+    expect(diagnostic?.suggestion?.replacement).not.toContain(".l");
+    expect(diagnostic?.suggestion?.replacement).not.toContain(".w");
+  });
+
+  test("handles the explicit MOVEA spelling and address expressions", () => {
+    expect(lint("movea.l #label,a1\nlabel:\nrts", cfg).find((d) => d.ruleId === ID)?.suggestion?.replacement).toBe(
+      "lea label,a1",
+    );
+    expect(lint("move.l #label+8,a2\nlabel:\nrts", cfg).find((d) => d.ruleId === ID)?.suggestion?.replacement).toBe(
+      "lea label+8,a2",
+    );
+  });
+
+  test("leaves foldable constants to the numeric MOVEA rule", () => {
+    // A resolvable value is not an address, and double-reporting it would be noise.
+    expect(ids("move.l #100,a0", cfg)).not.toContain(ID);
+    expect(ids("SIZE equ 100\nmove.l #SIZE,a0", cfg)).not.toContain(ID);
+    expect(ids("move.l #100,a0", cfg)).toContain("optimization/movea-immediate-to-lea");
+  });
+
+  test("does not fire where LEA cannot express the same load", () => {
+    // MOVEA.W sign-extends; matching it would force absolute short and rule out
+    // the PC-relative form anyway.
+    expect(ids("move.w #label,a0\nlabel:\nrts", cfg)).not.toContain(ID);
+    // LEA only targets address registers.
+    expect(ids("move.l #label,d0\nlabel:\nrts", cfg)).not.toContain(ID);
+    // Already correct.
+    expect(ids("lea label,a0\nlabel:\nrts", cfg)).not.toContain(ID);
+  });
+
+  test("is measured as neutral, because the gain is realised by the assembler", () => {
+    const diagnostic = lint("move.l #label,a0\nlabel:\nrts", { processors: ["mc68000"] }).find((d) => d.ruleId === ID);
+    expect(diagnostic?.suggestion?.impact?.assessment).toBe("neutral");
+    expect(diagnostic?.suggestion?.impact?.sizeBytes?.delta).toBe(0);
+  });
+});
+
 describe("platform modes", () => {
   test("TAS optimization is disabled by default", () => {
     const source = ["bset.b #7,(a0)", "moveq #0,d7"].join("\n");

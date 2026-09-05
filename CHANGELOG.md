@@ -52,6 +52,15 @@ previously lived in `README.md`.
 
 ### Added
 
+- `optimization/prefer-lea-for-address-symbol` — `move.l #label,a0` becomes
+  `lea label,a0`. The two are identical in size and cycles as written, and the
+  audit measures exactly that (neutral, all deltas zero). The gain is at
+  assembly time: LEA lets the assembler relax the operand to PC-relative where
+  the target is in range, 2 bytes shorter and faster, which a long immediate
+  MOVEA can never be. The suggestion deliberately carries no size suffix, since
+  an explicit `.L` would pin it to absolute long and defeat that. Foldable
+  constants are left to `optimization/movea-immediate-to-lea` so the two do not
+  double-report.
 - CI running typecheck, tests, build and the rule impact audit.
 - `npm run docs:rules` regenerates [`docs/rules.md`](docs/rules.md) from the
   built rule set.
