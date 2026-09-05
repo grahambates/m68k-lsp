@@ -1,0 +1,204 @@
+import * as counterNamespace from "68kcounter";
+import type { ParsedFile } from "m68k-parser";
+import type {
+  Diagnostic,
+  OptimizationExecutionImpact,
+  OptimizationImpact,
+  OptimizationMetric,
+  OptimizationSourceClaim,
+} from "../core/diagnostic.js";
+
+interface ImpactRuleMeta { meta: { docs?: { source?: string } } }
+
+type CounterTotals = {
+  isRange: boolean;
+  max: [number, number, number];
+  bytes: number;
+};
+type CounterApi = {
+  default?: unknown;
+  calculateTotals?: (lines: unknown[]) => CounterTotals;
+};
+
+// 68kcounter is CommonJS today. Node's ESM bridge may expose its TS default
+// export either directly or under the CommonJS module object's `.default`.
+const outerCounter = counterNamespace as unknown as CounterApi;
+const cjsCounter = (outerCounter.default && typeof outerCounter.default === "object")
+  ? outerCounter.default as CounterApi
+  : outerCounter;
+const parse68kCounter = (typeof outerCounter.default === "function"
+  ? outerCounter.default
+  : cjsCounter.default) as ((source: string) => unknown[]) | undefined;
+const calculateCounterTotals = outerCounter.calculateTotals ?? cjsCounter.calculateTotals;
+
+interface Measurement {
+  bytes: number;
+  cpuCycles?: number;
+  readCycles?: number;
+  writeCycles?: number;
+}
+
+/** Normalize generated snippets to conventional assembler columns before passing
+ * them to 68kcounter. Rules intentionally emit compact replacements starting in
+ * column zero, while assemblers/parsers may treat that position as a label. */
+export function normalizeCounterSnippet(source: string): string {
+  return source
+    .replace(/\r\n/g, "\n")
+    .replace(/\r/g, "\n")
+    .split("\n")
+    .map((line) => (line.trim().length === 0 || /^[ \t]/.test(line) ? line : `\t${line}`))
+    .join("\n");
+}
+
+function measureSnippet(source: string): Measurement | undefined {
+  try {
+    if (!parse68kCounter || !calculateCounterTotals) return undefined;
+    const normalized = normalizeCounterSnippet(source);
+    const lines = parse68kCounter(normalized);
+    const totals = calculateCounterTotals(lines);
+    const result: Measurement = { bytes: totals.bytes };
+
+    // A non-empty replacement/source which produces no bytes usually means
+    // the counter parser did not understand the snippet. Treat that as an
+    // unavailable measurement rather than a miraculous zero-byte encoding.
+    if (source.trim() && totals.bytes === 0) return undefined;
+
+    // Conditional branches have min/max timing. The current impact schema is
+    // deliberately scalar, so don't pretend one path is "the" exact timing.
+    if (!totals.isRange) {
+      result.cpuCycles = totals.max[0];
+      result.readCycles = totals.max[1];
+      result.writeCycles = totals.max[2];
+    }
+    return result;
+  } catch {
+    // 68kcounter is intentionally best-effort here. A lint rule should never
+    // disappear merely because the measurement parser doesn't understand a
+    // source spelling or expression.
+    return undefined;
+  }
+}
+
+function metric(before: number | undefined, after: number | undefined): OptimizationMetric | undefined {
+  if (before === undefined || after === undefined) return undefined;
+  return { before, after, delta: after - before, confidence: "exact" };
+}
+
+function sourceSpan(diagnostic: Diagnostic, file: ParsedFile): { start: number; end: number } | undefined {
+  const lineNumber = diagnostic.loc.line;
+  const locationStart = lineNumber ? lineNumber - 1 : undefined;
+  let start: number;
+
+  if (locationStart === undefined || locationStart < 0 || locationStart >= file.lines.length) {
+    const byIdentity = file.lines.findIndex((line) => line.mnemonic?.loc === diagnostic.loc);
+    if (byIdentity < 0) return undefined;
+    start = byIdentity;
+  } else {
+    start = locationStart;
+  }
+
+  let end = start;
+  for (const [key, value] of Object.entries(diagnostic.data ?? {})) {
+    if ((key === "sourceStartIndex" || key === "sourceEndIndex" || key.endsWith("InstructionIndex")) &&
+        typeof value === "number" && Number.isInteger(value)) {
+      if (key === "sourceStartIndex") start = Math.min(start, value);
+      else end = Math.max(end, value);
+    }
+  }
+  return { start, end };
+}
+
+function preserveSourceClaim(existing: OptimizationImpact | undefined, rule: ImpactRuleMeta | undefined): OptimizationSourceClaim[] | undefined {
+  if (!existing) return undefined;
+  const size = existing.sizeBytes?.confidence === "source" ? existing.sizeBytes : undefined;
+  const execution = existing.execution && [
+    existing.execution.cpuCycles,
+    existing.execution.readCycles,
+    existing.execution.writeCycles,
+  ].some((m) => m?.confidence === "source") ? existing.execution : undefined;
+  const previous = existing.sourceClaims ?? [];
+  if (!size && !execution) return previous.length ? previous : undefined;
+  return [
+    ...previous,
+    {
+      source: rule?.meta.docs?.source,
+      sizeBytes: size,
+      execution,
+    },
+  ];
+}
+
+export function assessOptimizationImpact(impact: OptimizationImpact): OptimizationImpact["assessment"] {
+  const metrics = [
+    impact.sizeBytes,
+    impact.execution?.cpuCycles,
+    impact.execution?.readCycles,
+    impact.execution?.writeCycles,
+  ].filter((m): m is OptimizationMetric => !!m && m.confidence === "exact");
+  if (!metrics.length) return undefined;
+  const hasImprovement = metrics.some((m) => m.delta < 0);
+  const hasRegression = metrics.some((m) => m.delta > 0);
+  if (hasImprovement && hasRegression) return "tradeoff";
+  if (hasRegression) return "regression";
+  if (hasImprovement) return "improvement";
+  return "neutral";
+}
+
+/** Attach exact 68000 resource measurements to a replacement suggestion. */
+export function measureDiagnosticImpact(
+  diagnostic: Diagnostic,
+  file: ParsedFile,
+  source: string,
+  rule?: ImpactRuleMeta,
+): Diagnostic {
+  const replacement = diagnostic.suggestion?.replacement;
+  if (replacement === undefined) return diagnostic;
+  const span = sourceSpan(diagnostic, file);
+  if (!span) return diagnostic;
+
+  const sourceLines = source.replace(/\r\n/g, "\n").replace(/\r/g, "\n").split("\n");
+  const original = sourceLines.slice(span.start, span.end + 1).join("\n");
+  const before = measureSnippet(original);
+  const after = measureSnippet(replacement);
+  if (!before || !after) return diagnostic;
+
+  const prior = diagnostic.suggestion!.impact;
+  const execution: OptimizationExecutionImpact = {
+    processor: "mc68000",
+    cpuCycles: metric(before.cpuCycles, after.cpuCycles),
+    readCycles: metric(before.readCycles, after.readCycles),
+    writeCycles: metric(before.writeCycles, after.writeCycles),
+  };
+  const impact: OptimizationImpact = {
+    ...prior,
+    sizeBytes: metric(before.bytes, after.bytes),
+    execution,
+    sourceClaims: preserveSourceClaim(prior, rule),
+  };
+  impact.assessment = assessOptimizationImpact(impact);
+
+  const notes = [...(diagnostic.notes ?? [])];
+  const sourceSize = prior?.sizeBytes?.confidence === "source" ? prior.sizeBytes : undefined;
+  if (sourceSize && impact.sizeBytes && sourceSize.delta !== impact.sizeBytes.delta) {
+    notes.push({
+      message: `Historical source claims ${sourceSize.delta > 0 ? "+" : ""}${sourceSize.delta} bytes, but 68kcounter measures ${impact.sizeBytes.delta > 0 ? "+" : ""}${impact.sizeBytes.delta} bytes on 68000.`,
+    });
+  }
+  if (impact.assessment === "regression") {
+    notes.push({ message: "68kcounter measures this replacement as a 68000 resource regression; review the source rule/CPU applicability." });
+  } else if (impact.assessment === "tradeoff") {
+    notes.push({ message: "68kcounter measures this as a 68000 trade-off rather than an unconditional improvement." });
+  }
+
+  return {
+    ...diagnostic,
+    notes: notes.length ? notes : undefined,
+    suggestion: { ...diagnostic.suggestion!, impact },
+    data: {
+      ...(diagnostic.data ?? {}),
+      measuredSourceStartIndex: span.start,
+      measuredSourceEndIndex: span.end,
+      impactAssessment: impact.assessment,
+    },
+  };
+}

@@ -1,0 +1,52 @@
+import type { OperandNode } from "m68k-parser";
+import type { Rule } from "../../core/rule.js";
+import { DATA_REGISTERS } from "../../semantics/registers.js";
+import { instructionSize, isInstruction, operand } from "../../util/ast.js";
+import { sourceOperand } from "./helpers.js";
+
+function supportedDestination(op: OperandNode | undefined): boolean {
+  return op?.type === "address-register-indirect-predec" || op?.type === "address-register-indirect-index";
+}
+
+export const knownZeroClear: Rule = {
+  meta: {
+    id: "optimization/known-zero-clear",
+    category: "optimization",
+    defaultSeverity: "suggestion",
+    description: "Use a known-zero data register instead of CLR for selected memory forms",
+    tags: ["asp68k", "register-analysis", "known-zero", "memory"],
+    docs: { source: "ASP68K" },
+  },
+  checkLine(ctx, line, index) {
+    if (!isInstruction(line, "clr")) return;
+    const size = instructionSize(line);
+    if (!size) return;
+    const dest = operand(line, 0);
+    if (!supportedDestination(dest)) return;
+    if (!ctx.config.processors.every((cpu) => ["mc68000", "mc68010", "mc68030"].includes(cpu))) return;
+
+    const zero = DATA_REGISTERS.find((r) => ctx.registers.knownConstantBefore(index, r) === 0);
+    if (!zero) return;
+    const destText = sourceOperand(ctx, line, 0);
+    if (!destText) return;
+
+    const replacement = `move.${size} ${zero},${destText}`;
+    ctx.report({
+      ruleId: this.meta.id,
+      category: this.meta.category,
+      severity: this.meta.defaultSeverity,
+      confidence: "certain",
+      message: `${zero.toUpperCase()} is known to be zero here and can supply this clear`,
+      loc: line.mnemonic!.loc,
+      suggestion: {
+        description: `Consider ${replacement.toUpperCase()}`,
+        replacement,
+        applicability: "conditional",
+      },
+      notes: [
+        { message: "The resulting register value and N/Z/V/C are equivalent because the source register is proven zero." },
+        { message: "Review memory-mapped I/O: CLR and MOVE can have different bus-cycle behaviour on some 68k systems." },
+      ],
+    });
+  },
+};

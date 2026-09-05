@@ -1,0 +1,53 @@
+{
+  "name": "m68k-lint",
+  "version": "0.46.2",
+  "description": "Extensible static analysis and linting for Motorola 68k assembly",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "m68k-lint.schema.json"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "jest",
+    "lint": "tsc -p tsconfig.json --noEmit",
+    "cli": "node ./dist/cli/main.js",
+    "audit:impact": "node ./dist/cli/main.js --audit-rule-impact"
+  },
+  "dependencies": {
+    "m68k-parser": "^1.2.0",
+    "68kcounter": "^3.2.1"
+  },
+  "devDependencies": {
+    "@types/jest": "^30.0.0",
+    "jest": "^30.2.0",
+    "ts-jest": "^29.4.5",
+    "typescript": "^5.9.3",
+    "@types/node": "^24.3.0"
+  },
+  "jest": {
+    "preset": "ts-jest/presets/default-esm",
+    "testEnvironment": "node",
+    "extensionsToTreatAsEsm": [
+      ".ts"
+    ],
+    "moduleNameMapper": {
+      "^(\\.{1,2}/.*)\\.js$": "$1"
+    },
+    "testMatch": [
+      "**/src/test/**/*.test.ts"
+    ]
+  },
+  "bin": {
+    "m68k-lint": "./dist/cli/main.js"
+  }
+}

@@ -1,0 +1,63 @@
+import { defaultRules } from "../rules/index.js";
+import { normalizeRuleImpactAuditSource, ruleImpactAuditCases, runRuleImpactAudit } from "../audit/rule-impact.js";
+import { normalizeCounterSnippet } from "../analysis/impact.js";
+
+describe("representative rule impact audit", () => {
+  test("every optimization/performance rule is accounted for", () => {
+    const covered = new Set(ruleImpactAuditCases.map((c) => c.ruleId));
+    const missing = defaultRules
+      .filter((r) => r.meta.category === "optimization" || r.meta.category === "performance")
+      .map((r) => r.meta.id)
+      .filter((id) => !covered.has(id));
+    expect(missing).toEqual([]);
+  });
+
+  test("representative 68000 cases trigger and are measurable", () => {
+    const bad = runRuleImpactAudit().filter((r) =>
+      r.status === "missing-case" || r.status === "not-triggered" || r.status === "unmeasured",
+    );
+    expect(bad).toEqual([]);
+  });
+
+  test("representative 68000 cases are not outright resource regressions", () => {
+    const regressions = runRuleImpactAudit().filter((r) => r.status === "regression");
+    expect(regressions).toEqual([]);
+  });
+
+  test("audit fixtures are indented so instructions are not parsed as column-zero labels", () => {
+    expect(normalizeRuleImpactAuditSource("move.l #42,d0\n.x:\nrts")).toBe(
+      "\tmove.l #42,d0\n\t.x:\n\trts",
+    );
+  });
+
+  test("generated replacement snippets are indented before 68kcounter parsing", () => {
+    expect(normalizeCounterSnippet("moveq #42,d0\naddq.l #1,d0")).toBe(
+      "\tmoveq #42,d0\n\taddq.l #1,d0",
+    );
+  });
+
+  test("prefer-moveq representative case reaches the rule audit path", () => {
+    const rule = defaultRules.find((r) => r.meta.id === "optimization/prefer-moveq");
+    expect(rule).toBeDefined();
+    const results = runRuleImpactAudit([rule!]);
+    expect(results).toHaveLength(1);
+    expect(results[0].status).not.toBe("not-triggered");
+  });
+
+});
+
+
+test("sequence folds measure their full source span", () => {
+  const audit = runRuleImpactAudit();
+  for (const id of [
+    "optimization/combine-consecutive-addq",
+    "optimization/cancel-addq-predecrement-move",
+    "optimization/negate-sub-to-add",
+    "optimization/negate-add-to-sub",
+    "optimization/negate-add-power-of-two-to-eor",
+  ]) {
+    const results = audit.filter((r) => r.ruleId === id);
+    expect(results.length).toBeGreaterThan(0);
+    expect(results.some((r) => r.status === "regression")).toBe(false);
+  }
+});

@@ -1,0 +1,51 @@
+# Follow-on source review
+
+This project treats ASP68K as the first historical corpus. The following sources are a second-stage backlog and should retain separate provenance.
+
+## vasm m68k optimizations
+
+High-value candidates not already covered (or worth re-checking independently):
+
+- `ANDI.? #-1,<ea> -> TST.? <ea>` — likely exact CCR/value equivalence for ordinary legal destinations.
+- `ORI.? #0,<ea> -> TST.? <ea>` and `EORI.? #0,<ea> -> TST.? <ea>` — same-value replacement; verify destination legality and bus side effects for memory.
+- `AND.? #0,<ea> -> CLR.? <ea>` — value/CCR-equivalent architecturally, but memory-mapped I/O and bus-cycle behavior warrant conditional/manual treatment.
+- two-register `MOVEM` -> two `MOVE`s under `-opt-movem` / `-opt-speed` — target and goal dependent.
+- `<op>.L #x,An -> <op>.W #x,An` when x fits signed word — especially CMPA; many ADD/SUB/MOVE cases overlap existing rules.
+- FPU constant-size reductions and `FDIV #2^n -> FMUL #2^-n` — later FPU rule pack.
+- speed-only multi-instruction rewrites should be tied to future goal/impact policy rather than enabled unconditionally.
+
+Important vasm correctness note: signed division by powers of two is *not* generally reducible to ASR because DIVS rounds toward zero while ASR rounds downward for negative values.
+
+## 68000 Tricks and Traps
+
+Candidate lints/advisories include:
+
+- redundant `TST` after an instruction which already set the relevant CCR (implemented independently).
+- tail-call `JSR ... / RTS -> JMP ...` (already covered).
+- fast-call idioms using an address register for the return address — potentially an advisory, not a general rewrite.
+- `JSR sub / JMP next -> PEA next / JMP sub` — changes return-address mechanics; requires strong control-flow/stack proof.
+- small-case dispatch using DBcc — advisory/algorithmic rather than a local peephole.
+- bit-mask membership tests — higher-level advisory requiring range proof.
+- address/data-register semantic traps (word address ops sign-extend; address ops do not set CCR) — useful correctness rules.
+
+## EAB optimization thread / community material
+
+Direct automated retrieval of the cited EAB thread was unreliable. A modern community compilation by Flamewing appears to incorporate ASP68K, Tricks and Traps, and selected Amiga forum posts. It contains many additional 68000-specific peepholes, especially:
+
+- rotate-count normalization (`ROL` vs `ROR`, `SWAP` combinations),
+- aggressive variable-shift reductions when shift-count registers are known constants,
+- mask-clearing idioms (`ANDI.L #$ffff` / `#$ffff0000`),
+- additional address-register `LEA` folds,
+- multiply/divide-by-constant recipes with explicit 68000 cycle/read/write/size deltas.
+
+These should be reviewed individually rather than imported wholesale. Several intentionally change flags, scratch registers, or high-word results and therefore map well to the existing liveness/sub-register analyses.
+
+## Flamewing rotate/shift audit (v0.26)
+
+The register-count rotate recipes were checked as rotation identities rather than accepted from the table. For word rotates, a known count 8..15 can be replaced by an immediate rotate in the opposite direction by `16-count`. For long rotates, counts 9..31 reduce through the 16-bit `SWAP` identity and/or the opposite direction modulo 32. Removing the preceding `MOVEQ` is only safe when its count register is dead after the rotate or already held the same constant before the sequence.
+
+Flamewing labels these rows "wrong flags". The verified difference for equivalent ROL/ROR forms is narrower: N/Z reflect the same result and V is cleared by both forms; C can differ because the final bit shifted out is different. X is unaffected by ROL/ROR.
+
+`ROXL #1` is value-equivalent to `ADDX Dn,Dn`, and two ADDX operations implement `ROXL #2` for byte/word operands. Final X/C and result N agree; ADDX's overflow and cumulative-Z semantics differ, so V/Z liveness is required.
+
+`LSL.B #7,Dn -> ROR.B #1,Dn; ANDI.B #$80,Dn` was independently verified. It preserves the byte result and N/Z/V, but not X/C. Flamewing reports it as faster on 68000 while four bytes larger, so it is tagged as a speed/size tradeoff.
