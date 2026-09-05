@@ -153,15 +153,31 @@ for (const auditCase of ruleImpactAuditCases) {
 }
 
 /**
+ * A label definition only counts as one while it starts in column 0. That is true
+ * of both spellings: colon-terminated (`.loop:`, and `.loop: move.l d0,d1`) and
+ * colon-less directive definitions (`answer equ 40+2`, `count set 3`, `base equr a3`).
+ *
+ * Indenting either does not demote it to an ordinary instruction line, it destroys
+ * it: m68k-parser yields a line with neither a label nor a mnemonic, so branch
+ * targets silently disappear and any rule that reasons about reachability sees a
+ * different program from the one the fixture describes.
+ */
+const COLUMN_ZERO_DEFINITION = /^\S+(:|\s+(equ|equr|fequ|set|reg|rs\.[bwl]|=)\b)/i;
+
+/**
  * m68k-parser follows traditional assembler column rules: a token beginning in
- * column 0 is eligible to be parsed as a label. Audit fixtures are stored in a
- * compact form, so indent every non-empty line before parsing. Colon-terminated
- * labels remain labels when indented.
+ * column 0 is eligible to be parsed as a label. Fixtures are stored in a compact
+ * form, so indent every non-empty line before parsing, leaving column-zero label
+ * definitions where they are.
  */
 export function normalizeRuleImpactAuditSource(source: string): string {
   return source
     .split("\n")
-    .map((line) => (line.trim().length === 0 || /^[ \t]/.test(line) ? line : `\t${line}`))
+    .map((line) => (
+      line.trim().length === 0 || /^[ \t]/.test(line) || COLUMN_ZERO_DEFINITION.test(line)
+        ? line
+        : `\t${line}`
+    ))
     .join("\n");
 }
 

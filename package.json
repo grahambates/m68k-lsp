@@ -17,7 +17,7 @@
     "m68k-lint.schema.json"
   ],
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "tsc -p tsconfig.build.json",
     "test": "jest",
     "lint": "tsc -p tsconfig.json --noEmit",
     "cli": "node ./dist/cli/main.js",
