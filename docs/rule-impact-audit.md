@@ -1,6 +1,6 @@
 # Rule impact audit
 
-`m68k-lint --audit-rule-impact` runs one representative example for every optimization/performance rule.
+`m68k-lint --audit-rule-impact` runs one representative example for every optimization rule.
 
 For rules applicable to `mc68000`, the example is linted with only that rule enabled and the actual replacement is measured using the same `68kcounter` adapter used during normal linting. Results are classified as `improvement`, `tradeoff`, `neutral`, or `regression` from exact byte/CPU/read/write deltas.
 

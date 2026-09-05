@@ -10,7 +10,6 @@ not:
 | `style`        | 7     | v0.44 conventions, opt-in                                  |
 | `correctness`  | 3     | two are Amiga-only; only `stale-condition-code` is generic |
 | `portability`  | 0     | despite `--cpu` already accepting seven processors         |
-| `performance`  | 0     | proposed for removal, see below                            |
 
 ## The governing test
 
@@ -109,26 +108,28 @@ tracking exists for `correctness/unbalanced-stack`, that falls out of the same
 model for free — A7 byte operations move the pointer by 2 — so this may not need
 to be a separate rule at all.
 
-## Dropping the `performance` category
+## The `performance` category was removed
 
-`performance` should be removed rather than filled. Everything plausibly in it is
-either an optimization or a note on an existing rule:
+`performance` had no rules and nothing plausibly belonged in it: branch-to-branch
+collapsing and redundant memory reloads are ordinary peephole substitutions, the
+cost of a misaligned access on 68020+ is a note on `odd-address-word-access`, and
+"expensive instruction in a loop" is an optimization advisory.
 
-- branch-to-branch collapsing and redundant memory reloads are ordinary
-  peephole substitutions, so they belong in `optimization`;
-- the cost of a misaligned access on 68020+ is a note on
-  `odd-address-word-access`, not a rule;
-- "expensive instruction in a loop" is an optimization advisory, and needs CFG
-  loop detection either way.
+An empty category is not free — it appeared in `RuleCategory`, the CLI `--only`
+and `--disable-category` lists, the JSON schema, the config loader, and the
+impact-measurement conditionals in `lint.ts` and the audit — so `--only
+performance` succeeded and silently matched nothing.
 
-A category with no rules is not free: it appears in `RuleCategory`, the CLI
-`--only` and `--disable-category` lists, the JSON schema and the config type, so
-`--only performance` currently succeeds and silently matches nothing. It is also
-threaded through impact measurement in two places in `lint.ts` and through the
-audit.
+It is now gone from all of those. Both entry points reject it explicitly rather
+than ignoring it:
 
-**Decision needed:** remove it from the public surface, or keep it documented as
-reserved. Removing it is a small breaking change to the config schema.
+```
+m68k-lint: --only: unknown value 'performance'.
+Expected one of: correctness, suspicious, optimization, portability, style
+```
+
+This is a breaking change for any config setting `categories.performance`,
+though setting it never did anything.
 
 ## Additions to `optimization` instead
 

@@ -4,6 +4,22 @@ import { join } from "node:path";
 import { findProjectConfig, loadProjectConfig } from "../cli/project-config.js";
 
 describe("project config", () => {
+  test("rejects the removed performance category", async () => {
+    // `performance` never had any rules and was removed in favour of putting
+    // substitutions in `optimization`. Erroring beats silently ignoring it.
+    const root = await mkdtemp(join(tmpdir(), "m68k-lint-config-perf-"));
+    const config = join(root, "m68k-lint.json");
+    await writeFile(config, JSON.stringify({ categories: { performance: false } }));
+    await expect(loadProjectConfig(config)).rejects.toThrow(/Unknown category 'performance'/);
+  });
+
+  test("still accepts the surviving categories", async () => {
+    const root = await mkdtemp(join(tmpdir(), "m68k-lint-config-cats-"));
+    const config = join(root, "m68k-lint.json");
+    await writeFile(config, JSON.stringify({ categories: { portability: true, style: false } }));
+    expect((await loadProjectConfig(config)).categories).toEqual({ portability: true, style: false });
+  });
+
   test("finds config walking upward", async () => {
     const root = await mkdtemp(join(tmpdir(), "m68k-lint-config-"));
     const nested = join(root, "a", "b");

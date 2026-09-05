@@ -4,10 +4,10 @@ import { normalizeRuleImpactAuditSource, ruleImpactAuditCases, runRuleImpactAudi
 import { normalizeCounterSnippet } from "../analysis/impact.js";
 
 describe("representative rule impact audit", () => {
-  test("every optimization/performance rule is accounted for", () => {
+  test("every optimization rule is accounted for", () => {
     const covered = new Set(ruleImpactAuditCases.map((c) => c.ruleId));
     const missing = defaultRules
-      .filter((r) => r.meta.category === "optimization" || r.meta.category === "performance")
+      .filter((r) => r.meta.category === "optimization")
       .map((r) => r.meta.id)
       .filter((id) => !covered.has(id));
     expect(missing).toEqual([]);

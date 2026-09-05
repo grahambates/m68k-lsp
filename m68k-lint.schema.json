@@ -88,9 +88,6 @@
         "optimization": {
           "type": "boolean"
         },
-        "performance": {
-          "type": "boolean"
-        },
         "portability": {
           "type": "boolean"
         },

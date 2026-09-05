@@ -41,6 +41,15 @@ previously lived in `README.md`.
   matching the documented policy and the test. The two tail-call rules, which
   deliberately emit no replacement text, are explicitly exempt instead.
 
+### Removed
+
+- **Breaking:** the `performance` rule category. It never had any rules, and
+  nothing belonged in it: branch collapsing and redundant reloads are ordinary
+  `optimization` substitutions. It is gone from `RuleCategory`, the CLI `--only`
+  and `--disable-category` lists, the JSON schema, the config loader and the
+  impact-measurement paths. A config setting `categories.performance` now errors
+  rather than being silently ignored. See [`docs/rule-roadmap.md`](docs/rule-roadmap.md).
+
 ### Added
 
 - CI running typecheck, tests, build and the rule impact audit.

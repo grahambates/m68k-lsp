@@ -227,7 +227,7 @@ export function normalizeRuleImpactAuditSource(source: string): string {
 export function runRuleImpactAudit(rules: readonly Rule[] = defaultRules): RuleImpactAuditResult[] {
   const results: RuleImpactAuditResult[] = [];
   for (const rule of rules) {
-    if (rule.meta.category !== "optimization" && rule.meta.category !== "performance") continue;
+    if (rule.meta.category !== "optimization") continue;
     const auditCases = casesByRule.get(rule.meta.id);
     if (!auditCases?.length) {
       results.push({ ruleId: rule.meta.id, status: "missing-case" });

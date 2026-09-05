@@ -225,7 +225,7 @@ Unknown performance is never silently treated as a regression.
 npm run audit:impact   # or: m68k-lint --audit-rule-impact
 ```
 
-Runs one representative example for every optimization and performance rule.
+Runs one representative example for every optimization rule.
 mc68000 cases are measured; rules a 68000-only counter cannot measure must carry
 an explicit exemption. Missing cases, examples that no longer trigger,
 unmeasured rules and measured regressions all fail the command, so a new rule

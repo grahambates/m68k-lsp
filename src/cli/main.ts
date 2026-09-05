@@ -23,14 +23,7 @@ import { findProjectConfig, loadProjectConfig, type ProjectConfig } from "./proj
 const VERSION = "0.46.2";
 
 const processors: readonly Processor[] = ["mc68000", "mc68010", "mc68020", "mc68030", "mc68040", "mc68060", "cpu32"];
-const categories: readonly RuleCategory[] = [
-  "correctness",
-  "suspicious",
-  "optimization",
-  "performance",
-  "portability",
-  "style",
-];
+const categories: readonly RuleCategory[] = ["correctness", "suspicious", "optimization", "portability", "style"];
 const settings: readonly RuleSetting[] = ["off", "error", "warning", "suggestion", "info"];
 const severityRank: Record<Severity, number> = { error: 0, warning: 1, suggestion: 2, info: 3 };
 

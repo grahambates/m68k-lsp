@@ -10,14 +10,7 @@ const platforms = new Set<Platform>(["generic", "amiga"]);
 const goals = new Set<OptimizationGoal>(["balanced", "speed", "size"]);
 const ruleSettings = new Set<RuleSetting>(["off", "error", "warning", "suggestion", "info"]);
 const presets = new Set<RulePreset>(["recommended", "style"]);
-const categories = new Set<RuleCategory>([
-  "correctness",
-  "suspicious",
-  "optimization",
-  "performance",
-  "portability",
-  "style",
-]);
+const categories = new Set<RuleCategory>(["correctness", "suspicious", "optimization", "portability", "style"]);
 
 export interface ProjectConfig {
   processors?: Processor[];

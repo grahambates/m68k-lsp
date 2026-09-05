@@ -12,12 +12,11 @@ import { fileURLToPath } from "node:url";
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const { defaultRules } = await import(join(root, "dist", "rules", "index.js"));
 
-const CATEGORY_ORDER = ["correctness", "suspicious", "optimization", "performance", "portability", "style"];
+const CATEGORY_ORDER = ["correctness", "suspicious", "optimization", "portability", "style"];
 const CATEGORY_BLURB = {
   correctness: "Valid assembly with a provable semantic or runtime problem.",
   suspicious: "Valid code that may be intentional but is easy to misread or misuse.",
   optimization: "Smaller or faster equivalents, gated on CPU target and proven flag/register liveness.",
-  performance: "Cost findings that are not a local instruction substitution.",
   portability: "Constructs that do not carry across the targeted processors.",
   style: "Subjective conventions. Opt in with the `style` preset or per rule.",
 };
