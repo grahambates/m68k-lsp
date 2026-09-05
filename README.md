@@ -294,7 +294,8 @@ encodings that do not exist, and for claiming savings that measurement disproves
 
 Further reading: [`docs/impact-measurement.md`](docs/impact-measurement.md),
 [`docs/rule-impact-audit.md`](docs/rule-impact-audit.md).
-Planned rules for the thinner categories are proposed in
+Planned rules for the thinner categories, and the policy on what belongs here
+rather than in the assembler, are in
 [`docs/rule-roadmap.md`](docs/rule-roadmap.md).
 
 ## Development
