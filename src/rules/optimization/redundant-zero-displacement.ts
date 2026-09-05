@@ -1,6 +1,6 @@
 import type { Rule } from "../../core/rule.js";
 import { operand } from "../../util/ast.js";
-import { sourceOperand } from "./helpers.js";
+import { replaceOperandInLine, sourceOperand } from "./helpers.js";
 
 export const redundantZeroDisplacement: Rule = {
   meta: {
@@ -20,15 +20,18 @@ export const redundantZeroDisplacement: Rule = {
       if (!displacement.known || displacement.value !== 0) continue;
 
       const original = sourceOperand(ctx, line, i);
-      const replacement = `(${op.register.register})`;
+      const operandText = `(${op.register.register})`;
+      // Replacements are line-scoped, so rewrite the operand within the full line.
+      const replacement = replaceOperandInLine(ctx, line, i, operandText);
+      if (!replacement) continue;
       ctx.report({
         ruleId: this.meta.id,
         category: this.meta.category,
         severity: this.meta.defaultSeverity,
         confidence: "certain",
-        message: `Zero displacement ${original ?? `0(${op.register.register})`} can use ${replacement}`,
+        message: `Zero displacement ${original ?? `0(${op.register.register})`} can use ${operandText}`,
         loc: op.loc,
-        suggestion: { description: `Use ${replacement}`, replacement, applicability: "safe" },
+        suggestion: { description: `Use ${operandText}`, replacement, applicability: "safe" },
         notes: [{ message: "ASP68K lists 0(An) → (An) as a 2-byte saving." }],
         data: { operandIndex: i },
       });

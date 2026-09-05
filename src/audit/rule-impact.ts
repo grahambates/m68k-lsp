@@ -130,8 +130,12 @@ export const ruleImpactAuditCases: readonly RuleImpactAuditCase[] = [
   { ruleId: "optimization/combine-adjacent-clr-words", source: "clr.w $1000\nclr.w $1002\nmoveq #0,d7" },
   { ruleId: "optimization/combine-adjacent-move-bytes", source: "move.b #1,$1000\nmove.b #2,$1001\nmoveq #0,d7" },
   { ruleId: "optimization/combine-adjacent-move-words", source: "move.w #1,$1000\nmove.w #2,$1002\nmoveq #0,d7" },
-  { ruleId: "optimization/jsr-rts-tail-call", source: "jsr sub\nrts\nsub:\nrts" },
-  { ruleId: "optimization/bsr-rts-tail-call", source: "bsr sub\nrts\nsub:\nrts" },
+  // The tail-call rules deliberately emit no replacement text: JSR+RTS -> JMP
+  // changes stack depth, so the rewrite is flagged "manual" for a human rather
+  // than offered as a substitution. With nothing to substitute there is nothing
+  // for 68kcounter to measure.
+  { ruleId: "optimization/jsr-rts-tail-call", exempt: "advisory rule with no replacement text; the JMP rewrite changes stack depth and stays manual" },
+  { ruleId: "optimization/bsr-rts-tail-call", exempt: "advisory rule with no replacement text; the BRA rewrite changes stack depth and stays manual" },
   { ruleId: "optimization/null-branch", source: "bra next\nnext:\nnop" },
 
   // No 68000 measurement is meaningful/available for these target-specific rules.

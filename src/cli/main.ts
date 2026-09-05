@@ -316,7 +316,11 @@ async function main(): Promise<number> {
       const auditedRuleCount = new Set(audit.map((r) => r.ruleId)).size;
       console.log(`\nRule impact audit: ${audit.length} cases across ${auditedRuleCount} rules; ${counts.get("regression") ?? 0} regressions, ${counts.get("tradeoff") ?? 0} tradeoffs, ${counts.get("partial") ?? 0} partial, ${counts.get("improvement") ?? 0} improvements, ${counts.get("unmeasured") ?? 0} unmeasured, ${counts.get("not-triggered") ?? 0} bad examples, ${counts.get("missing-case") ?? 0} missing cases, ${counts.get("exempt") ?? 0} exempt.`);
     }
-    return audit.some((r) => r.status === "regression" || r.status === "not-triggered" || r.status === "missing-case") ? 1 : 0;
+    // "unmeasured" is a failure too: docs/rule-impact-audit.md requires a rule the
+    // 68000 counter cannot measure to carry an explicit exemption, so that new
+    // rules cannot silently escape validation.
+    const failing = new Set(["regression", "not-triggered", "missing-case", "unmeasured"]);
+    return audit.some((r) => failing.has(r.status)) ? 1 : 0;
   }
   if (options.asp68kCoverage) {
     const summary = asp68kCoverageSummary();
