@@ -1,4 +1,4 @@
-import json5 from "json5";
+import { parseLine } from "m68k-parser";
 import {
   AddressingMode,
   aliases,
@@ -10,8 +10,7 @@ import {
   Qualifier,
   Qualifiers,
 } from "../syntax";
-import lookupAddressingMode from "./operandMode";
-import tokenize from "./tokenize";
+import { nodeAddressingMode } from "./operandMode";
 
 export abstract class Node {
   type: string;
@@ -108,22 +107,17 @@ export class QualifierNode extends Node {
 
 export class EffectiveAddressNode extends Node {
   mode: AddressingMode;
-  constructor(start: number, text: string) {
+  constructor(start: number, text: string, mode: AddressingMode) {
     super(start, text, "EffectiveAddress");
-    this.mode = lookupAddressingMode(text);
+    this.mode = mode;
   }
 }
 
 export class StringNode extends Node {
   value: string;
-  constructor(start: number, text: string) {
+  constructor(start: number, text: string, value: string) {
     super(start, text, "String");
-    try {
-      this.value = json5.parse(text);
-    } catch (_) {
-      this.value = "";
-      console.error("Unable to parse text", { text });
-    }
+    this.value = value;
   }
 }
 
@@ -156,28 +150,45 @@ export class StatementNode extends Node {
   constructor(text: string) {
     super(0, text);
     this.operands = [];
-    const tokens = tokenize(text);
 
-    for (const i in tokens) {
-      const [start, text] = tokens[i];
-      if (text[0] === ";" || (text[0] === "*" && text[1] !== "+")) {
-        this.comment = new CommentNode(start, text);
-      } else if (start === 0) {
-        this.label = new LabelNode(start, text);
-      } else if (!this.opcode) {
-        this.opcode = new OpcodeNode(start, text);
-      } else {
-        // Operands
-        if (["'", '"'].includes(text[0])) {
-          this.operands.push(new StringNode(start, text));
-        } else if (text === "\\@") {
-          this.operands.push(new MacroInvocationsNode(start, text));
-        } else if (text[0] === "\\") {
-          this.operands.push(new MacroArgNode(start, text));
+    const { value } = parseLine(text);
+
+    if (value.label) {
+      const { start, end } = value.label.loc;
+      this.label = new LabelNode(start, text.slice(start, end));
+    }
+
+    if (value.mnemonic) {
+      // Recombine mnemonic and size into a single token (e.g. `move.w`) so
+      // that OpcodeNode can apply our own classification and aliases.
+      const start = value.mnemonic.loc.start;
+      const end = value.qualifier
+        ? value.qualifier.loc.end
+        : value.mnemonic.loc.end;
+      this.opcode = new OpcodeNode(start, text.slice(start, end));
+    }
+
+    for (const operand of value.operands ?? []) {
+      const { start, end } = operand.loc;
+      const opText = text.slice(start, end);
+      if (operand.type === "string-literal") {
+        this.operands.push(new StringNode(start, opText, operand.content));
+      } else if (operand.type === "macro-parameter") {
+        if (operand.param === "@") {
+          this.operands.push(new MacroInvocationsNode(start, opText));
         } else {
-          this.operands.push(new EffectiveAddressNode(start, text));
+          this.operands.push(new MacroArgNode(start, opText));
         }
+      } else {
+        this.operands.push(
+          new EffectiveAddressNode(start, opText, nodeAddressingMode(operand))
+        );
       }
+    }
+
+    if (value.comment) {
+      const { start, end } = value.comment.loc;
+      this.comment = new CommentNode(start, text.slice(start, end));
     }
   }
 

@@ -17,6 +17,22 @@ describe("calculateTotals", () => {
     expect(result.bytes).toEqual(5);
   });
 
+  test("excludes reference lines", () => {
+    const lines: Line[] = [
+      { statement, timing: { values: [[4, 2, 1]], labels: [] }, bytes: 2 },
+      {
+        statement,
+        timing: { values: [[8, 1, 0]], labels: [] },
+        bytes: 4,
+        reference: true,
+      },
+      { statement, timing: { values: [[12, 0, 1]], labels: [] }, bytes: 2 },
+    ];
+    const result = calculateTotals(lines);
+    expect(result.min).toEqual([16, 2, 2]);
+    expect(result.bytes).toEqual(4);
+  });
+
   test("range", () => {
     const lines: Line[] = [
       {

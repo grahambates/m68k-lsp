@@ -50,4 +50,36 @@ describe("instructionSize", () => {
     const [result] = parse(" nop");
     expect(result.bytes).toEqual(2);
   });
+
+  describe("68020 instructions", () => {
+    test("extb.l", () => {
+      const [result] = parse(" extb.l d0");
+      expect(result.bytes).toEqual(2);
+    });
+
+    test("rtd (displacement word)", () => {
+      const [result] = parse(" rtd #8");
+      expect(result.bytes).toEqual(4);
+    });
+
+    test("pack (adjustment word)", () => {
+      const [result] = parse(" pack d0,d1,#0");
+      expect(result.bytes).toEqual(4);
+    });
+
+    test("bkpt (immediate embedded in opcode)", () => {
+      const [result] = parse(" bkpt #3");
+      expect(result.bytes).toEqual(2);
+    });
+
+    test("chk2 (mandatory extension word)", () => {
+      const [result] = parse(" chk2.w d0,(a0)");
+      expect(result.bytes).toEqual(4);
+    });
+
+    test("cas (mandatory extension word)", () => {
+      const [result] = parse(" cas.w d0,d1,(a0)");
+      expect(result.bytes).toEqual(4);
+    });
+  });
 });

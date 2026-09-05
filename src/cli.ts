@@ -5,6 +5,7 @@ import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
 
 import parse, { calculateTotals } from ".";
+import { CacheModels, Cpus, toCpu } from "./syntax";
 import {
   Formatter,
   IncludedElements,
@@ -45,6 +46,19 @@ const argv = yargs(hideBin(process.argv))
       type: "number",
       default: 30,
       alias: "w",
+    },
+    cpu: {
+      describe: "Target CPU model",
+      type: "string",
+      choices: [Cpus.MC68000, Cpus.MC68020] as const,
+      default: Cpus.MC68000,
+    },
+    cache: {
+      describe:
+        "For 68020, assume instructions hit the cache (best available case); " +
+        "the default is worst case (cache miss)",
+      type: "boolean",
+      default: false,
     },
   })
   .parseSync();
@@ -92,7 +106,10 @@ if (file) {
 }
 
 function processText(text: string): void {
-  const lines = parse(text);
+  const lines = parse(text, {
+    cpu: toCpu(argv.cpu),
+    cacheModel: argv.cache ? CacheModels.Cache : CacheModels.Worst,
+  });
   const totals = calculateTotals(lines);
   const output = formatter.format(lines, totals);
   console.log(output);

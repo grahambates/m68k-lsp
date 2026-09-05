@@ -1,4 +1,15 @@
-import { baseTimes, lookupTimes } from "./tables";
+import { baseTimes, lookupTimes, TimingTable } from "./tables";
+import {
+  baseTimes as baseTimes68020,
+  moveTimes as moveTimes68020,
+  fetchEa,
+  calcEa,
+  jumpEa,
+  fetchImmEa,
+  fetchImmEaL,
+  calcImmEa,
+  Timing2,
+} from "./tables68020";
 import {
   Qualifiers,
   AddressingMode,
@@ -6,16 +17,25 @@ import {
   Mnemonics,
   mnemonicGroups,
   Mnemonic,
+  Cpu,
+  Cpus,
+  defaultCpu,
+  CacheModel,
+  CacheModels,
+  defaultCacheModel,
 } from "../syntax";
 import instructionQualifier from "../parse/instructionQualifier";
 import { EffectiveAddressNode, InstructionStatement } from "../parse/nodes";
 import evaluate, { Variables } from "../parse/evaluate";
 
 /**
- * Timing vector:
- * cycles, reads, writes
+ * Timing vector. The first element is always the clock count; the remaining
+ * elements are bus-cycle counts shown in parentheses. The 68000 uses
+ * `[clocks, reads, writes]`; the 68020 uses `[clocks, reads, prefetches, writes]`
+ * (it separates operand reads from instruction-stream accesses). Helpers here
+ * are length-agnostic so both shapes work.
  */
-export type Timing = [number, number, number];
+export type Timing = number[];
 
 /**
  * Result of timing lookup for an instruction
@@ -30,7 +50,10 @@ export interface InstructionTiming {
  * Describes how the timings are calculated
  */
 export interface Calculation {
+  /** Per-outcome timings for the default (worst) cache case */
   base: Timing[];
+  /** Per-outcome timings for the cache-hit case (68020 only) */
+  baseCache?: Timing[];
   ea?: Timing;
   multiplier?: Timing;
   /** Known number or range */
@@ -51,14 +74,23 @@ export function popCount(x: number): number {
  */
 export function instructionTimings(
   statement: InstructionStatement,
-  vars: Variables
+  vars: Variables,
+  cpu: Cpu = defaultCpu,
+  cacheModel: CacheModel = defaultCacheModel
 ): InstructionTiming | null {
   const key = buildKey(statement);
+  const timingMap = timingMaps[cpu];
   if (!key || !timingMap.has(key)) {
     return null;
   }
   const calculation = { ...(timingMap.get(key) as Calculation) };
-  const timings: Timing[] = [...calculation.base];
+  // Pick the cache-case or worst-case per-outcome timings (68020); the 68000
+  // has no cache-case variant and always uses `base`.
+  const selected =
+    cacheModel === CacheModels.Cache && calculation.baseCache
+      ? calculation.baseCache
+      : calculation.base;
+  const timings: Timing[] = [...selected];
 
   const {
     opcode: { op },
@@ -117,7 +149,7 @@ export function instructionTimings(
       if (Array.isArray(calculation.n)) {
         for (const i in calculation.n) {
           const m = multiplyTiming(calculation.multiplier, calculation.n[i]);
-          timings[i] = addTimings(calculation.base[0], m);
+          timings[i] = addTimings(selected[0], m);
         }
       }
       // Single value
@@ -144,25 +176,30 @@ export function instructionTimings(
 }
 
 /**
- * Convert timing to string per the 68000 documentation
- *
- * clock(read/write)
+ * Convert timing to string: clocks followed by the bus-cycle counts in
+ * parentheses, e.g. `8(2/0)` (68000: read/write) or `9(1/0/0)` (68020:
+ * read/prefetch/write).
  */
 export const formatTiming = (timing: Timing): string =>
-  `${timing[0]}(${timing[1]}/${timing[2]})`;
+  `${timing[0]}(${timing.slice(1).join("/")})`;
 
 /**
- * Add two timing vectors
+ * Add two timing vectors element-wise (padding the shorter with zeros).
  */
 export function addTimings(a: Timing, b: Timing): Timing {
-  return [a[0] + b[0], a[1] + b[1], a[2] + b[2]];
+  const length = Math.max(a.length, b.length);
+  const result: number[] = [];
+  for (let i = 0; i < length; i++) {
+    result[i] = (a[i] || 0) + (b[i] || 0);
+  }
+  return result;
 }
 
 /**
  * Multiply a timing vector by a scalar value
  */
 export function multiplyTiming(t: Timing, scalar: number): Timing {
-  return [t[0] * scalar, t[1] * scalar, t[2] * scalar];
+  return t.map((v) => v * scalar);
 }
 
 /**
@@ -218,66 +255,144 @@ function buildKey(statement: InstructionStatement): string | null {
   return key;
 }
 
-// Flatten table into key/value for simple lookup by instruction string
-// e.g.
-// "MOVE.L Dn,Dn": [4, 1, 0]
+// Flatten a CPU's timing table into a key/value map for simple lookup by
+// instruction string, e.g. "MOVE.L Dn,Dn": [4, 1, 0]
+function buildTimingMap(
+  baseTimes: TimingTable,
+  lookupTimes: Record<string, [Timing, Timing]>
+): Map<string, Calculation> {
+  const timingMap = new Map<string, Calculation>();
 
-const timingMap = new Map<string, Calculation>();
+  for (const row of baseTimes) {
+    const [mnemonics, qualifiers, operands, base, multiplier] = row;
+    for (const mnemonic of mnemonics) {
+      for (const qualifier of qualifiers) {
+        let key = String(mnemonic);
+        if (qualifier) {
+          key += "." + qualifier;
+        }
+        const eaSize = qualifier === Qualifiers.L ? 1 : 0;
+        let o: AddressingMode;
 
-for (const row of baseTimes) {
-  const [mnemonics, qualifiers, operands, base, multiplier] = row;
-  for (const mnemonic of mnemonics) {
-    for (const qualifier of qualifiers) {
-      let key = String(mnemonic);
-      if (qualifier) {
-        key += "." + qualifier;
-      }
-      const eaSize = qualifier === Qualifiers.L ? 1 : 0;
-      let o: AddressingMode;
-
-      if (Array.isArray(operands[0])) {
-        // EA lookup in source
-        for (o of operands[0]) {
-          let k = key + " " + o;
-          if (operands[1]) {
-            k += "," + operands[1];
-          }
-          let ea: Timing | undefined;
-          if (lookupTimes[o]) {
-            ea = lookupTimes[o][eaSize];
-            // Special cases:
-            if (mnemonic === Mnemonics.TAS && o === AddressingModes.AbsW) {
-              ea = [8, 1, 0];
+        if (Array.isArray(operands[0])) {
+          // EA lookup in source
+          for (o of operands[0]) {
+            let k = key + " " + o;
+            if (operands[1]) {
+              k += "," + operands[1];
             }
-            if (
-              (mnemonic === Mnemonics.TAS ||
-                mnemonic === Mnemonics.CHK ||
-                mnemonic === Mnemonics.MULS ||
-                mnemonic === Mnemonics.MULU) &&
-              o === AddressingModes.AbsL
-            ) {
-              ea = [12, 2, 0];
+            let ea: Timing | undefined;
+            if (lookupTimes[o]) {
+              ea = lookupTimes[o][eaSize];
+              // Special cases:
+              if (mnemonic === Mnemonics.TAS && o === AddressingModes.AbsW) {
+                ea = [8, 1, 0];
+              }
+              if (
+                (mnemonic === Mnemonics.TAS ||
+                  mnemonic === Mnemonics.CHK ||
+                  mnemonic === Mnemonics.MULS ||
+                  mnemonic === Mnemonics.MULU) &&
+                o === AddressingModes.AbsL
+              ) {
+                ea = [12, 2, 0];
+              }
             }
+            timingMap.set(k, { base, ea, multiplier });
           }
-          timingMap.set(k, { base, ea, multiplier });
-        }
-      } else if (Array.isArray(operands[1])) {
-        // EA lookup in dest
-        for (o of operands[1]) {
-          const k = key + " " + operands[0] + "," + o;
-          let ea: Timing | undefined;
-          if (lookupTimes[o]) {
-            ea = lookupTimes[o][eaSize];
+        } else if (Array.isArray(operands[1])) {
+          // EA lookup in dest
+          for (o of operands[1]) {
+            const k = key + " " + operands[0] + "," + o;
+            let ea: Timing | undefined;
+            if (lookupTimes[o]) {
+              ea = lookupTimes[o][eaSize];
+            }
+            timingMap.set(k, { base, ea, multiplier });
           }
-          timingMap.set(k, { base, ea, multiplier });
+        } else {
+          // Regular operands
+          if (operands.length) {
+            key += " " + operands.join(",");
+          }
+          timingMap.set(key, { base: base, multiplier });
         }
-      } else {
-        // Regular operands
-        if (operands.length) {
-          key += " " + operands.join(",");
-        }
-        timingMap.set(key, { base: base, multiplier });
       }
     }
   }
+
+  return timingMap;
 }
+
+// Build the 68020 lookup map. Each instruction has a cache-case and worst-case
+// figure per outcome; the base tables exclude the effective-address time, which
+// is folded in here per addressing mode (§8.2). The result stores per-outcome
+// worst-case timings in `base` and cache-case timings in `baseCache`, and
+// instructionTimings picks one according to the selected cache model.
+function build68020Map(): Map<string, Calculation> {
+  const map = new Map<string, Calculation>();
+  for (const [mnemonics, qualifiers, operands, timing, eaKind, multiplier] of [
+    ...baseTimes68020,
+    ...moveTimes68020,
+  ]) {
+    // Normalise to a list of outcomes, each a [cache, worst] pair.
+    const outcomes: Timing2[] = Array.isArray(
+      (timing as Timing2[] | Timing2)[0][0]
+    )
+      ? (timing as Timing2[])
+      : [timing as Timing2];
+
+    const eaIndex = operands.findIndex((o) => Array.isArray(o));
+    const eaTable =
+      eaKind === "calc"
+        ? calcEa
+        : eaKind === "jump"
+        ? jumpEa
+        : eaKind === "fetchImm"
+        ? fetchImmEa
+        : eaKind === "fetchImmL"
+        ? fetchImmEaL
+        : eaKind === "calcImm"
+        ? calcImmEa
+        : fetchEa;
+
+    // Fold an optional EA time into each outcome and split into worst/cache.
+    const entry = (ea?: Timing2): Calculation => ({
+      base: outcomes.map((o) => (ea ? addTimings(o[1], ea[1]) : o[1])),
+      baseCache: outcomes.map((o) => (ea ? addTimings(o[0], ea[0]) : o[0])),
+      multiplier,
+    });
+
+    for (const mnemonic of mnemonics) {
+      for (const qualifier of qualifiers) {
+        let key = String(mnemonic);
+        if (qualifier) {
+          key += "." + qualifier;
+        }
+
+        // No effective-address operand: timings apply directly.
+        if (eaIndex === -1) {
+          const k = operands.length ? key + " " + operands.join(",") : key;
+          map.set(k, entry());
+          continue;
+        }
+
+        // Expand over the effective-address modes, folding in the EA time.
+        for (const mode of operands[eaIndex] as AddressingMode[]) {
+          const ea = eaTable[mode];
+          if (!ea) {
+            continue;
+          }
+          const modes = operands.map((o, i) => (i === eaIndex ? mode : o));
+          map.set(key + " " + modes.join(","), entry(ea));
+        }
+      }
+    }
+  }
+  return map;
+}
+
+const timingMaps: Record<Cpu, Map<string, Calculation>> = {
+  [Cpus.MC68000]: buildTimingMap(baseTimes, lookupTimes),
+  [Cpus.MC68020]: build68020Map(),
+};

@@ -14,13 +14,39 @@ const branchOps: Mnemonic[] = [
   Mnemonics.BSR,
   ...mnemonicGroups.BCC,
 ];
-const quick: Mnemonic[] = [Mnemonics.MOVEQ, Mnemonics.ADDQ, Mnemonics.SUBQ];
+// Instructions whose immediate operand is embedded in the opcode word (no
+// extra extension word): the 68000 quick forms plus 68020 BKPT.
+const quick: Mnemonic[] = [
+  Mnemonics.MOVEQ,
+  Mnemonics.ADDQ,
+  Mnemonics.SUBQ,
+  Mnemonics.BKPT,
+];
 const doubles: Mnemonic[] = [
   ...mnemonicGroups.DBCC,
   Mnemonics.LINK,
   Mnemonics.MOVEM,
   Mnemonics.MOVEP,
   Mnemonics.STOP,
+  // movec is always two words; its control-register operand is not an absolute
+  Mnemonics.MOVEC,
+];
+
+// 68020 instructions with a mandatory extension word beyond the opcode
+// (bit-field instructions carry an {offset:width} extension word).
+const extensionWord: Mnemonic[] = [
+  Mnemonics.CHK2,
+  Mnemonics.CMP2,
+  Mnemonics.CAS,
+  Mnemonics.MOVES,
+  Mnemonics.BFCHG,
+  Mnemonics.BFCLR,
+  Mnemonics.BFEXTS,
+  Mnemonics.BFEXTU,
+  Mnemonics.BFFFO,
+  Mnemonics.BFINS,
+  Mnemonics.BFSET,
+  Mnemonics.BFTST,
 ];
 
 const dispTypes: AddressingMode[] = [
@@ -28,6 +54,10 @@ const dispTypes: AddressingMode[] = [
   AddressingModes.AnDispIx,
   AddressingModes.PcDisp,
   AddressingModes.PcDispIx,
+  // 68020 memory indirect: counts the mandatory extension word only; any
+  // 16/32-bit base/outer displacements are not yet added (the parsed operand
+  // detail isn't carried through to sizing).
+  AddressingModes.MemIndir,
 ];
 
 /**
@@ -51,6 +81,11 @@ export default function instructionSize({
   }
 
   let words = 1;
+
+  // Mandatory extension word (CHK2/CMP2/CAS)
+  if (extensionWord.includes(op.name)) {
+    words += 1;
+  }
 
   for (const { mode } of operands) {
     // Absolute value:

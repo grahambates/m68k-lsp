@@ -1,5 +1,47 @@
 type Values<T> = T[keyof T];
 
+/**
+ * Target CPU models for which timing/size data is available.
+ */
+export const Cpus = {
+  MC68000: "68000",
+  MC68020: "68020",
+} as const;
+
+export type Cpu = Values<typeof Cpus>;
+
+export const defaultCpu: Cpu = Cpus.MC68000;
+
+/**
+ * Which of the 68020's cache states to report. The 68020 manual gives a
+ * cache-case and a worst-case (cache miss) figure; we default to worst case.
+ * (The 68000 has no cache and ignores this.)
+ */
+export const CacheModels = {
+  Cache: "cache",
+  Worst: "worst",
+} as const;
+
+export type CacheModel = Values<typeof CacheModels>;
+
+export const defaultCacheModel: CacheModel = CacheModels.Worst;
+
+/**
+ * Normalise a CPU identifier from a `--cpu` argument or a source directive
+ * (e.g. `machine mc68020`, `mc68020`) to a supported {@link Cpu}, or
+ * `undefined` if it isn't a target we model.
+ */
+export function toCpu(value: string): Cpu | undefined {
+  switch (value.toLowerCase().replace(/^mc?/, "")) {
+    case "68000":
+      return Cpus.MC68000;
+    case "68020":
+      return Cpus.MC68020;
+    default:
+      return undefined;
+  }
+}
+
 export const Mnemonics = {
   ABCD: "ABCD",
   ADD: "ADD",
@@ -118,6 +160,29 @@ export const Mnemonics = {
   TST: "TST",
   UNLK: "UNLK",
   ILLEGAL: "ILLEGAL",
+  // 68020+ integer instructions:
+  BKPT: "BKPT",
+  CAS: "CAS",
+  CAS2: "CAS2",
+  CHK2: "CHK2",
+  CMP2: "CMP2",
+  DIVSL: "DIVSL",
+  DIVUL: "DIVUL",
+  EXTB: "EXTB",
+  MOVEC: "MOVEC",
+  MOVES: "MOVES",
+  PACK: "PACK",
+  RTD: "RTD",
+  UNPK: "UNPK",
+  // Bit field manipulation:
+  BFCHG: "BFCHG",
+  BFCLR: "BFCLR",
+  BFEXTS: "BFEXTS",
+  BFEXTU: "BFEXTU",
+  BFFFO: "BFFFO",
+  BFINS: "BFINS",
+  BFSET: "BFSET",
+  BFTST: "BFTST",
 } as const;
 
 export type Mnemonic = Values<typeof Mnemonics>;
@@ -154,6 +219,8 @@ export const AddressingModes = {
   PcDispIx: "d(PC,ix)",
   AbsW: "xxx.W",
   AbsL: "xxx.L",
+  // 68020+ memory indirect: ([bd,An,Xn],od)
+  MemIndir: "([bd,An,ix],od)",
   RegList: "RegList",
   Imm: "#xxx",
   CCR: "ccr",

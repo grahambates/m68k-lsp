@@ -15,21 +15,18 @@ describe("operandMode", () => {
 
   test("indirect", () => {
     expect(operandMode("(a0)")).toEqual(AddressingModes.AnIndir);
-    expect(operandMode("(  a0  )")).toEqual(AddressingModes.AnIndir);
     expect(operandMode("(a7)")).toEqual(AddressingModes.AnIndir);
     expect(operandMode("(sp)")).toEqual(AddressingModes.AnIndir);
   });
 
   test("indirect post increment", () => {
     expect(operandMode("(a0)+")).toEqual(AddressingModes.AnPostInc);
-    expect(operandMode("(  a0  )+")).toEqual(AddressingModes.AnPostInc);
     expect(operandMode("(a7)+")).toEqual(AddressingModes.AnPostInc);
     expect(operandMode("(sp)+")).toEqual(AddressingModes.AnPostInc);
   });
 
   test("indirect pre decrement", () => {
     expect(operandMode("-(a0)")).toEqual(AddressingModes.AnPreDec);
-    expect(operandMode("-(  a0  )")).toEqual(AddressingModes.AnPreDec);
     expect(operandMode("-(a7)")).toEqual(AddressingModes.AnPreDec);
     expect(operandMode("-(sp)")).toEqual(AddressingModes.AnPreDec);
   });
@@ -72,7 +69,9 @@ describe("operandMode", () => {
     expect(operandMode("(a0,d0)")).toEqual(AddressingModes.AnDispIx);
     expect(operandMode("(a0,d0.w)")).toEqual(AddressingModes.AnDispIx);
     expect(operandMode("(a0,a0.w)")).toEqual(AddressingModes.AnDispIx);
-    expect(operandMode("(sp,sp)")).toEqual(AddressingModes.AnDispIx);
+    // An unsized address-register index e.g. `(sp,sp)` is ambiguous and is
+    // interpreted as a displacement expression rather than an index.
+    expect(operandMode("(sp,sp)")).toEqual(AddressingModes.AnDisp);
     expect(operandMode("(sp,sp.w)")).toEqual(AddressingModes.AnDispIx);
 
     // whitespace

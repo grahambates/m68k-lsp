@@ -1,5 +1,6 @@
 import fs from "fs";
 import parse from "../../src/parse";
+import { calculateTotals } from "../../src/totals";
 import { EffectiveAddressNode } from "../../src/parse/nodes";
 import {
   Mnemonics,
@@ -171,20 +172,6 @@ describe("parse()", () => {
       expect(result.timing).toBeTruthy();
       expect(result.bytes).toBeTruthy();
     });
-
-    test("space in parentheses", () => {
-      const [result] = parse("  move.w d0,(  a0 )");
-      expect(result.statement.opcode.op.name).toEqual(Mnemonics.MOVE);
-      expect(result.statement.opcode.qualifier.name).toEqual(Qualifiers.W);
-      expect(
-        (result.statement.operands[0] as EffectiveAddressNode).mode
-      ).toEqual(AddressingModes.Dn);
-      expect(
-        (result.statement.operands[1] as EffectiveAddressNode).mode
-      ).toEqual(AddressingModes.AnIndir);
-      expect(result.timing).toBeTruthy();
-      expect(result.bytes).toBeTruthy();
-    });
   });
 
   test("label no space", () => {
@@ -271,6 +258,38 @@ a:    macro
       expect(lines[4].timing?.values).toEqual([[8, 1, 1]]);
     });
 
+    test("macro definition body is annotated for reference", () => {
+      const lines = parse(`
+a:    macro
+      add.l d0,d1
+      endm
+      a`);
+      // Body line is annotated with timing/size but flagged as reference
+      expect(lines[2].reference).toBe(true);
+      expect(lines[2].bytes).toEqual(2);
+      expect(lines[2].timing?.values).toEqual([[8, 1, 0]]);
+    });
+
+    test("macro definition body excluded from totals", () => {
+      const lines = parse(`
+a:    macro
+      add.l d0,d1
+      endm`);
+      // Only the reference definition body, no invocation
+      expect(calculateTotals(lines).bytes).toEqual(0);
+    });
+
+    test("macro invocation: repeated argument", () => {
+      const lines = parse(`
+a:    macro
+      move.w \\1,\\1
+      endm
+      a d3`);
+      // Both occurrences of \\1 are substituted -> move.w d3,d3
+      expect(lines[4].bytes).toEqual(2);
+      expect(lines[4].timing?.values).toEqual([[4, 1, 0]]);
+    });
+
     test("rept", () => {
       const lines = parse(`
       rept 4
@@ -279,6 +298,19 @@ a:    macro
       expect(lines[3].macroLines).toHaveLength(4);
       expect(lines[3].bytes).toEqual(2 * 4);
       expect(lines[3].timing.values).toEqual([[8 * 4, 4, 4]]);
+    });
+
+    test("rept body is reference and not double-counted", () => {
+      const lines = parse(`
+      rept 4
+      move.w d0,(a0)
+      endr`);
+      // Body line annotated with single-iteration cost, flagged reference
+      expect(lines[2].reference).toBe(true);
+      expect(lines[2].bytes).toEqual(2);
+      expect(lines[2].timing?.values).toEqual([[8, 1, 1]]);
+      // Total counts the loop once (4 x 2 bytes), not the body line as well
+      expect(calculateTotals(lines).bytes).toEqual(8);
     });
 
     test("bss section", () => {

@@ -45,12 +45,29 @@ const unsized: Mnemonic[] = [
   Mnemonics.TRAPV,
   Mnemonics.UNLK,
   Mnemonics.ILLEGAL,
+  // 68020 instructions that take no size qualifier
+  Mnemonics.RTD,
+  Mnemonics.BKPT,
+  Mnemonics.PACK,
+  Mnemonics.UNPK,
+  Mnemonics.MOVEC,
+  // Bit field instructions have no size qualifier
+  Mnemonics.BFCHG,
+  Mnemonics.BFCLR,
+  Mnemonics.BFEXTS,
+  Mnemonics.BFEXTU,
+  Mnemonics.BFFFO,
+  Mnemonics.BFINS,
+  Mnemonics.BFSET,
+  Mnemonics.BFTST,
 ];
 const longDefault: Mnemonic[] = [
   Mnemonics.MOVEQ,
   Mnemonics.EXG,
   Mnemonics.LEA,
   Mnemonics.PEA,
+  // extb is byte -> long
+  Mnemonics.EXTB,
 ];
 const byteDefault: Mnemonic[] = [
   Mnemonics.NBCD,

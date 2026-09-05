@@ -49,6 +49,8 @@ export class JsonFormatter implements Formatter {
               text: inc.text ? l.statement.text : undefined,
               timing: inc.timings ? l.timing : undefined,
               bytes: inc.bytes ? l.bytes : undefined,
+              // Flag lines shown for reference only (excluded from totals)
+              reference: l.reference || undefined,
             }))
           : undefined,
       totals: inc.totals ? totals : undefined,

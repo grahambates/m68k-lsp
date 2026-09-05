@@ -1,5 +1,13 @@
 import { InstructionTiming, instructionTimings } from "../timings";
-import { Directives, Directive } from "../syntax";
+import {
+  CacheModel,
+  Cpu,
+  defaultCacheModel,
+  defaultCpu,
+  Directives,
+  Directive,
+  toCpu,
+} from "../syntax";
 import {
   DirectiveStatement,
   InstructionStatement,
@@ -17,6 +25,13 @@ export interface Line {
   bytes?: number;
   bss?: boolean;
   timing?: InstructionTiming;
+  /**
+   * Line is annotated with timing/size for reference but excluded from the
+   * grand totals. Used for macro definition bodies (no code is emitted at the
+   * definition site) and REPT bodies (which are counted once via the `endr`
+   * aggregate instead).
+   */
+  reference?: boolean;
 }
 
 export default class Parser {
@@ -40,6 +55,24 @@ export default class Parser {
 
   /** Are we currently in a BSS section */
   private bss = false;
+
+  /** Incrementing counter used to expand `\@` unique macro labels */
+  private uniqueId = 0;
+
+  /** Target CPU set from options; the baseline reset at the start of each pass */
+  private readonly defaultCpu: Cpu;
+
+  /** Current target CPU, updated by in-source MACHINE / mc680x0 directives */
+  private cpu: Cpu;
+
+  /** Which 68020 cache case to report (worst by default) */
+  private readonly cacheModel: CacheModel;
+
+  constructor(options: { cpu?: Cpu; cacheModel?: CacheModel } = {}) {
+    this.defaultCpu = options.cpu ?? defaultCpu;
+    this.cpu = this.defaultCpu;
+    this.cacheModel = options.cacheModel ?? defaultCacheModel;
+  }
 
   // Directive groups:
 
@@ -81,10 +114,14 @@ export default class Parser {
     // Reset state
     this.vars = {};
     this.macros = {};
+    this.uniqueId = 0;
 
     // Needs two passes to catch all references.
     let lines: Line[] = [];
     for (let i = 0; i < 2; i++) {
+      // Reset the CPU target for each top-level pass (but not for nested
+      // macro/rept expansion, which should inherit the current target).
+      this.cpu = this.defaultCpu;
       lines = this.processStatements(statements);
     }
 
@@ -105,43 +142,51 @@ export default class Parser {
   }
 
   private processStatement(statement: StatementNode): Line {
-    let line: Line = { statement };
-
-    // Currently defining a macro - store statements against this name rather than processing now
+    // Currently defining a macro - store statements against this name rather
+    // than processing now. The body is still annotated for reference.
     if (this.currentMacro) {
       if (statement.opcode?.op.name === Directives.ENDM) {
         // End macro
         this.currentMacro = null;
-      } else {
-        // Add statement to macro
-        this.macros[this.currentMacro].push(statement);
+        return { statement };
       }
-      return line;
+      // Add statement to macro
+      this.macros[this.currentMacro].push(statement);
+      return this.annotateReference(statement);
     }
 
-    // Inside repeating section:
+    // Inside a repeating section (before the closing endr): annotate the body
+    // for reference. The emitted total is counted once on the endr line.
+    if (this.reptStart && statement.opcode?.op.name !== Directives.ENDR) {
+      this.reptStatements.push(statement);
+      return this.annotateReference(statement);
+    }
+
+    // A MACHINE / mc680x0 directive selects the target CPU for later lines.
+    const cpu = this.detectCpu(statement);
+    if (cpu) {
+      this.cpu = cpu;
+    }
+
+    let line: Line = { statement };
+
+    // End of a repeating section:
     if (this.reptStart) {
-      if (statement.opcode?.op.name === Directives.ENDR) {
-        // End of repeat
-        line.macroLines = [];
-        // Expand and process repeated statements
-        const countOp = this.reptStart.statement.operands[0]?.text;
-        const reptCount = evaluate(countOp) || 0;
-        const statements = this.reptStatements;
+      line.macroLines = [];
+      // Expand and process repeated statements
+      const countOp = this.reptStart.statement.operands[0]?.text;
+      const reptCount = evaluate(countOp) || 0;
+      const statements = this.reptStatements;
 
-        this.reptStart = null;
-        this.reptStatements = [];
+      this.reptStart = null;
+      this.reptStatements = [];
 
-        // TODO: support REPTN
-        for (let i = 0; i < reptCount; i++) {
-          line.macroLines = [
-            ...line.macroLines,
-            ...this.processStatements(statements),
-          ];
-        }
-      } else {
-        // Add statement to repeated list
-        this.reptStatements.push(statement);
+      // TODO: support REPTN
+      for (let i = 0; i < reptCount; i++) {
+        line.macroLines = [
+          ...line.macroLines,
+          ...this.processStatements(statements),
+        ];
       }
     }
 
@@ -193,14 +238,23 @@ export default class Parser {
   private processMacro(statement: StatementNode & MacroStatement) {
     const line: Line = { statement };
     const macroName = statement.opcode.op.text;
-    if (this.macros[macroName]) {
-      const macroStatements = this.macros[macroName].map(
+    const definition = this.macros[macroName];
+    if (definition) {
+      const args = statement.operands.map((o) => o.text);
+      // Each invocation gets a distinct value for `\@` unique labels
+      const unique = String(this.uniqueId++);
+      const macroStatements = definition.map(
         ({ text }): StatementNode => {
-          for (let i = 1; i <= statement.operands.length; i++) {
-            const placeholder = "\\" + i;
-            text = text.replace(placeholder, statement.operands[i - 1].text);
-          }
-          return new StatementNode(text);
+          // Substitute all `\1`..`\n` argument references (handles repeated and
+          // multi-digit references) and `\@` unique markers in a single pass.
+          const expanded = text.replace(/\\(@|\d+)/g, (match, key) => {
+            if (key === "@") {
+              return unique;
+            }
+            const arg = args[Number(key) - 1];
+            return arg !== undefined ? arg : match;
+          });
+          return new StatementNode(expanded);
         }
       );
       line.macroLines = this.processStatements(macroStatements);
@@ -253,8 +307,42 @@ export default class Parser {
     const line: Line = {
       statement,
       bss: this.bss,
-      timing: instructionTimings(statement, this.vars) || undefined,
+      timing:
+        instructionTimings(statement, this.vars, this.cpu, this.cacheModel) ||
+        undefined,
     };
+    return line;
+  }
+
+  /**
+   * Detect a CPU target from a `MACHINE mc680x0` directive or a bare `mc680x0`
+   * directive. Returns undefined for anything that isn't a supported target.
+   */
+  private detectCpu(statement: StatementNode): Cpu | undefined {
+    const op = statement.opcode?.op;
+    if (!op) {
+      return undefined;
+    }
+    if (op.name === Directives.MACHINE) {
+      const operand = statement.operands[0];
+      return operand ? toCpu(operand.text) : undefined;
+    }
+    return toCpu(op.text);
+  }
+
+  /**
+   * Annotate a statement with timing/size for display but flag it as reference
+   * so it is excluded from the grand totals. Used for macro definition and
+   * REPT bodies. Does not advance the location counter.
+   */
+  private annotateReference(statement: StatementNode): Line {
+    const line: Line = { statement, reference: true, bss: this.bss };
+    if (statement.isInstruction()) {
+      line.timing =
+        instructionTimings(statement, this.vars, this.cpu, this.cacheModel) ||
+        undefined;
+    }
+    line.bytes = statementSize(statement, this.vars);
     return line;
   }
 }
