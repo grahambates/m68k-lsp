@@ -1349,6 +1349,34 @@ describe("Atari ST/STE absolute-address footguns", () => {
     expect(ids("move.l $70,a0", st)).not.toContain(ID);
   });
 
+  test("accepts the whole hardware map, not just the palette block", () => {
+    const registers: [string, string][] = [
+      ["MMU memory configuration", "move.b $ff8001,d0"],
+      ["video palette", "move.w $ff8240,d0"],
+      ["DMA / FDC", "move.w $ff8604,d0"],
+      ["PSG", "move.b $ff8800,d0"],
+      ["STE DMA sound", "move.b $ff8900,d0"],
+      ["blitter", "move.w $ff8a00,d0"],
+      ["Mega STE SCC", "move.b $ff8c80,d0"],
+      ["STE joystick", "move.w $ff9200,d0"],
+      ["MFP GPIP", "move.b $fffa01,d0"],
+      // TDDR drives the 200Hz system timer and sits past the palette block.
+      ["MFP TDDR", "move.b $fffa25,d0"],
+      ["MFP UDR", "move.b $fffa2f,d0"],
+      ["second MFP", "move.b $fffa81,d0"],
+      ["keyboard ACIA", "move.b $fffc02,d0"],
+      ["MIDI ACIA", "move.b $fffc06,d0"],
+    ];
+    for (const [label, source] of registers) {
+      expect([label, ids(source, st).includes(ID)]).toEqual([label, false]);
+    }
+  });
+
+  test("still flags values that could plausibly be an intended immediate", () => {
+    expect(ids("move.w $1234,d0", st)).toContain(ID);
+    expect(ids("move.w $8000,d0", st)).toContain(ID);
+  });
+
   test("still flags a plausible missing immediate prefix", () => {
     const diagnostic = lint("move.w $1234,d0", st).find((d) => d.ruleId === ID);
     expect(diagnostic).toBeDefined();

@@ -58,8 +58,10 @@ previously lived in `README.md`.
   `$FFFF8240.W`, `$FF8240` and the negative word `-32192` all name the same
   register; all three are recognised, since the 68000 address bus is 24 bits and
   ignores A24-A31. Expected regions are `$000000-$0005FF` (exception vectors and
-  system variables) and `$FF8201-$FFFA23` (hardware registers). The STE shares
-  the range because its extra hardware sits inside the same block.
+  system variables), `$FF8000-$FFFA3F` (memory controller, video, DMA, PSG,
+  blitter and the MFP register file), `$FFFA80-$FFFABF` (the second MFP on Mega
+  STE and TT) and `$FFFC00-$FFFC07` (keyboard and MIDI ACIAs). The STE shares
+  the ranges because its extra hardware sits inside the same blocks.
 - `optimization/prefer-lea-for-address-symbol` — `move.l #label,a0` becomes
   `lea label,a0`. The two are identical in size and cycles as written, and the
   audit measures exactly that (neutral, all deltas zero). The gain is at

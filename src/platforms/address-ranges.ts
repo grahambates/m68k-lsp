@@ -26,7 +26,12 @@ export const platformLabels: Readonly<Record<Platform, string>> = {
  */
 const ATARI_RANGES: readonly ExpectedAbsoluteAddressRange[] = [
   { start: 0x000000, end: 0x0005ff, description: "68000 exception vectors and Atari system variables" },
-  { start: 0xff8201, end: 0xfffa23, description: "Atari hardware registers" },
+  // One span from the memory controller through the end of the MFP register
+  // file. It deliberately covers the gaps between blocks: this is a heuristic
+  // for a missing '#', and no plausible intended immediate lands up here.
+  { start: 0xff8000, end: 0xfffa3f, description: "Atari hardware registers: MMU, video, DMA, PSG, blitter, MFP" },
+  { start: 0xfffa80, end: 0xfffabf, description: "Atari second MFP (Mega STE and TT)" },
+  { start: 0xfffc00, end: 0xfffc07, description: "Atari keyboard and MIDI ACIAs" },
 ];
 
 /**

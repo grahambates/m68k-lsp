@@ -193,7 +193,8 @@ absolute addresses outside the expected vector, custom-chip and CIA regions (the
 common typo where an intended immediate is written without `#`).
 
 Atari ST and STE modes apply the same absolute-address heuristic against the
-Atari map. Hardware registers there are conventionally written as a
+Atari map, covering the memory controller, video, DMA, PSG, blitter, both MFPs
+and the keyboard and MIDI ACIAs. Hardware registers there are conventionally written as a
 sign-extended absolute short, so `$FFFF8240.W`, `$FF8240` and the negative word
 `-32192` all name the same register and are all recognised — the 68000 address
 bus is 24 bits and ignores A24-A31. The STE's extra hardware (DMA sound,
