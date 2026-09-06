@@ -126,11 +126,15 @@ export function getFlagSemantics(line: ParsedLine): FlagSemantics {
   }
 
   // Address-register arithmetic/data movement deliberately leaves CCR alone.
-  if (isAddressRegisterWriteWithoutCCR(line) || ["cmpa", "pea", "exg", "link", "unlk"].includes(mnemonic)) {
+  // CMPA is not one of them despite the name: it writes no register, and like
+  // every compare it sets N, Z, V and C from the subtraction while leaving X.
+  // Grouping it here made `cmpa.l a2,a0 / beq` look like a branch reading a
+  // condition nothing had set.
+  if (isAddressRegisterWriteWithoutCCR(line) || ["pea", "exg", "link", "unlk"].includes(mnemonic)) {
     return { reads: none(), writes: none(), undefined: none(), controlFlow: "fallthrough" };
   }
 
-  if (["cmp", "cmpm", "tst"].includes(mnemonic)) {
+  if (["cmp", "cmpa", "cmpm", "tst"].includes(mnemonic)) {
     return { reads: none(), writes: NZVC, undefined: none(), controlFlow: "fallthrough" };
   }
   if (["move", "moveq", "clr", "not", "and", "or", "eor", "ext", "extb", "swap"].includes(mnemonic)) {

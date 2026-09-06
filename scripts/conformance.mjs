@@ -46,6 +46,10 @@ export const CONFORMANCE = [
   // interpreter otherwise runs the data form and invents flags.
   { name: "adda sets no flags at all", code: ["moveq #0,d0", "tst.l d0", "adda.w #-16,sp"], d0: 0, flags: "Z" },
   { name: "suba sets no flags at all", code: ["moveq #0,d0", "tst.l d0", "suba.l #4,a0"], d0: 0, flags: "Z" },
+  // CMPA is the exception among the address forms: it writes no register, and
+  // sets N, Z, V and C from the subtraction exactly as CMP does.
+  { name: "cmpa sets Z when equal", code: ["moveq #0,d0", "movea.l #$2000,a0", "cmpa.l #$2000,a0"], d0: 0, flags: "Z" },
+  { name: "cmpa sets N when less", code: ["moveq #0,d0", "movea.l #$1000,a0", "cmpa.l #$2000,a0"], d0: 0, flags: "NC" },
   // MOVEA.W is not a narrow write: it sign-extends through the whole register.
   { name: "movea.w sign-extends into the long", code: ["movea.w #-1,a0", "move.l a0,d0"], d0: 0xffffffff, flags: "N" },
 

@@ -7,6 +7,15 @@ previously lived in `README.md`.
 
 ### Fixed
 
+- CMPA is recorded as setting the condition codes. It was grouped with MOVEA,
+  ADDA and SUBA as an address-register operation that leaves CCR alone, but it
+  writes no register at all and, like every compare, sets N, Z, V and C from the
+  subtraction while preserving X. An ordinary `cmpa.l a2,a0` followed by `beq`
+  was reported by `suspicious/condition-after-preserved-ccr` as a branch reading
+  a condition nothing had set.
+
+### Fixed
+
 - Conditional assembly arms are modelled as alternatives rather than a
   sequence. Exactly one arm is assembled, but IF/ELSE/ENDC were treated as
   ordinary skipped directives, so the first arm ran into the second and a write
