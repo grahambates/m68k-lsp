@@ -17,7 +17,7 @@ import {
   type RuleSetting,
 } from "../core/config.js";
 import type { Diagnostic, RuleCategory, Severity } from "../core/diagnostic.js";
-import { formatImpact, paint } from "./format.js";
+import { formatImpact, paint, highlightAsm } from "./format.js";
 import {
   collectInitAnswers,
   describeInitConfig,
@@ -288,7 +288,8 @@ function sourceContext(source: string, line?: number, start = 0, end = start + 1
   // whatever tab width the terminal uses.
   const prefix = text.slice(0, Math.max(0, start)).replace(/[^\t]/g, " ");
   const pointer = `${prefix}${"^"}${"~".repeat(Math.max(0, width - 1))}`;
-  return [`  ${text}`, paint(color, 90, `  ${pointer}`)];
+  // The pointer is built from the uncoloured text above, so it stays aligned.
+  return [`  ${highlightAsm(text, color)}`, paint(color, 90, `  ${pointer}`)];
 }
 
 function formatDiagnostic(file: string, source: string, diagnostic: Diagnostic, color: boolean): string {
@@ -305,7 +306,7 @@ function formatDiagnostic(file: string, source: string, diagnostic: Diagnostic, 
       `${paint(color, 90, "fix:")} ${diagnostic.suggestion.description} (${diagnostic.suggestion.applicability})`,
     );
     if (replacement) {
-      lines.push(...replacement.split("\n"));
+      lines.push(...replacement.split("\n").map((text) => highlightAsm(text, color)));
     }
     const impact = diagnostic.suggestion.impact;
     if (impact) {

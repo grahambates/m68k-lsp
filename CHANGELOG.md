@@ -5,6 +5,21 @@ previously lived in `README.md`.
 
 ## Unreleased
 
+### Added
+
+- Syntax highlighting for the assembly in terminal output, covering both the
+  source line a diagnostic points at and the suggested replacement. Mnemonics
+  and their size qualifiers, registers, literals in any base, strings,
+  punctuation and comments each get a colour; symbols and labels are left plain
+  so the names carrying the meaning stay the most readable thing on the line.
+  Colour is off when output is piped, and adds no visible width, so the caret
+  underlining a diagnostic stays aligned.
+
+### Fixed
+
+- `format.test.ts` still asserted the two-space prefix that CLI formatting
+  improvements removed from `formatImpact`.
+
 ### Changed
 
 - Suggested replacements adopt the indentation of the code they replace, on
