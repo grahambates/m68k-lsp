@@ -232,7 +232,9 @@ condition.
 
 `--goal speed` and `--goal size` filter optimization suggestions on measured
 impact: a rewrite that costs bytes is not offered in a size-focused run, and one
-that costs cycles is not offered in a speed-focused run.
+that costs cycles is not offered in a speed-focused run. A goal excludes what
+costs the resource it cares about, not everything that helps the other one, so a
+rewrite that is free on one axis and better on the other appears in both.
 
 Some rewrites only make sense in one direction, and a few have a useful inverse:
 doubling a register twice is faster than shifting it left by two, and shifting
@@ -243,8 +245,11 @@ balanced run keeps the canonical direction, which is the rule that does not
 declare itself an inverse.
 
 The declaration exists because impact is measured only for 68000 targets and
-only when measurement is enabled. It is checked against the audit, so a rule
-cannot claim to serve a goal the measurements contradict.
+only when measurement is enabled. Where figures do exist they decide instead,
+per suggestion: cost is a property of the instance rather than the rule, and
+`muls.w #2` and `muls.w #10` go through the same rule while only one of them
+costs bytes. The declaration is checked against the audit, so a rule cannot
+claim to serve a goal the measurements contradict.
 
 The linter deliberately does not duplicate assembler validation. Illegal
 instruction, size and addressing-mode combinations belong to the assembler unless

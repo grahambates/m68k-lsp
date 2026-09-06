@@ -134,3 +134,48 @@ describe("the shift and add pair", () => {
     expect(unmeasured(doubled, "optimization/adds-to-shift", "speed")).toBe(false);
   });
 });
+
+/**
+ * A goal excludes what costs the resource it cares about, not everything that
+ * helps the other one. A rewrite that is free on one axis and better on the
+ * other belongs in both runs.
+ *
+ * `serves` is a property of the rule, but cost is a property of the instance:
+ * `muls.w #2` and `muls.w #10` go through the same rule and only one of them
+ * costs bytes. So where figures exist they decide, and the declaration is the
+ * fallback for when they do not.
+ */
+describe("a free win on the other axis is still a win", () => {
+  const shown = (source: string, ruleId: string, goal: "speed" | "size", measureImpact = true) =>
+    lintSource(source, { processors: ["mc68000"], goal, measureImpact }).some((d) => d.ruleId === ruleId);
+
+  const RECIPE = "optimization/muls-word-selected-constants";
+  const neutral = "\tmuls.w #2,d0\n\tmove.l d1,d2\n\trts";
+  const costly = "\tmuls.w #10,d0\n\tmove.l d1,d2\n\trts";
+
+  test("a size-neutral speed win shows in a size run", () => {
+    expect(shown(neutral, RECIPE, "size")).toBe(true);
+  });
+
+  test("the same rule stays hidden where it does cost bytes", () => {
+    expect(shown(costly, RECIPE, "size")).toBe(false);
+  });
+
+  test("a cycle-neutral size win shows in a speed run", () => {
+    expect(shown("\tlea 4(a0),a0\n\trts", "optimization/prefer-lea-quick", "speed")).toBe(true);
+  });
+
+  // Nothing to consult, so the rule's own declaration has to hold the line.
+  test("without figures the declaration decides for the whole rule", () => {
+    expect(shown(neutral, RECIPE, "size", false)).toBe(false);
+  });
+
+  // Exclusivity is not negotiable: measured or not, both halves of a pair
+  // running would let each recreate the other's input.
+  test("an inverse pair stays exclusive even where figures exist", () => {
+    expect(shown("\tlsl.w #2,d0\n\tmoveq #0,d7\n\trts", "optimization/shift-two-adds", "size")).toBe(false);
+    expect(shown("\tadd.w d0,d0\n\tadd.w d0,d0\n\tmoveq #0,d7\n\trts", "optimization/adds-to-shift", "speed")).toBe(
+      false,
+    );
+  });
+});

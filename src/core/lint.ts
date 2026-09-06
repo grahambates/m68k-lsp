@@ -25,19 +25,49 @@ function matchesOptimizationGoal(diagnostic: Diagnostic, rule: Rule | undefined,
   return true;
 }
 
-export function effectiveSeverity(rule: Rule, config: LintConfig): Severity | "off" {
+/** Whether impact figures will be available to decide a goal per diagnostic. */
+function willMeasure(config: LintConfig): boolean {
+  return config.measureImpact !== false && config.processors.includes("mc68000");
+}
+
+/**
+ * Both members of every inverse pair in a rule set.
+ *
+ * Needed on both sides: the rule declaring `inverseOf` knows it is one half,
+ * but the rule it names has no idea it is the other. Defaulted from the built-in
+ * rules so that a caller which does not supply it still gets the exclusivity,
+ * rather than silently letting a pair run together.
+ */
+function inversePairs(rules: readonly Rule[]): Set<string> {
+  const paired = new Set<string>();
+  for (const rule of rules) {
+    if (!rule.meta.inverseOf) continue;
+    paired.add(rule.meta.id);
+    paired.add(rule.meta.inverseOf);
+  }
+  return paired;
+}
+
+let builtInPairs: Set<string> | undefined;
+
+export function effectiveSeverity(rule: Rule, config: LintConfig, paired?: ReadonlySet<string>): Severity | "off" {
+  const pairs = paired ?? (builtInPairs ??= inversePairs(defaultRules));
   if (config.categories?.[rule.meta.category] === false) return "off";
   if (rule.meta.platforms && !rule.meta.platforms.includes(config.platform ?? "generic")) return "off";
 
-  // A rewrite that trades one resource for the other is only advice under the
-  // goal it serves. Decided per rule rather than per diagnostic because impact
-  // is not measured for every target, and because two rules that undo each
-  // other must never both be live: applying one recreates the other's input.
   const goal = config.goal ?? "balanced";
-  if (rule.meta.serves && goal !== "balanced" && rule.meta.serves !== goal) return "off";
-  // Balanced runs keep the canonical direction, which is the one that does not
-  // declare itself the inverse of another.
+  // Balanced runs keep the canonical direction of a pair, which is the rule
+  // that does not declare itself the inverse of another.
   if (rule.meta.inverseOf && goal === "balanced") return "off";
+
+  if (rule.meta.serves && goal !== "balanced" && rule.meta.serves !== goal) {
+    // Where the figures exist they decide, per diagnostic, which is finer than
+    // the declaration: a rule that usually costs bytes can be neutral on a
+    // particular input, and a free win on the other axis belongs in the run.
+    // Two rules that undo each other are gated regardless, since both being
+    // live would let each recreate the other's input.
+    if (!willMeasure(config) || pairs.has(rule.meta.id)) return "off";
+  }
 
   const explicit = config.rules?.[rule.meta.id];
   if (explicit) return explicit;
@@ -58,8 +88,9 @@ export function lintParsedFile(
 ): Diagnostic[] {
   const ctx = new DefaultRuleContext(file, source, config, external);
 
+  const paired = inversePairs(rules);
   for (const rule of rules) {
-    const severity = effectiveSeverity(rule, config);
+    const severity = effectiveSeverity(rule, config, paired);
     if (severity === "off") continue;
 
     const before = ctx.getDiagnostics().length;

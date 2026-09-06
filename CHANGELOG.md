@@ -7,6 +7,17 @@ previously lived in `README.md`.
 
 ### Fixed
 
+- A goal no longer hides a rewrite that is free on the axis it cares about.
+  `serves` gated the whole rule, so a rule that usually costs bytes was off in
+  every size-focused run even on inputs where it costs none: `muls.w #2` saves
+  34 cycles for no extra bytes and was hidden, while `muls.w #10` costs 6 and
+  should be. Cost is a property of the instance, not the rule, so where figures
+  exist they decide per suggestion and the declaration is the fallback for when
+  they do not. Inverse pairs stay gated either way, since both halves running
+  would let each recreate the other's input.
+
+### Fixed
+
 - A replacement no longer discards the trailing comment on the code it
   replaces. `move.l #100,d0 ; how many faces` becoming `moveq #100,d0` lost the
   only record of what the value was for. The comment is carried across with the
