@@ -27,8 +27,10 @@ describe("a derived value loses the name behind it", () => {
     expect(lossNote(["divu.w #SCALE,d0"], "optimization/divu-word-power-of-two")).toContain("SCALE");
   });
 
-  test("two quick adds are folded into their sum", () => {
-    expect(lossNote(["addq.l #SMALL,d0", "addq.l #2,d0"], "optimization/combine-consecutive-addq")).toContain("SMALL");
+  // No assembler has a log2 operator, so there is no way to write the shift
+  // count in terms of the multiplier it came from.
+  test("a multiplier that only survives as a shift count", () => {
+    expect(lossNote(["muls.w #SCALE,d0"], "optimization/muls-word-power-of-two")).toContain("SCALE");
   });
 });
 
@@ -85,6 +87,31 @@ describe("a derivation the assembler can express keeps the symbol", () => {
   // `1<<BASE+1` would depend on the assembler agreeing with C about precedence.
   test("a compound bit number is parenthesised", () => {
     expect(replacement("bset #BASE+1,d3", "optimization/bset-low-word-mask")).toBe("\tor.w #1<<(BASE+1),d3");
+  });
+
+  test("a sum is written out when either side is a name", () => {
+    const source = "SMALL equ 3\n\taddq.l #SMALL,d0\n\taddq.l #2,d0\n\tmoveq #0,d7\n\trts";
+    const found = lintSource(source, { processors: ["mc68000"] }).find(
+      (d) => d.ruleId === "optimization/combine-consecutive-addq",
+    );
+    expect(found?.suggestion?.replacement).toBe("\taddq.l #SMALL+2,d0");
+  });
+
+  // `#3+2` keeps nothing and reads worse than `#5`.
+  test("two literals are still folded into their total", () => {
+    const source = "\taddq.l #3,d0\n\taddq.l #2,d0\n\tmoveq #0,d7\n\trts";
+    const found = lintSource(source, { processors: ["mc68000"] }).find(
+      (d) => d.ruleId === "optimization/combine-consecutive-addq",
+    );
+    expect(found?.suggestion?.replacement).toBe("\taddq.l #5,d0");
+  });
+
+  test("an exact halving is written out when the value is named", () => {
+    const source = "BYTES equ 200\n\tmove.l #BYTES,d0\n\tmoveq #0,d7\n\trts";
+    const found = lintSource(source, { processors: ["mc68000"] }).find(
+      (d) => d.ruleId === "optimization/move-immediate-double-byte",
+    );
+    expect(found?.suggestion?.replacement).toBe("\tmoveq #BYTES/2,d0\nadd.b d0,d0".replace("\nadd", "\n\tadd"));
   });
 
   test("BCLR writes the complement of the same shift", () => {

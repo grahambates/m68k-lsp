@@ -1,7 +1,7 @@
 import type { ParsedLine } from "m68k-parser";
 import type { Rule } from "../../core/rule.js";
 import { immediateOperand, instructionSize, isInstruction, operand } from "../../util/ast.js";
-import { changedFlagsApplicability, hasLabelBetween, sourceOperand } from "./helpers.js";
+import { changedFlagsApplicability, containsSymbol, embeddedValueText, hasLabelBetween, sourceOperand } from "./helpers.js";
 
 function directRegisterName(line: ParsedLine): string | undefined {
   const op = operand(line, 1);
@@ -49,7 +49,15 @@ export const combineConsecutiveAddq: Rule = {
     const safety = isAddress
       ? { applicability: "safe" as const, confidence: "certain" as const }
       : changedFlagsApplicability(ctx, next.index, ["X", "V", "C"]);
-    const replacement = total <= 8 ? `addq.l #${total},${destText}` : `add.l #${total},${destText}`;
+    // Written as the sum of what the source wrote when either side is a name,
+    // so the constant it came from is still visible and still tracked. Two
+    // literals are left as their total, since `#3+2` keeps nothing and reads
+    // worse than `#5`.
+    const symbolic = containsSymbol(firstImm.value) || containsSymbol(secondImm.value);
+    const totalText = symbolic
+      ? `${embeddedValueText(ctx, firstImm.value, n.value)}+${embeddedValueText(ctx, secondImm.value, m.value)}`
+      : String(total);
+    const replacement = total <= 8 ? `addq.l #${totalText},${destText}` : `add.l #${totalText},${destText}`;
 
     ctx.report({
       ruleId: this.meta.id,

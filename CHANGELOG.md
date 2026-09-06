@@ -5,6 +5,18 @@ previously lived in `README.md`.
 
 ## Unreleased
 
+### Changed
+
+- Bit masks are written as a shift of the bit number: `bset #2,d3` suggests
+  `or.w #1<<2,d3` rather than `or.w #$0004,d3`, and BCLR takes the complement,
+  `and.w #~(1<<2),d3`. The mask says which bit is meant, and a symbolic bit
+  number survives instead of collapsing into a hex constant.
+- Two other rules write their arithmetic out rather than its result where a name
+  would otherwise be lost: `optimization/combine-consecutive-addq` gives
+  `addq.l #SMALL+2,d0`, and `optimization/move-immediate-double-byte` gives
+  `moveq #BYTES/2,d0`. Only where there is a name to keep — `#3+2` reads worse
+  than `#5` and preserves nothing.
+
 ### Fixed
 
 - A rule no longer matches a run of instructions across a block directive. The

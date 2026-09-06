@@ -1,6 +1,6 @@
 import type { Rule } from "../../core/rule.js";
 import { dataRegisterOperand, immediateExpressionOperand, instructionSize, isInstruction } from "../../util/ast.js";
-import { changedFlagsApplicability } from "./helpers.js";
+import { changedFlagsApplicability, containsSymbol, embeddedValueText } from "./helpers.js";
 
 function baseMatch(line: Parameters<NonNullable<Rule["checkLine"]>>[1]) {
   if (!isInstruction(line, "move") || instructionSize(line) !== "l") return undefined;
@@ -108,7 +108,12 @@ export const moveImmediateDoubleByte: Rule = {
     if (m < -128 || m > 127) return;
     const r = match.dest.register;
     const safety = changedFlagsApplicability(ctx, index, ["X", "V", "C"]);
-    const replacement = `moveq #${m},${r}\nadd.b ${r},${r}`;
+    // The halving is exact, the value being even, so it can be written rather
+    // than worked out. Worth doing only when there is a name in it to keep:
+    // `#200/2` reads worse than `#100`, but `#SPRITE_BYTES/2` keeps a constant
+    // the code would otherwise stop tracking.
+    const half = containsSymbol(match.value) ? `${embeddedValueText(ctx, match.value, value.value)}/2` : String(m);
+    const replacement = `moveq #${half},${r}\nadd.b ${r},${r}`;
     ctx.report({
       ruleId: this.meta.id,
       category: this.meta.category,

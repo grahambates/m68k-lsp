@@ -125,3 +125,21 @@ export function embeddedValueText(
   const text = valueText(ctx, expression, evaluated);
   return isAtom(expression) || text === String(evaluated) ? text : `(${text})`;
 }
+
+/**
+ * Whether an expression mentions a name at all.
+ *
+ * Deciding whether to write the arithmetic out or its result. `#SMALL+2` keeps
+ * a constant the code depends on; `#3+2` keeps nothing and reads worse than
+ * `#5`. So the derived form is only worth writing when there is a name in it to
+ * save.
+ */
+export function containsSymbol(expression: ExpressionNode | undefined): boolean {
+  if (!expression || typeof expression !== "object") return false;
+  if (expression.type === "symbol") return true;
+  return Object.values(expression).some((value) =>
+    Array.isArray(value)
+      ? value.some((entry: unknown) => containsSymbol(entry as ExpressionNode))
+      : containsSymbol(value as ExpressionNode),
+  );
+}
