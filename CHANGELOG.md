@@ -25,8 +25,14 @@ previously lived in `README.md`.
 
 ### Changed
 
-- Suggested replacements adopt the indentation of the code they replace, on
-  every line. Rules emit compact text starting in column zero, which is not
+- Suggested replacements adopt the layout of the code they replace: the
+  indentation on every line, and the column the operands start in. Rules emit a
+  single space between mnemonic and operands, so a replacement previously sat
+  out of line with its neighbours even once indented. Where the source separates
+  with tabs the replacement does too, which keeps the columns together whatever
+  width tabs are rendered at; where it aligns with spaces, the column is matched
+  in spaces. A single space is left alone, being a separator rather than an
+  alignment. Rules emit compact text starting in column zero, which is not
   valid assembly: a token in column zero is a label, so a multi-line
   replacement pasted as written defined a label per line. Whatever the source
   uses is matched, tabs or spaces and at whatever width, and a label sharing the

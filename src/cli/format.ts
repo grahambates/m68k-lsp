@@ -63,7 +63,7 @@ export function formatImpact(impact: OptimizationImpact, color: boolean): string
  * underlining a diagnostic is positioned from the uncoloured text, and escape
  * sequences occupy no columns.
  */
-const COLORS = {
+export const COLORS = {
   mnemonic: 34,
   size: 34,
   register: 33,

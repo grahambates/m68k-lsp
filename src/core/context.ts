@@ -61,6 +61,82 @@ function indentBlock(text: string, indent: string): string {
     .join("\n");
 }
 
+/**
+ * Assumed width of a tab when working out which column something sits in.
+ *
+ * Only used to count tab stops. Where the source aligns with tabs the
+ * replacement is padded with tabs too, so both land on the same stop and the
+ * columns agree however wide the reader's tabs actually are.
+ */
+const TAB_WIDTH = 8;
+
+function columnOf(text: string): number {
+  let column = 0;
+  for (const char of text) column = char === "\t" ? (Math.floor(column / TAB_WIDTH) + 1) * TAB_WIDTH : column + 1;
+  return column;
+}
+
+/** How the operands on a line are separated from the mnemonic, and where they start. */
+interface OperandAlignment {
+  column: number;
+  tabs: boolean;
+}
+
+/**
+ * Where the operands sit on the line a diagnostic points at.
+ *
+ * Matching the indent alone still leaves a replacement's operands out of line
+ * with its neighbours, because rules emit a single space where source almost
+ * always uses a tab. Taken from the parsed line rather than by scanning text,
+ * so a label or a size qualifier does not confuse the mnemonic's extent.
+ */
+function operandAlignmentOf(line: ParsedLine | undefined, sourceLine: string | undefined): OperandAlignment | undefined {
+  const operandStart = line?.operands?.[0]?.loc.start;
+  const mnemonicEnd = line?.qualifier?.loc.end ?? line?.mnemonic?.loc.end;
+  if (sourceLine === undefined || operandStart === undefined || mnemonicEnd === undefined) return undefined;
+  if (operandStart <= mnemonicEnd) return undefined;
+
+  const separator = sourceLine.slice(mnemonicEnd, operandStart);
+  if (separator.trim().length > 0) return undefined;
+  // A single space is a separator, not an alignment. Matching a column there
+  // would pad a shorter mnemonic out to it and produce `moveq  #100,d0` from
+  // source that never lined anything up.
+  if (separator === " ") return undefined;
+  return { column: columnOf(sourceLine.slice(0, operandStart)), tabs: separator.includes("\t") };
+}
+
+/**
+ * Pad each line of a replacement so its operands begin in the same column as
+ * the operands of the code being replaced.
+ *
+ * Replacements are generated, so a line is a mnemonic and its operands with
+ * nothing else on it; splitting on the first run of whitespace is enough and
+ * avoids parsing text this module produced itself.
+ */
+function alignOperands(text: string, alignment: OperandAlignment): string {
+  return text
+    .split("\n")
+    .map((line) => {
+      const parts = /^([ \t]*)(\S+)([ \t]+)(\S.*)$/.exec(line);
+      if (!parts) return line;
+      const [, indent, mnemonic, , operands] = parts;
+      const from = columnOf(`${indent}${mnemonic}`);
+
+      let separator = "";
+      if (alignment.tabs) {
+        // Tabs only land on stops, so this reaches the source's column exactly
+        // when that column is one, and otherwise the first stop past it.
+        for (let column = from; column < alignment.column; column = columnOf(`${" ".repeat(column)}\t`)) {
+          separator += "\t";
+        }
+      } else {
+        separator = " ".repeat(Math.max(0, alignment.column - from));
+      }
+      return `${indent}${mnemonic}${separator || (alignment.tabs ? "\t" : " ")}${operands}`;
+    })
+    .join("\n");
+}
+
 export class DefaultRuleContext implements RuleContext {
   private readonly diagnostics: Diagnostic[] = [];
   private readonly sourceLines: string[];
@@ -101,8 +177,12 @@ export class DefaultRuleContext implements RuleContext {
   private indentSuggestion(diagnostic: Diagnostic): Diagnostic["suggestion"] {
     const replacement = diagnostic.suggestion?.replacement;
     if (!diagnostic.suggestion || !replacement) return undefined;
-    const indent = indentOf(this.sourceLines[(diagnostic.loc.line ?? 1) - 1]);
-    return { ...diagnostic.suggestion, replacement: indentBlock(replacement, indent) };
+    const lineIndex = (diagnostic.loc.line ?? 1) - 1;
+    const sourceLine = this.sourceLines[lineIndex];
+    const indented = indentBlock(replacement, indentOf(sourceLine));
+    const alignment = operandAlignmentOf(this.file.lines[lineIndex], sourceLine);
+    const aligned = alignment ? alignOperands(indented, alignment) : indented;
+    return { ...diagnostic.suggestion, replacement: aligned };
   }
 
   /** Drop the record of constants borrowed from other files. Called per line. */
