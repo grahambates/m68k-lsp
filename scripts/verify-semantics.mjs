@@ -56,7 +56,12 @@ function adapt(line) {
 }
 
 function assemble(lines) {
-  const body = lines.map((l) => (/^\S+:/.test(l) ? l : `  ${adapt(l)}`)).join("\n");
+  // Replacements now carry the indentation of the code they replace, and the
+  // adapt() patterns are anchored, so trim before matching and re-indent here.
+  const body = lines
+    .map((raw) => raw.trim())
+    .map((l) => (/^\S+:/.test(l) ? l : `  ${adapt(l)}`))
+    .join("\n");
   const source = `ORG $1000\n${body}\n`;
   const errors = S68k.semanticCheck(source);
   if (errors.length) return { error: errors.map((e) => e.getMessage()).join("; ") };
@@ -138,7 +143,10 @@ function seedFor(round) {
 }
 
 function splice(lines, start, end, replacement) {
-  const inserted = replacement === "" ? [] : replacement.split("\n");
+  // Replacements carry the indentation of the code they replace. The source
+  // lines here are already trimmed, and several checks downstream are anchored
+  // patterns, so normalise on the way in rather than at each use.
+  const inserted = replacement === "" ? [] : replacement.split("\n").map((line) => line.trim());
   return [...lines.slice(0, start), ...inserted, ...lines.slice(end + 1)];
 }
 

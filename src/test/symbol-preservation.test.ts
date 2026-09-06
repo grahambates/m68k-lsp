@@ -16,15 +16,15 @@ function replacement(instruction: string, ruleId: string): string | undefined {
 describe("replacements keep the symbols the source used", () => {
   test("a compound displacement survives intact", () => {
     expect(replacement("adda.w #SCREEN_BW/2+(SCREEN_H/2*SCREEN_BW),a3", "optimization/address-add-to-lea")).toBe(
-      "lea SCREEN_BW/2+(SCREEN_H/2*SCREEN_BW)(a3),a3",
+      "\tlea SCREEN_BW/2+(SCREEN_H/2*SCREEN_BW)(a3),a3",
     );
   });
 
   test("an immediate passed straight through keeps its name", () => {
-    expect(replacement("move.l #BIG,d0", "optimization/prefer-moveq")).toBe("moveq #BIG,d0");
-    expect(replacement("add.l #SMALL,d0", "optimization/prefer-addq")).toBe("addq.l #SMALL,d0");
-    expect(replacement("sub.l #SMALL,d0", "optimization/prefer-subq")).toBe("subq.l #SMALL,d0");
-    expect(replacement("move.l #BIG,-(sp)", "optimization/push-immediate-pea")).toBe("pea BIG.w");
+    expect(replacement("move.l #BIG,d0", "optimization/prefer-moveq")).toBe("\tmoveq #BIG,d0");
+    expect(replacement("add.l #SMALL,d0", "optimization/prefer-addq")).toBe("\taddq.l #SMALL,d0");
+    expect(replacement("sub.l #SMALL,d0", "optimization/prefer-subq")).toBe("\tsubq.l #SMALL,d0");
+    expect(replacement("move.l #BIG,-(sp)", "optimization/push-immediate-pea")).toBe("\tpea BIG.w");
   });
 
   test("the base a number was written in is preserved too", () => {
@@ -36,34 +36,34 @@ describe("replacements keep the symbols the source used", () => {
   // would truncate to `SCREEN_BW`.
   test("whitespace inside an expression is removed", () => {
     expect(replacement("adda.w #SCREEN_BW / 2 + 10,a3", "optimization/address-add-to-lea")).toBe(
-      "lea SCREEN_BW/2+10(a3),a3",
+      "\tlea SCREEN_BW/2+10(a3),a3",
     );
   });
 
   // A displacement opening with "(" reads like an addressing mode.
   test("redundant enclosing parentheses are dropped", () => {
-    expect(replacement("adda.w #(SCREEN_BW*2),a3", "optimization/address-add-to-lea")).toBe("lea SCREEN_BW*2(a3),a3");
+    expect(replacement("adda.w #(SCREEN_BW*2),a3", "optimization/address-add-to-lea")).toBe("\tlea SCREEN_BW*2(a3),a3");
   });
 
   describe("negation", () => {
     test("a bare symbol is negated in place", () => {
-      expect(replacement("suba.w #SCREEN_BW,a3", "optimization/address-sub-to-lea")).toBe("lea -SCREEN_BW(a3),a3");
+      expect(replacement("suba.w #SCREEN_BW,a3", "optimization/address-sub-to-lea")).toBe("\tlea -SCREEN_BW(a3),a3");
     });
 
     test("negating a minus gives the symbol back", () => {
-      expect(replacement("lea -SMALL(a0),a0", "optimization/prefer-lea-quick")).toBe("subq.w #SMALL,a0");
+      expect(replacement("lea -SMALL(a0),a0", "optimization/prefer-lea-quick")).toBe("\tsubq.w #SMALL,a0");
     });
 
     // Unary minus binds tighter than the operators inside, so `-SCREEN_BW/2`
     // would not be the negation of `SCREEN_BW/2`.
     test("a compound expression is wrapped rather than prefixed", () => {
       expect(replacement("suba.w #SCREEN_BW/2+(SCREEN_H/2*SCREEN_BW),a3", "optimization/address-sub-to-lea")).toBe(
-        "lea -(SCREEN_BW/2+(SCREEN_H/2*SCREEN_BW))(a3),a3",
+        "\tlea -(SCREEN_BW/2+(SCREEN_H/2*SCREEN_BW))(a3),a3",
       );
     });
   });
 
   test("a literal number is still written as a number", () => {
-    expect(replacement("adda.w #1610,a3", "optimization/address-add-to-lea")).toBe("lea 1610(a3),a3");
+    expect(replacement("adda.w #1610,a3", "optimization/address-add-to-lea")).toBe("\tlea 1610(a3),a3");
   });
 });

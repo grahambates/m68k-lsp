@@ -74,10 +74,10 @@ describe("optimization rules", () => {
 
   test("uses ADDQ/SUBQ for small same-register LEA displacements", () => {
     const positive = lint("lea 6(a2),a2").find((d) => d.ruleId === "optimization/prefer-lea-quick");
-    expect(positive?.suggestion?.replacement).toBe("addq.w #6,a2");
+    expect(positive?.suggestion?.replacement).toBe("\taddq.w #6,a2");
 
     const negative = lint("lea -3(a4),a4").find((d) => d.ruleId === "optimization/prefer-lea-quick");
-    expect(negative?.suggestion?.replacement).toBe("subq.w #3,a4");
+    expect(negative?.suggestion?.replacement).toBe("\tsubq.w #3,a4");
 
     expect(ids("lea 6(a2),a3")).not.toContain("optimization/prefer-lea-quick");
     expect(ids("lea 9(a2),a2")).not.toContain("optimization/prefer-lea-quick");
@@ -96,20 +96,20 @@ describe("optimization rules", () => {
   test("folds address-register push plus immediate stack adjustment into PEA", () => {
     const source = ["move.l a0,-(sp)", "add.l #12,(sp)", "add.l d1,d2", "rts"].join("\n");
     const diagnostic = lint(source).find((d) => d.ruleId === "optimization/push-address-pea");
-    expect(diagnostic?.suggestion?.replacement).toBe("pea 12(a0)");
+    expect(diagnostic?.suggestion?.replacement).toBe("\tpea 12(a0)");
     expect(diagnostic?.suggestion?.applicability).toBe("safe");
   });
 
   test("PEA folding remains conditional when original arithmetic flags escape", () => {
     const source = ["move.l a1,-(sp)", "sub.l #4,(sp)", "rts"].join("\n");
     const diagnostic = lint(source).find((d) => d.ruleId === "optimization/push-address-pea");
-    expect(diagnostic?.suggestion?.replacement).toBe("pea -4(a1)");
+    expect(diagnostic?.suggestion?.replacement).toBe("\tpea -4(a1)");
     expect(diagnostic?.suggestion?.applicability).toBe("conditional");
   });
 
   test("uses MOVEQ #0 for CLR.L Dn on 68000 targets", () => {
     const diagnostic = lint("clr.l d3").find((d) => d.ruleId === "optimization/prefer-moveq-zero");
-    expect(diagnostic?.suggestion?.replacement).toBe("moveq #0,d3");
+    expect(diagnostic?.suggestion?.replacement).toBe("\tmoveq #0,d3");
 
     const laterCpu = lint("clr.l d3", { processors: ["mc68040"] });
     expect(laterCpu.map((d) => d.ruleId)).not.toContain("optimization/prefer-moveq-zero");
@@ -118,7 +118,7 @@ describe("optimization rules", () => {
   test("uses ST for MOVE.B #-1 when CCR differences are dead", () => {
     const source = ["move.b #-1,(a0)", "move.l d0,d1", "rts"].join("\n");
     const diagnostic = lint(source).find((d) => d.ruleId === "optimization/prefer-st-minus-one");
-    expect(diagnostic?.suggestion?.replacement).toBe("st (a0)");
+    expect(diagnostic?.suggestion?.replacement).toBe("\tst (a0)");
     expect(diagnostic?.suggestion?.applicability).toBe("safe");
   });
 
@@ -136,24 +136,24 @@ describe("optimization rules", () => {
 
   test("shrinks signed 16-bit immediate loads to address registers", () => {
     const diagnostic = lint("move.l #1234,a2").find((d) => d.ruleId === "optimization/prefer-move-word-address");
-    expect(diagnostic?.suggestion?.replacement).toBe("movea.w #1234,a2");
+    expect(diagnostic?.suggestion?.replacement).toBe("\tmovea.w #1234,a2");
     expect(ids("move.l #40000,a2")).not.toContain("optimization/prefer-move-word-address");
   });
 
   test("zeros an address register with SUBA.L", () => {
     const diagnostic = lint("move.l #0,a3").find((d) => d.ruleId === "optimization/zero-address-register");
-    expect(diagnostic?.suggestion?.replacement).toBe("suba.l a3,a3");
+    expect(diagnostic?.suggestion?.replacement).toBe("\tsuba.l a3,a3");
     expect(ids("move.l #0,a3")).not.toContain("optimization/prefer-move-word-address");
   });
 
   test("recognises standard LINK and UNLK sequences", () => {
     const setup = ["move.l a6,-(sp)", "move.l sp,a6", "add.w #-32,sp"].join("\n");
     const link = lint(setup).find((d) => d.ruleId === "optimization/prefer-link-sequence");
-    expect(link?.suggestion?.replacement).toBe("link a6,#-32");
+    expect(link?.suggestion?.replacement).toBe("\tlink a6,#-32");
 
     const teardown = ["move.l a6,sp", "move.l (sp)+,a6", "rts"].join("\n");
     const unlk = lint(teardown).find((d) => d.ruleId === "optimization/prefer-unlk-sequence");
-    expect(unlk?.suggestion?.replacement).toBe("unlk a6");
+    expect(unlk?.suggestion?.replacement).toBe("\tunlk a6");
   });
 
   // The opening MOVE.L to -(SP) sets N and Z; LINK sets nothing. Found by the
@@ -195,13 +195,13 @@ describe("Flamewing address sequence rules", () => {
   test("folds ADDA immediate plus data-register ADDA into indexed LEA", () => {
     const source = ["adda.w #12,a0", "adda.l d1,a0", "rts"].join("\n");
     const diagnostic = lint(source).find((d) => d.ruleId === "optimization/address-arithmetic-indexed-lea");
-    expect(diagnostic?.suggestion?.replacement).toBe("lea 12(a0,d1.l),a0");
+    expect(diagnostic?.suggestion?.replacement).toBe("\tlea 12(a0,d1.l),a0");
   });
 
   test("folds SUBA immediate plus address-register ADDA into indexed LEA", () => {
     const source = ["suba.w #8,a0", "adda.w a1,a0", "rts"].join("\n");
     const diagnostic = lint(source).find((d) => d.ruleId === "optimization/address-arithmetic-indexed-lea");
-    expect(diagnostic?.suggestion?.replacement).toBe("lea -8(a0,a1.w),a0");
+    expect(diagnostic?.suggestion?.replacement).toBe("\tlea -8(a0,a1.w),a0");
   });
 
   test("does not fold when the index is the destination address register", () => {
@@ -215,13 +215,13 @@ describe("Flamewing rotate and shift rules", () => {
   test("reduces known register-count word rotates", () => {
     const source = ["moveq #12,d1", "rol.w d1,d0", "move.l #0,d1", "rts"].join("\n");
     const diagnostic = lint(source).find((d) => d.ruleId === "optimization/known-register-rotate");
-    expect(diagnostic?.suggestion?.replacement).toBe("ror.w #4,d0");
+    expect(diagnostic?.suggestion?.replacement).toBe("\tror.w #4,d0");
   });
 
   test("reduces known register-count long rotates through SWAP", () => {
     const source = ["moveq #20,d1", "ror.l d1,d0", "move.l #0,d1", "rts"].join("\n");
     const diagnostic = lint(source).find((d) => d.ruleId === "optimization/known-register-rotate");
-    expect(diagnostic?.suggestion?.replacement).toBe("swap d0\nror.l #4,d0");
+    expect(diagnostic?.suggestion?.replacement).toBe("\tswap d0\n\tror.l #4,d0");
   });
 
   test("does not delete a MOVEQ whose count register remains live", () => {
@@ -233,38 +233,38 @@ describe("Flamewing rotate and shift rules", () => {
     const diagnostic = lint(["roxl.w #1,d0", "move.w d0,d1", "rts"].join("\n")).find(
       (d) => d.ruleId === "optimization/roxl-to-addx",
     );
-    expect(diagnostic?.suggestion?.replacement).toBe("addx.w d0,d0");
+    expect(diagnostic?.suggestion?.replacement).toBe("\taddx.w d0,d0");
   });
 
   test("recognises the LSL.B #7 rotate-and-mask speed tradeoff", () => {
     const diagnostic = lint(["lsl.b #7,d0", "move.b d0,d1", "rts"].join("\n")).find(
       (d) => d.ruleId === "optimization/lsl-byte-seven",
     );
-    expect(diagnostic?.suggestion?.replacement).toBe("ror.b #1,d0\nandi.b #$80,d0");
+    expect(diagnostic?.suggestion?.replacement).toBe("\tror.b #1,d0\n\tandi.b #$80,d0");
   });
 
   test("reduces known register-count LSL.W #12 using rotate and mask", () => {
     const source = ["moveq #12,d1", "lsl.w d1,d0", "move.l #0,d1", "rts"].join("\n");
     const diagnostic = lint(source).find((d) => d.ruleId === "optimization/known-register-shift-reduction");
-    expect(diagnostic?.suggestion?.replacement).toBe("ror.w #4,d0\nandi.w #$F000,d0");
+    expect(diagnostic?.suggestion?.replacement).toBe("\tror.w #4,d0\n\tandi.w #$F000,d0");
   });
 
   test("reduces known register-count LSR.W #12 using mask and rotate", () => {
     const source = ["moveq #12,d1", "lsr.w d1,d0", "move.l #0,d1", "rts"].join("\n");
     const diagnostic = lint(source).find((d) => d.ruleId === "optimization/known-register-shift-reduction");
-    expect(diagnostic?.suggestion?.replacement).toBe("andi.w #$F000,d0\nrol.w #4,d0");
+    expect(diagnostic?.suggestion?.replacement).toBe("\tandi.w #$F000,d0\n\trol.w #4,d0");
   });
 
   test("reduces known register-count LSL.L #20 using word/SWAP operations", () => {
     const source = ["moveq #20,d1", "lsl.l d1,d0", "move.l #0,d1", "rts"].join("\n");
     const diagnostic = lint(source).find((d) => d.ruleId === "optimization/known-register-shift-reduction");
-    expect(diagnostic?.suggestion?.replacement).toBe("lsl.w #4,d0\nswap d0\nclr.w d0");
+    expect(diagnostic?.suggestion?.replacement).toBe("\tlsl.w #4,d0\n\tswap d0\n\tclr.w d0");
   });
 
   test("reduces known register-count ASR.L #16 using SWAP/EXT", () => {
     const source = ["moveq #16,d1", "asr.l d1,d0", "move.l #0,d1", "rts"].join("\n");
     const diagnostic = lint(source).find((d) => d.ruleId === "optimization/known-register-shift-reduction");
-    expect(diagnostic?.suggestion?.replacement).toBe("swap d0\next.l d0");
+    expect(diagnostic?.suggestion?.replacement).toBe("\tswap d0\n\text.l d0");
   });
 
   test("does not reduce a register-count shift when the count register remains live", () => {
@@ -398,7 +398,7 @@ describe("CCR analysis", () => {
     const source = ["lsl.w #16,d0", "move.l d1,d2", "rts"].join("\n");
     const diagnostic = lint(source).find((d) => d.ruleId === "optimization/shift-to-clear");
     expect(diagnostic).toBeDefined();
-    expect(diagnostic?.suggestion?.replacement).toBe("clr.w d0");
+    expect(diagnostic?.suggestion?.replacement).toBe("\tclr.w d0");
   });
 });
 
@@ -406,7 +406,7 @@ describe("v0.8 sequence rules", () => {
   test("uses TST plus sign branch for BTST sign-bit tests", () => {
     const source = ["btst #31,d0", "beq.s .positive", "move.l d1,d2", ".positive:", "move.l d3,d4"].join("\n");
     const diagnostic = lint(source).find((d) => d.ruleId === "optimization/btst-sign-branch");
-    expect(diagnostic?.suggestion?.replacement).toBe("tst.l d0\nbpl.s .positive");
+    expect(diagnostic?.suggestion?.replacement).toBe("\ttst.l d0\n\tbpl.s .positive");
   });
 
   test("does not fold BTST branch across an independently reachable label", () => {
@@ -447,7 +447,7 @@ describe("v0.9 local peepholes", () => {
     // Replacements are line-scoped, so this rewrites the operand within the whole
     // instruction rather than handing back a bare operand fragment.
     const diagnostic = lint("move.l 0(a0),d0").find((d) => d.ruleId === "optimization/redundant-zero-displacement");
-    expect(diagnostic?.suggestion?.replacement).toBe("move.l (a0),d0");
+    expect(diagnostic?.suggestion?.replacement).toBe("\tmove.l (a0),d0");
     expect(diagnostic?.message).toContain("(a0)");
   });
 
@@ -460,16 +460,16 @@ describe("v0.9 local peepholes", () => {
 
   test("rewrites only the matched operand, leaving the rest of the line alone", () => {
     const diagnostic = lint("move.l 0(a0),0(a1)").find((d) => d.ruleId === "optimization/redundant-zero-displacement");
-    expect(diagnostic?.suggestion?.replacement).toBe("move.l (a0),0(a1)");
+    expect(diagnostic?.suggestion?.replacement).toBe("\tmove.l (a0),0(a1)");
   });
 
   test("uses LEA for larger immediate address-register arithmetic", () => {
     expect(
       lint("add.l #100,a2").find((d) => d.ruleId === "optimization/address-add-to-lea")?.suggestion?.replacement,
-    ).toBe("lea 100(a2),a2");
+    ).toBe("\tlea 100(a2),a2");
     expect(
       lint("sub.w #20,a3").find((d) => d.ruleId === "optimization/address-sub-to-lea")?.suggestion?.replacement,
-    ).toBe("lea -20(a3),a3");
+    ).toBe("\tlea -20(a3),a3");
     expect(ids("add.l #8,a2")).not.toContain("optimization/address-add-to-lea");
   });
 
@@ -477,7 +477,7 @@ describe("v0.9 local peepholes", () => {
     const safe = lint(["move.l #123,-(sp)", "move.l d0,d1", "rts"].join("\n")).find(
       (d) => d.ruleId === "optimization/push-immediate-pea",
     );
-    expect(safe?.suggestion?.replacement).toBe("pea 123.w");
+    expect(safe?.suggestion?.replacement).toBe("\tpea 123.w");
     expect(safe?.suggestion?.applicability).toBe("safe");
 
     const escaping = lint(["move.l #123,-(sp)", "rts"].join("\n")).find(
@@ -494,19 +494,19 @@ describe("v0.9 local peepholes", () => {
   test("uses low-word masks for BSET/BCLR when CCR differences are dead", () => {
     const source = ["bset.l #3,d0", "move.l d1,d2", "rts"].join("\n");
     const bset = lint(source).find((d) => d.ruleId === "optimization/bset-low-word-mask");
-    expect(bset?.suggestion?.replacement).toBe("or.w #$0008,d0");
+    expect(bset?.suggestion?.replacement).toBe("\tor.w #$0008,d0");
     expect(bset?.suggestion?.applicability).toBe("safe");
 
     expect(
       lint("bclr.l #7,d1").find((d) => d.ruleId === "optimization/bclr-low-word-mask")?.suggestion?.replacement,
-    ).toBe("and.w #$FF7F,d1");
+    ).toBe("\tand.w #$FF7F,d1");
   });
 
   test("suggests two ADDs for two-bit byte/word shifts on supported CPUs", () => {
     const diagnostic = lint(["asl.w #2,d2", "move.l d0,d1", "rts"].join("\n")).find(
       (d) => d.ruleId === "optimization/shift-two-adds",
     );
-    expect(diagnostic?.suggestion?.replacement).toBe("add.w d2,d2\nadd.w d2,d2");
+    expect(diagnostic?.suggestion?.replacement).toBe("\tadd.w d2,d2\n\tadd.w d2,d2");
 
     const cpu060 = lint("asl.w #2,d2", { processors: ["mc68060"] });
     expect(cpu060.map((d) => d.ruleId)).not.toContain("optimization/shift-two-adds");
@@ -515,7 +515,7 @@ describe("v0.9 local peepholes", () => {
   test("extends BTST sign-branch folding to memory bit 7", () => {
     const source = ["btst #7,(a0)", "beq .positive", "move.l d0,d1", ".positive:", "rts"].join("\n");
     const diagnostic = lint(source).find((d) => d.ruleId === "optimization/btst-sign-branch");
-    expect(diagnostic?.suggestion?.replacement).toBe("tst.b (a0)\nbpl .positive");
+    expect(diagnostic?.suggestion?.replacement).toBe("\ttst.b (a0)\n\tbpl .positive");
   });
 });
 
@@ -534,7 +534,7 @@ describe("register analysis", () => {
   test("tracks a known-zero data register into a CLR optimisation", () => {
     const source = ["moveq #0,d7", "clr.l -(a0)", "rts"].join("\n");
     const diagnostic = lint(source).find((d) => d.ruleId === "optimization/known-zero-clear");
-    expect(diagnostic?.suggestion?.replacement).toBe("move.l d7,-(a0)");
+    expect(diagnostic?.suggestion?.replacement).toBe("\tmove.l d7,-(a0)");
     expect(diagnostic?.suggestion?.applicability).toBe("conditional");
   });
 
@@ -556,7 +556,7 @@ describe("v0.11 register-driven rules", () => {
   test("uses a dead data register to compare an address register with zero", () => {
     const source = ["cmp.l #0,a0", "moveq #1,d0", "rts"].join("\n");
     const diagnostic = lint(source).find((d) => d.ruleId === "optimization/cmp-zero-address-via-scratch");
-    expect(diagnostic?.suggestion?.replacement).toBe("move.l a0,d0");
+    expect(diagnostic?.suggestion?.replacement).toBe("\tmove.l a0,d0");
     expect(diagnostic?.suggestion?.applicability).toBe("safe");
   });
 
@@ -567,7 +567,7 @@ describe("v0.11 register-driven rules", () => {
   test("combines consecutive ADDQ.L operations when flags are dead", () => {
     const source = ["addq.l #3,d0", "addq.l #5,d0", "add.l d1,d2", "rts"].join("\n");
     const diagnostic = lint(source).find((d) => d.ruleId === "optimization/combine-consecutive-addq");
-    expect(diagnostic?.suggestion?.replacement).toBe("addq.l #8,d0");
+    expect(diagnostic?.suggestion?.replacement).toBe("\taddq.l #8,d0");
     expect(diagnostic?.suggestion?.applicability).toBe("safe");
   });
 
@@ -583,7 +583,7 @@ describe("v0.11 register-driven rules", () => {
     const diagnostic = lint(source, { processors: ["mc68030"] }).find(
       (d) => d.ruleId === "optimization/combine-consecutive-addq",
     );
-    expect(diagnostic?.suggestion?.replacement).toBe("add.l #11,d0");
+    expect(diagnostic?.suggestion?.replacement).toBe("\tadd.l #11,d0");
   });
 
   test("keeps combined ADDQ conditional when carry/overflow flags are observed", () => {
@@ -609,19 +609,19 @@ describe("v0.12 simple multiply rules", () => {
   test("replaces signed/unsigned word multiply by zero with MOVEQ", () => {
     expect(
       lint("muls.w #0,d2").find((d) => d.ruleId === "optimization/multiply-word-by-zero")?.suggestion?.replacement,
-    ).toBe("moveq #0,d2");
+    ).toBe("\tmoveq #0,d2");
     expect(ids("mulu.w #0,d3")).toContain("optimization/multiply-word-by-zero");
   });
 
   test("replaces signed word multiply by one with EXT.L", () => {
     const diagnostic = lint("muls.w #1,d4").find((d) => d.ruleId === "optimization/muls-word-by-one");
-    expect(diagnostic?.suggestion?.replacement).toBe("ext.l d4");
+    expect(diagnostic?.suggestion?.replacement).toBe("\text.l d4");
     expect(diagnostic?.suggestion?.applicability).toBe("safe");
   });
 
   test("offers the unsigned multiply-by-one zero-extension sequence only on useful targets", () => {
     const diagnostic = lint("mulu.w #1,d5").find((d) => d.ruleId === "optimization/mulu-word-by-one");
-    expect(diagnostic?.suggestion?.replacement).toBe("swap d5\nclr.w d5\nswap d5");
+    expect(diagnostic?.suggestion?.replacement).toBe("\tswap d5\n\tclr.w d5\n\tswap d5");
     expect(lint("mulu.w #1,d5", { processors: ["mc68060"] }).map((d) => d.ruleId)).not.toContain(
       "optimization/mulu-word-by-one",
     );
@@ -630,7 +630,7 @@ describe("v0.12 simple multiply rules", () => {
   test("uses EXT+ASL for signed word powers of two and respects flag liveness", () => {
     const safeSource = ["muls.w #8,d0", "add.l d1,d2", "rts"].join("\n");
     const safe = lint(safeSource).find((d) => d.ruleId === "optimization/muls-word-power-of-two");
-    expect(safe?.suggestion?.replacement).toBe("ext.l d0\nasl.l #3,d0");
+    expect(safe?.suggestion?.replacement).toBe("\text.l d0\n\tasl.l #3,d0");
     expect(safe?.suggestion?.applicability).toBe("safe");
 
     const liveSource = ["muls.w #8,d0", "bvs .overflow", ".overflow:", "rts"].join("\n");
@@ -649,7 +649,7 @@ describe("v0.13 multiply and disposable-register sequence rules", () => {
   test("offers unsigned word power-of-two multiply replacement and checks CCR liveness", () => {
     const safeSource = ["mulu.w #8,d0", "add.l d1,d2", "rts"].join("\n");
     const safe = lint(safeSource).find((d) => d.ruleId === "optimization/mulu-word-power-of-two");
-    expect(safe?.suggestion?.replacement).toBe("swap d0\nclr.w d0\nswap d0\nlsl.l #3,d0");
+    expect(safe?.suggestion?.replacement).toBe("\tswap d0\n\tclr.w d0\n\tswap d0\n\tlsl.l #3,d0");
     expect(safe?.suggestion?.applicability).toBe("safe");
 
     const liveSource = ["mulu.w #8,d0", "bcs .carry", ".carry:", "rts"].join("\n");
@@ -661,13 +661,13 @@ describe("v0.13 multiply and disposable-register sequence rules", () => {
     const diagnostic = lint(["muls.w #1024,d3", "move.l d0,d1", "rts"].join("\n")).find(
       (d) => d.ruleId === "optimization/muls-word-high-power-of-two",
     );
-    expect(diagnostic?.suggestion?.replacement).toBe("swap d3\nclr.w d3\nasr.l #6,d3");
+    expect(diagnostic?.suggestion?.replacement).toBe("\tswap d3\n\tclr.w d3\n\tasr.l #6,d3");
   });
 
   test("collapses NEG+SUB only when the negated register is disposable", () => {
     const source = ["neg.l d0", "sub.l d0,d1", "move.l #0,d0", "add.l d2,d3", "rts"].join("\n");
     const diagnostic = lint(source).find((d) => d.ruleId === "optimization/negate-sub-to-add");
-    expect(diagnostic?.suggestion?.replacement).toBe("add.l d0,d1");
+    expect(diagnostic?.suggestion?.replacement).toBe("\tadd.l d0,d1");
     expect(diagnostic?.suggestion?.applicability).toBe("safe");
   });
 
@@ -679,7 +679,7 @@ describe("v0.13 multiply and disposable-register sequence rules", () => {
   test("collapses NEG+ADD to SUB for a dead source register", () => {
     const source = ["neg.w d4", "add.w d4,d5", "moveq #0,d4", "move.l d0,d1", "rts"].join("\n");
     const diagnostic = lint(source).find((d) => d.ruleId === "optimization/negate-add-to-sub");
-    expect(diagnostic?.suggestion?.replacement).toBe("sub.w d4,d5");
+    expect(diagnostic?.suggestion?.replacement).toBe("\tsub.w d4,d5");
   });
 
   // XOR by a mask m maps x to m-x, so the identity pairs with ADD #m, not with
@@ -688,7 +688,7 @@ describe("v0.13 multiply and disposable-register sequence rules", () => {
   test("the NEG/ADD to EOR identity uses the mask, not the power of two above it", () => {
     const mask = ["moveq #3,d0", "neg.l d0", "add.l #7,d0", "rts"].join("\n");
     expect(lint(mask).find((d) => d.ruleId === "optimization/negate-add-mask-to-eor")?.suggestion?.replacement).toBe(
-      "eor.l #7,d0",
+      "\teor.l #7,d0",
     );
 
     const powerOfTwo = ["moveq #3,d0", "neg.l d0", "add.l #8,d0", "rts"].join("\n");
@@ -700,7 +700,7 @@ test("v0.13 uses the high-power unsigned word construction", () => {
   const diagnostic = lint(["mulu.w #2048,d6", "move.l d0,d1", "rts"].join("\n")).find(
     (d) => d.ruleId === "optimization/mulu-word-high-power-of-two",
   );
-  expect(diagnostic?.suggestion?.replacement).toBe("swap d6\nclr.w d6\nlsr.l #5,d6");
+  expect(diagnostic?.suggestion?.replacement).toBe("\tswap d6\n\tclr.w d6\n\tlsr.l #5,d6");
 });
 
 describe("v0.16 redundant TST and additional ASP68K rules", () => {
@@ -730,7 +730,7 @@ describe("v0.16 redundant TST and additional ASP68K rules", () => {
     const source = ["bset.b #7,(a0)", "beq .clear", "move.l d0,d1", ".clear:", "rts"].join("\n");
     const config = { processors: ["mc68000" as const], rules: { "optimization/bset-to-tas": "suggestion" as const } };
     const diagnostic = lint(source, config).find((d) => d.ruleId === "optimization/bset-to-tas");
-    expect(diagnostic?.suggestion?.replacement).toBe("tas (a0)\nbpl .clear");
+    expect(diagnostic?.suggestion?.replacement).toBe("\ttas (a0)\n\tbpl .clear");
   });
 
   test("does not suggest memory TAS form on 68040", () => {
@@ -741,7 +741,7 @@ describe("v0.16 redundant TST and additional ASP68K rules", () => {
 
   test("uses SUBA.L to zero an address register for LEA 0.w", () => {
     const diagnostic = lint("lea 0.w,a2").find((d) => d.ruleId === "optimization/lea-zero-address");
-    expect(diagnostic?.suggestion?.replacement).toBe("suba.l a2,a2");
+    expect(diagnostic?.suggestion?.replacement).toBe("\tsuba.l a2,a2");
     expect(diagnostic?.suggestion?.applicability).toBe("safe");
   });
 
@@ -749,14 +749,14 @@ describe("v0.16 redundant TST and additional ASP68K rules", () => {
     const diagnostic = lint(["move.l #65534,d0", "move.l d1,d2", "rts"].join("\n")).find(
       (d) => d.ruleId === "optimization/move-immediate-word-complement",
     );
-    expect(diagnostic?.suggestion?.replacement).toBe("moveq #1,d0\nnot.w d0");
+    expect(diagnostic?.suggestion?.replacement).toBe("\tmoveq #1,d0\n\tnot.w d0");
   });
 
   test("synthesizes selected constants with MOVEQ + SWAP", () => {
     const diagnostic = lint(["move.l #2752512,d0", "move.l d1,d2", "rts"].join("\n")).find(
       (d) => d.ruleId === "optimization/move-immediate-swap",
     );
-    expect(diagnostic?.suggestion?.replacement).toBe("moveq #42,d0\nswap d0");
+    expect(diagnostic?.suggestion?.replacement).toBe("\tmoveq #42,d0\n\tswap d0");
   });
 });
 
@@ -822,7 +822,7 @@ describe("v0.19 long shifts and MOVEA/LEA rules", () => {
     const diagnostic = lint(["asl.l #16,d0", "add.l d1,d2", "rts"].join("\n")).find(
       (d) => d.ruleId === "optimization/long-shift-sequence",
     );
-    expect(diagnostic?.suggestion?.replacement).toBe("swap d0\nclr.w d0");
+    expect(diagnostic?.suggestion?.replacement).toBe("\tswap d0\n\tclr.w d0");
     expect(diagnostic?.suggestion?.applicability).toBe("safe");
   });
 
@@ -830,7 +830,7 @@ describe("v0.19 long shifts and MOVEA/LEA rules", () => {
     const diagnostic = lint(["asr.l #20,d3", "move.l d1,d2", "rts"].join("\n")).find(
       (d) => d.ruleId === "optimization/long-shift-sequence",
     );
-    expect(diagnostic?.suggestion?.replacement).toBe("swap d3\nasr.w #4,d3\next.l d3");
+    expect(diagnostic?.suggestion?.replacement).toBe("\tswap d3\n\tasr.w #4,d3\n\text.l d3");
   });
 
   test("does not offer early-CPU ASL sequence on 68040", () => {
@@ -849,13 +849,13 @@ describe("v0.19 long shifts and MOVEA/LEA rules", () => {
     // No size suffix: an explicit .L would pin the operand to absolute long and
     // stop the assembler relaxing it to PC-relative.
     const diagnostic = lint("move.l #100,a0").find((d) => d.ruleId === "optimization/movea-immediate-to-lea");
-    expect(diagnostic?.suggestion?.replacement).toBe("lea 100,a0");
+    expect(diagnostic?.suggestion?.replacement).toBe("\tlea 100,a0");
   });
 
   test("folds MOVEA.L plus immediate ADDA into LEA", () => {
     const source = ["move.l a0,a1", "add.l #12,a1", "rts"].join("\n");
     const diagnostic = lint(source).find((d) => d.ruleId === "optimization/movea-add-to-lea");
-    expect(diagnostic?.suggestion?.replacement).toBe("lea 12(a0),a1");
+    expect(diagnostic?.suggestion?.replacement).toBe("\tlea 12(a0),a1");
     expect(diagnostic?.suggestion?.applicability).toBe("safe");
   });
 
@@ -869,14 +869,14 @@ describe("v0.19 multiple predecrement cancellation", () => {
   test("folds ADDQ #6 plus word/long predecrement stores", () => {
     const source = ["addq.l #6,a0", "move.w d0,-(a0)", "move.l d1,-(a0)", "rts"].join("\n");
     const diagnostic = lint(source).find((d) => d.ruleId === "optimization/cancel-multiple-predecrement-moves");
-    expect(diagnostic?.suggestion?.replacement).toBe("move.w d0,4(a0)\nmove.l d1,(a0)");
+    expect(diagnostic?.suggestion?.replacement).toBe("\tmove.w d0,4(a0)\n\tmove.l d1,(a0)");
     expect(diagnostic?.suggestion?.applicability).toBe("safe");
   });
 
   test("folds ADDQ #6 plus long/word predecrement stores", () => {
     const source = ["addq.w #6,a2", "move.l d0,-(a2)", "move.w d1,-(a2)", "rts"].join("\n");
     const diagnostic = lint(source).find((d) => d.ruleId === "optimization/cancel-multiple-predecrement-moves");
-    expect(diagnostic?.suggestion?.replacement).toBe("move.l d0,2(a2)\nmove.w d1,(a2)");
+    expect(diagnostic?.suggestion?.replacement).toBe("\tmove.l d0,2(a2)\n\tmove.w d1,(a2)");
   });
 
   test("rejects a source operand which depends on the adjusted register", () => {
@@ -890,7 +890,7 @@ describe("v0.20 coverage rules", () => {
     const safe = lint(["addq.l #4,sp", "pea (a0)", "move.l d0,d1", "rts"].join("\n")).find(
       (d) => d.ruleId === "optimization/cancel-stack-pea-sequence",
     );
-    expect(safe?.suggestion?.replacement).toBe("move.l a0,(sp)");
+    expect(safe?.suggestion?.replacement).toBe("\tmove.l a0,(sp)");
     expect(safe?.suggestion?.applicability).toBe("safe");
 
     const escaping = lint(["addq.l #4,sp", "pea (a0)", "rts"].join("\n")).find(
@@ -903,12 +903,12 @@ describe("v0.20 coverage rules", () => {
     const a = lint(["addq.w #6,sp", "move.w d0,-(sp)", "pea (a1)", "rts"].join("\n")).find(
       (d) => d.ruleId === "optimization/cancel-stack-pea-sequence",
     );
-    expect(a?.suggestion?.replacement).toBe("move.w d0,4(sp)\nmove.l a1,(sp)");
+    expect(a?.suggestion?.replacement).toBe("\tmove.w d0,4(sp)\n\tmove.l a1,(sp)");
 
     const b = lint(["addq.l #8,sp", "pea (a0)", "move.l d2,-(sp)", "rts"].join("\n")).find(
       (d) => d.ruleId === "optimization/cancel-stack-pea-sequence",
     );
-    expect(b?.suggestion?.replacement).toBe("move.l a0,4(sp)\nmove.l d2,(sp)");
+    expect(b?.suggestion?.replacement).toBe("\tmove.l a0,4(sp)\n\tmove.l d2,(sp)");
     expect(b?.suggestion?.applicability).toBe("safe");
   });
 
@@ -936,13 +936,13 @@ describe("v0.22 deferred-rule tranche", () => {
     const add = lint(["move.l a0,a2", "add.l #12,a2", "add.w d3,a2", "rts"].join("\n")).find(
       (d) => d.ruleId === "optimization/address-expression-to-lea",
     );
-    expect(add?.suggestion?.replacement).toBe("lea 12(a0,d3.w),a2");
+    expect(add?.suggestion?.replacement).toBe("\tlea 12(a0,d3.w),a2");
     expect(add?.suggestion?.applicability).toBe("safe");
 
     const sub = lint(["move.l a1,a4", "sub.w #8,a4", "add.l d5,a4", "rts"].join("\n")).find(
       (d) => d.ruleId === "optimization/address-expression-to-lea",
     );
-    expect(sub?.suggestion?.replacement).toBe("lea -8(a1,d5.l),a4");
+    expect(sub?.suggestion?.replacement).toBe("\tlea -8(a1,d5.l),a4");
   });
 
   test("does not fold MOVEA.W base copies into LEA", () => {
@@ -955,7 +955,7 @@ describe("v0.22 deferred-rule tranche", () => {
     const diagnostic = lint(["divu.w #8,d0", "rts"].join("\n")).find(
       (d) => d.ruleId === "optimization/divu-word-power-of-two",
     );
-    expect(diagnostic?.suggestion?.replacement).toBe("lsr.l #3,d0");
+    expect(diagnostic?.suggestion?.replacement).toBe("\tlsr.l #3,d0");
     expect(diagnostic?.suggestion?.applicability).toBe("manual");
     expect(diagnostic?.data?.upperWordUse).toBe("unknown");
   });
@@ -964,7 +964,7 @@ describe("v0.22 deferred-rule tranche", () => {
     const diagnostic = lint(
       ["moveq #64,d0", "divu.w #8,d0", "move.w d0,d1", "moveq #0,d0", "move.l d2,d3", "rts"].join("\n"),
     ).find((d) => d.ruleId === "optimization/divu-word-power-of-two");
-    expect(diagnostic?.suggestion?.replacement).toBe("lsr.l #3,d0");
+    expect(diagnostic?.suggestion?.replacement).toBe("\tlsr.l #3,d0");
     expect(diagnostic?.data?.upperWordUse).toBe("unused");
     expect(diagnostic?.data?.quotientOverflowProvenSafe).toBe(true);
   });
@@ -975,12 +975,12 @@ describe("v0.27 Flamewing shift tranche", () => {
     const byte = lint(["moveq #9,d1", "lsl.b d1,d0", "move.l d2,d3", "rts"].join("\n")).find(
       (d) => d.ruleId === "optimization/known-register-shift-to-clear",
     );
-    expect(byte?.suggestion?.replacement).toBe("clr.b d0");
+    expect(byte?.suggestion?.replacement).toBe("\tclr.b d0");
 
     const long = lint(["moveq #32,d1", "lsr.l d1,d0", "move.l d2,d3", "rts"].join("\n")).find(
       (d) => d.ruleId === "optimization/known-register-shift-to-clear",
     );
-    expect(long?.suggestion?.replacement).toBe("moveq #0,d0");
+    expect(long?.suggestion?.replacement).toBe("\tmoveq #0,d0");
   });
 
   test("does not treat ASR as a zeroing shift", () => {
@@ -991,12 +991,12 @@ describe("v0.27 Flamewing shift tranche", () => {
     const lsr = lint(["lsr.b #7,d0", "move.l d1,d2", "rts"].join("\n")).find(
       (d) => d.ruleId === "optimization/lsr-byte-seven",
     );
-    expect(lsr?.suggestion?.replacement).toBe("add.b d0,d0\nsubx.b d0,d0\nneg.b d0");
+    expect(lsr?.suggestion?.replacement).toBe("\tadd.b d0,d0\n\tsubx.b d0,d0\n\tneg.b d0");
 
     const asr = lint(["asr.b #8,d0", "move.l d1,d2", "rts"].join("\n")).find(
       (d) => d.ruleId === "optimization/asr-byte-saturate",
     );
-    expect(asr?.suggestion?.replacement).toBe("add.b d0,d0\nsubx.b d0,d0");
+    expect(asr?.suggestion?.replacement).toBe("\tadd.b d0,d0\n\tsubx.b d0,d0");
   });
 });
 
@@ -1036,19 +1036,19 @@ test("reduces known large register-count ASR to sign saturation", () => {
   const word = lint(["moveq #15,d1", "asr.w d1,d0", "move.l d0,d2", "moveq #0,d1", "rts"].join("\n")).find(
     (d) => d.ruleId === "optimization/known-register-asr-saturate",
   );
-  expect(word?.suggestion?.replacement).toBe("add.w d0,d0\nsubx.w d0,d0");
+  expect(word?.suggestion?.replacement).toBe("\tadd.w d0,d0\n\tsubx.w d0,d0");
 
   const long = lint(["moveq #31,d1", "asr.l d1,d0", "move.l d0,d2", "moveq #0,d1", "rts"].join("\n")).find(
     (d) => d.ruleId === "optimization/known-register-asr-saturate",
   );
-  expect(long?.suggestion?.replacement).toBe("add.l d0,d0\nsubx.l d0,d0");
+  expect(long?.suggestion?.replacement).toBe("\tadd.l d0,d0\n\tsubx.l d0,d0");
 });
 
 describe("v0.30 Flamewing partial-register tranche", () => {
   test("uses MOVEQ + AND.B when upper 24 bits are proven discarded", () => {
     const source = ["move.b (a0),d0", "andi.b #$7f,d0", "move.b d0,d1", "moveq #0,d0", "rts"].join("\n");
     const diagnostic = lint(source).find((d) => d.ruleId === "optimization/move-byte-and-mask");
-    expect(diagnostic?.suggestion?.replacement).toBe("moveq #127,d0\nand.b (a0),d0");
+    expect(diagnostic?.suggestion?.replacement).toBe("\tmoveq #127,d0\n\tand.b (a0),d0");
     expect(diagnostic?.suggestion?.applicability).toBe("safe");
   });
 
@@ -1066,12 +1066,12 @@ describe("v0.30 Flamewing partial-register tranche", () => {
     const left = lint(["moveq #30,d1", "lsl.l d1,d0", "move.l d0,d2", "moveq #0,d1", "rts"].join("\n")).find(
       (d) => d.ruleId === "optimization/known-register-shift-reduction",
     );
-    expect(left?.suggestion?.replacement).toBe("ror.w #2,d0\nandi.w #$C000,d0\nswap d0\nclr.w d0");
+    expect(left?.suggestion?.replacement).toBe("\tror.w #2,d0\n\tandi.w #$C000,d0\n\tswap d0\n\tclr.w d0");
 
     const right = lint(["moveq #29,d1", "lsr.l d1,d0", "move.l d0,d2", "moveq #0,d1", "rts"].join("\n")).find(
       (d) => d.ruleId === "optimization/known-register-shift-reduction",
     );
-    expect(right?.suggestion?.replacement).toBe("clr.w d0\nswap d0\nandi.w #$E000,d0\nrol.w #3,d0");
+    expect(right?.suggestion?.replacement).toBe("\tclr.w d0\n\tswap d0\n\tandi.w #$E000,d0\n\trol.w #3,d0");
   });
 });
 
@@ -1080,7 +1080,7 @@ describe("v0.31 Flamewing arithmetic-shift tranche", () => {
     const safe = lint(
       ["moveq #12,d1", "asr.w d1,d0", "move.w d0,d2", "moveq #0,d0", "moveq #0,d1", "rts"].join("\n"),
     ).find((d) => d.ruleId === "optimization/known-register-asr-word-low-only");
-    expect(safe?.suggestion?.replacement).toBe("ext.l d0\nswap d0\nrol.l #4,d0");
+    expect(safe?.suggestion?.replacement).toBe("\text.l d0\n\tswap d0\n\trol.l #4,d0");
 
     const used = lint(["moveq #12,d1", "asr.w d1,d0", "move.l d0,d2", "rts"].join("\n")).find(
       (d) => d.ruleId === "optimization/known-register-asr-word-low-only",
@@ -1092,7 +1092,7 @@ describe("v0.31 Flamewing arithmetic-shift tranche", () => {
     const diagnostic = lint(["moveq #28,d1", "asr.l d1,d0", "move.l d0,d2", "moveq #0,d1", "rts"].join("\n")).find(
       (d) => d.ruleId === "optimization/known-register-asr-long-high",
     );
-    expect(diagnostic?.suggestion?.replacement).toBe("swap d0\next.l d0\nswap d0\nrol.l #4,d0\next.l d0");
+    expect(diagnostic?.suggestion?.replacement).toBe("\tswap d0\n\text.l d0\n\tswap d0\n\trol.l #4,d0\n\text.l d0");
   });
 });
 
@@ -1124,13 +1124,13 @@ describe("vasm-derived optimizations", () => {
   test("replaces logical identity immediates on data registers with TST", () => {
     const result = lint("andi.w #$ffff,d0\nori.l #0,d1\neori.b #0,d2\n", { processors: ["mc68000"] });
     expect(
-      result.some((d) => d.ruleId === "optimization/andi-all-ones-to-tst" && d.suggestion?.replacement === "tst.w d0"),
+      result.some((d) => d.ruleId === "optimization/andi-all-ones-to-tst" && d.suggestion?.replacement === "\ttst.w d0"),
     ).toBe(true);
     expect(
-      result.some((d) => d.ruleId === "optimization/ori-zero-to-tst" && d.suggestion?.replacement === "tst.l d1"),
+      result.some((d) => d.ruleId === "optimization/ori-zero-to-tst" && d.suggestion?.replacement === "\ttst.l d1"),
     ).toBe(true);
     expect(
-      result.some((d) => d.ruleId === "optimization/eori-zero-to-tst" && d.suggestion?.replacement === "tst.b d2"),
+      result.some((d) => d.ruleId === "optimization/eori-zero-to-tst" && d.suggestion?.replacement === "\ttst.b d2"),
     ).toBe(true);
   });
 
@@ -1145,7 +1145,7 @@ describe("vasm-derived optimizations", () => {
     expect(
       result.some(
         (d) =>
-          d.ruleId === "optimization/narrow-cmpa-immediate-word" && d.suggestion?.replacement === "cmpa.w #1234,a0",
+          d.ruleId === "optimization/narrow-cmpa-immediate-word" && d.suggestion?.replacement === "\tcmpa.w #1234,a0",
       ),
     ).toBe(true);
   });
@@ -1181,7 +1181,7 @@ describe("Flamewing bounded A7 stack-scratch shifts", () => {
     const result = lint("asr.w #8,d0\n", { processors: ["mc68000"] });
     const d = result.find((x) => x.ruleId === "optimization/stack-word-shift-eight");
     expect(d).toBeDefined();
-    expect(d?.suggestion?.replacement).toBe("move.w d0,-(sp)\nmove.b (sp)+,d0\next.w d0");
+    expect(d?.suggestion?.replacement).toBe("\tmove.w d0,-(sp)\n\tmove.b (sp)+,d0\n\text.w d0");
     expect(d?.suggestion?.applicability).toBe("conditional");
   });
 
@@ -1220,14 +1220,14 @@ describe("v0.37 vasm source + optimization goals", () => {
     const diagnostic = lint("muls.l #-8,d0\nmove.l d0,d1\n", { processors: ["mc68020"] }).find(
       (d) => d.ruleId === "optimization/negative-signed-multiply",
     );
-    expect(diagnostic?.suggestion?.replacement).toBe("asl.l #3,d0\nneg.l d0");
+    expect(diagnostic?.suggestion?.replacement).toBe("\tasl.l #3,d0\n\tneg.l d0");
   });
 
   test("replaces MULS.W #-1 with EXT.L plus NEG.L", () => {
     const diagnostic = lint("muls.w #-1,d0\nmove.l d0,d1\n", { processors: ["mc68000"] }).find(
       (d) => d.ruleId === "optimization/negative-signed-multiply",
     );
-    expect(diagnostic?.suggestion?.replacement).toBe("ext.l d0\nneg.l d0");
+    expect(diagnostic?.suggestion?.replacement).toBe("\text.l d0\n\tneg.l d0");
   });
 
   test("size goal suppresses speed-for-size rules but balanced retains them", () => {
@@ -1253,11 +1253,11 @@ describe("MOVEA immediate to LEA", () => {
 
   test("covers both a folded constant and a link-time symbol", () => {
     // Anything loaded into an address register is an address either way.
-    expect(rep("move.l #100,a0")).toBe("lea 100,a0");
-    expect(rep("move.l #label,a0\nlabel:\nrts")).toBe("lea label,a0");
-    expect(rep("SCREEN equ $10000\nmove.l #SCREEN,a0")).toBe("lea SCREEN,a0");
-    expect(rep("movea.l #label,a1\nlabel:\nrts")).toBe("lea label,a1");
-    expect(rep("move.l #label+8,a2\nlabel:\nrts")).toBe("lea label+8,a2");
+    expect(rep("move.l #100,a0")).toBe("\tlea 100,a0");
+    expect(rep("move.l #label,a0\nlabel:\nrts")).toBe("\tlea label,a0");
+    expect(rep("SCREEN equ $10000\nmove.l #SCREEN,a0")).toBe("\tlea SCREEN,a0");
+    expect(rep("movea.l #label,a1\nlabel:\nrts")).toBe("\tlea label,a1");
+    expect(rep("move.l #label+8,a2\nlabel:\nrts")).toBe("\tlea label+8,a2");
   });
 
   test("emits no size suffix for .L, so the assembler can relax to PC-relative", () => {
@@ -1269,15 +1269,15 @@ describe("MOVEA immediate to LEA", () => {
   test("keeps the .W suffix, because MOVEA.W sign-extends", () => {
     // Without it the assembler could pick absolute long and turn #$8000 into
     // $00008000 rather than $FFFF8000.
-    expect(rep("movea.w #$7000,a0")).toBe("lea $7000.w,a0");
+    expect(rep("movea.w #$7000,a0")).toBe("\tlea $7000.w,a0");
   });
 
   test("is not gated to early CPUs", () => {
     // The 68000/68010 gate existed for an ASP68K speed claim that exact
     // auditing does not bear out: the two forms measure identically.
     const later = { processors: ["mc68020" as const], measureImpact: false } as LintConfig;
-    expect(rep("move.l #100,a0", later)).toBe("lea 100,a0");
-    expect(rep("SCREEN equ $10000\nmove.l #SCREEN,a0", later)).toBe("lea SCREEN,a0");
+    expect(rep("move.l #100,a0", later)).toBe("\tlea 100,a0");
+    expect(rep("SCREEN equ $10000\nmove.l #SCREEN,a0", later)).toBe("\tlea SCREEN,a0");
   });
 
   test("leaves zero to the rules that specialise in it", () => {
@@ -1387,7 +1387,7 @@ describe("rules mined from the EAB thread", () => {
 
     test("swaps a load-then-mask for a MOVEQ seed plus AND", () => {
       // The mask keeps the hex the author wrote rather than becoming 63.
-      expect(rep("move.l (a0),d0\nand.l #$3f,d0\nmoveq #0,d7\nrts", ID)).toBe("moveq #$3f,d0\nand.l (a0),d0");
+      expect(rep("move.l (a0),d0\nand.l #$3f,d0\nmoveq #0,d7\nrts", ID)).toBe("\tmoveq #$3f,d0\n\tand.l (a0),d0");
     });
 
     test("only when the mask fits MOVEQ, or the seed needs its own extension word", () => {
@@ -1404,8 +1404,8 @@ describe("rules mined from the EAB thread", () => {
     const ID = "optimization/data-register-sign-bit-to-tas";
 
     test("covers both spellings that set bit 7", () => {
-      expect(rep("bset #7,d0\nmoveq #0,d7\nrts", ID)).toBe("tas d0");
-      expect(rep("ori.b #$80,d0\nmoveq #0,d7\nrts", ID)).toBe("tas d0");
+      expect(rep("bset #7,d0\nmoveq #0,d7\nrts", ID)).toBe("\ttas d0");
+      expect(rep("ori.b #$80,d0\nmoveq #0,d7\nrts", ID)).toBe("\ttas d0");
     });
 
     test("only bit 7, and only a data register", () => {
@@ -1420,7 +1420,7 @@ describe("rules mined from the EAB thread", () => {
     const ID = "optimization/carry-to-mask-via-subx";
 
     test("collapses SCS plus two extensions", () => {
-      expect(rep("sub.l d2,d3\nscs d0\next.w d0\next.l d0\nmoveq #0,d7\nrts", ID)).toBe("subx.l d0,d0");
+      expect(rep("sub.l d2,d3\nscs d0\next.w d0\next.l d0\nmoveq #0,d7\nrts", ID)).toBe("\tsubx.l d0,d0");
     });
 
     test("declines after CMP, which leaves X stale", () => {
@@ -1439,8 +1439,8 @@ describe("rules mined from the EAB thread", () => {
     const ID = "optimization/arithmetic-immediate-via-scratch";
 
     test("routes a MOVEQ-sized immediate through a dead register", () => {
-      expect(rep("add.l #20,d1\nmoveq #0,d0\nmove.l d1,d2\nrts", ID)).toBe("moveq #20,d0\nadd.l d0,d1");
-      expect(rep("sub.l #-100,d1\nmoveq #0,d0\nmove.l d1,d2\nrts", ID)).toBe("moveq #-100,d0\nsub.l d0,d1");
+      expect(rep("add.l #20,d1\nmoveq #0,d0\nmove.l d1,d2\nrts", ID)).toBe("\tmoveq #20,d0\n\tadd.l d0,d1");
+      expect(rep("sub.l #-100,d1\nmoveq #0,d0\nmove.l d1,d2\nrts", ID)).toBe("\tmoveq #-100,d0\n\tsub.l d0,d1");
     });
 
     test("leaves the quick range to ADDQ and SUBQ", () => {
@@ -1458,12 +1458,12 @@ describe("rules mined from the EAB thread", () => {
     const ID = "optimization/fold-index-into-effective-address";
 
     test("folds the addition into the indexed mode", () => {
-      expect(rep("adda.w d4,a0\nmove.l (a0),a1\nlea buf,a0\nrts\nbuf:", ID)).toBe("move.l (a0,d4.w),a1");
-      expect(rep("adda.l d4,a0\nmove.l (a0),a1\nlea buf,a0\nrts\nbuf:", ID)).toBe("move.l (a0,d4.l),a1");
+      expect(rep("adda.w d4,a0\nmove.l (a0),a1\nlea buf,a0\nrts\nbuf:", ID)).toBe("\tmove.l (a0,d4.w),a1");
+      expect(rep("adda.l d4,a0\nmove.l (a0),a1\nlea buf,a0\nrts\nbuf:", ID)).toBe("\tmove.l (a0,d4.l),a1");
     });
 
     test("works for any instruction that dereferences the register", () => {
-      expect(rep("adda.w d4,a0\ntst.w (a0)\nlea buf,a0\nrts\nbuf:", ID)).toBe("tst.w (a0,d4.w)");
+      expect(rep("adda.w d4,a0\ntst.w (a0)\nlea buf,a0\nrts\nbuf:", ID)).toBe("\ttst.w (a0,d4.w)");
     });
 
     test("is offered only where the indexed mode is the faster form", () => {
@@ -1662,17 +1662,17 @@ describe("Amiga DMAB_/DMAF_ and INTB_/INTF_ constant misuse", () => {
   test("catches one wrong constant in an ORed list, with either operator", () => {
     const bang = find("    move.w #DMAF_SETCLR!DMAB_MASTER!DMAF_COPPER,dmacon(a6)");
     expect(bang?.message).toContain("DMAB_MASTER");
-    expect(bang?.suggestion?.replacement).toBe("move.w #DMAF_SETCLR!DMAF_MASTER!DMAF_COPPER,dmacon(a6)");
+    expect(bang?.suggestion?.replacement).toBe("    move.w #DMAF_SETCLR!DMAF_MASTER!DMAF_COPPER,dmacon(a6)");
 
     const pipe = find("    move.w #DMAF_SETCLR|DMAB_BLITTER,dmacon(a6)");
-    expect(pipe?.suggestion?.replacement).toBe("move.w #DMAF_SETCLR|DMAF_BLITTER,dmacon(a6)");
+    expect(pipe?.suggestion?.replacement).toBe("    move.w #DMAF_SETCLR|DMAF_BLITTER,dmacon(a6)");
   });
 
   test("catches a mask used where a bit number is required", () => {
     // The register is reached as a byte at intreqr+1, which still names INTREQR.
     const diagnostic = find("    btst #INTF_VERTB,intreqr+1(a6)");
     expect(diagnostic?.message).toContain("INTREQR");
-    expect(diagnostic?.suggestion?.replacement).toBe("btst #INTB_VERTB,intreqr+1(a6)");
+    expect(diagnostic?.suggestion?.replacement).toBe("    btst #INTB_VERTB,intreqr+1(a6)");
   });
 
   test("catches the wrong family for the register", () => {
@@ -1685,7 +1685,7 @@ describe("Amiga DMAB_/DMAF_ and INTB_/INTF_ constant misuse", () => {
   test("works through absolute addresses as well as the CUSTOM base", () => {
     expect(
       lint("    move.w #DMAF_SETCLR!DMAB_COPPER,$dff096", amiga).find((d) => d.ruleId === ID)?.suggestion?.replacement,
-    ).toBe("move.w #DMAF_SETCLR!DMAF_COPPER,$dff096");
+    ).toBe("    move.w #DMAF_SETCLR!DMAF_COPPER,$dff096");
   });
 
   test("uses the majority when no register is resolvable", () => {

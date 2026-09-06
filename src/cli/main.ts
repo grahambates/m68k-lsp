@@ -303,8 +303,17 @@ function formatDiagnostic(file: string, source: string, diagnostic: Diagnostic, 
     lines.push(
       `  ${paint(color, 36, "fix:")} ${diagnostic.suggestion.description} (${diagnostic.suggestion.applicability})`,
     );
-    if (diagnostic.suggestion.replacement)
-      lines.push(`  ${paint(color, 90, "replace with:")} ${diagnostic.suggestion.replacement}`);
+    const replacement = diagnostic.suggestion.replacement;
+    if (replacement) {
+      // A replacement carries the indentation of the code it replaces, so a
+      // multi-line one is shown as a block with that indentation intact rather
+      // than run into the label, where every line after the first would start
+      // at the left margin.
+      const replacementLines = replacement.split("\n");
+      const label = paint(color, 90, "replace with:");
+      if (replacementLines.length === 1) lines.push(`  ${label} ${replacementLines[0].trim()}`);
+      else lines.push(`  ${label}`, ...replacementLines.map((text) => `  ${text}`));
+    }
     const impact = diagnostic.suggestion.impact;
     if (impact) {
       const summary = formatImpact(impact, color);

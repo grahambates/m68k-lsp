@@ -7,6 +7,17 @@ previously lived in `README.md`.
 
 ### Changed
 
+- Suggested replacements adopt the indentation of the code they replace, on
+  every line. Rules emit compact text starting in column zero, which is not
+  valid assembly: a token in column zero is a label, so a multi-line
+  replacement pasted as written defined a label per line. Whatever the source
+  uses is matched, tabs or spaces and at whatever width, and a label sharing the
+  line does not defeat it, since the instruction's indentation is then the gap
+  between label and mnemonic. The CLI prints a multi-line replacement as a block
+  so that indentation survives to the terminal.
+
+### Changed
+
 - Suggested replacements keep the expression the source wrote instead of the
   number it evaluates to. `adda.w #SCREEN_BW/2+(SCREEN_H/2*SCREEN_BW),a3` now
   suggests `lea SCREEN_BW/2+(SCREEN_H/2*SCREEN_BW)(a3),a3` rather than

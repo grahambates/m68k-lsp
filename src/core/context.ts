@@ -39,6 +39,28 @@ function withProvenance(diagnostic: Diagnostic, used: readonly ExternalUse[]): D
   return [...(diagnostic.notes ?? []), { message: `Resolved from outside this file: ${listed}.` }];
 }
 
+/**
+ * The indentation an instruction on this line sits at.
+ *
+ * Usually the leading whitespace. Where a label occupies column zero, the gap
+ * between the label and the mnemonic is the instruction's own indentation, and
+ * is what a replacement should adopt.
+ */
+function indentOf(sourceLine: string | undefined): string {
+  if (sourceLine === undefined) return "\t";
+  const leading = /^[ \t]+/.exec(sourceLine)?.[0];
+  if (leading) return leading;
+  return /^\S+([ \t]+)(?=\S)/.exec(sourceLine)?.[1] ?? "\t";
+}
+
+/** Indent every line that does not carry its own indentation already. */
+function indentBlock(text: string, indent: string): string {
+  return text
+    .split("\n")
+    .map((line) => (line.trim().length === 0 || /^[ \t]/.test(line) ? line : `${indent}${line}`))
+    .join("\n");
+}
+
 export class DefaultRuleContext implements RuleContext {
   private readonly diagnostics: Diagnostic[] = [];
   private readonly sourceLines: string[];
@@ -62,7 +84,25 @@ export class DefaultRuleContext implements RuleContext {
   }
 
   report(diagnostic: Diagnostic): void {
-    this.diagnostics.push({ ...diagnostic, notes: withProvenance(diagnostic, this.symbols.externalUses()) });
+    const notes = withProvenance(diagnostic, this.symbols.externalUses());
+    const suggestion = this.indentSuggestion(diagnostic);
+    this.diagnostics.push({ ...diagnostic, notes, ...(suggestion ? { suggestion } : {}) });
+  }
+
+  /**
+   * Give a replacement the indentation of the code it replaces.
+   *
+   * Rules emit compact text starting in column zero, which is not valid
+   * assembly: a token in column zero is a label, so a two-line replacement
+   * pasted as-is defines two labels and assembles nothing like the intent. The
+   * indentation comes from the line the diagnostic is on, so a replacement
+   * lands in the column its neighbours use.
+   */
+  private indentSuggestion(diagnostic: Diagnostic): Diagnostic["suggestion"] {
+    const replacement = diagnostic.suggestion?.replacement;
+    if (!diagnostic.suggestion || !replacement) return undefined;
+    const indent = indentOf(this.sourceLines[(diagnostic.loc.line ?? 1) - 1]);
+    return { ...diagnostic.suggestion, replacement: indentBlock(replacement, indent) };
   }
 
   /** Drop the record of constants borrowed from other files. Called per line. */
