@@ -1,3 +1,4 @@
+import { parseFile } from "m68k-parser";
 import type { OptimizationImpact } from "../core/diagnostic.js";
 
 export function paint(enabled: boolean, code: number, text: string): string {
@@ -46,14 +47,21 @@ export function formatImpact(impact: OptimizationImpact, color: boolean): string
 /**
  * Assembly syntax highlighting for terminal output.
  *
- * Deliberately a small tokeniser rather than a reuse of the parser. The lines
- * being coloured are already known to be assembly, mis-colouring is cosmetic
- * rather than harmful, and this has to run over source lines and replacement
- * snippets alike without either having to be a parseable file on its own.
+ * Structure comes from the parser rather than from a second set of rules here.
+ * It already knows where the label, the mnemonic, the size qualifier, each
+ * operand and the comment begin and end, including the edge cases -- a label
+ * only in column zero, a semicolon inside a string, a dot that is a size on
+ * `move.l` but part of the name on `.loop`. An earlier version re-derived that
+ * with a regex and got it wrong: on an indented line the mnemonic was taken for
+ * a label and never coloured.
+ *
+ * Only the inside of an operand is tokenised here, which is the one thing the
+ * parser does not break down: it gives an operand's extent, not the split
+ * between the registers, numbers and punctuation within it.
  *
  * Colours never change the visible width of a line, which matters: the caret
- * that underlines a diagnostic is positioned from the uncoloured text, and the
- * escape sequences occupy no columns.
+ * underlining a diagnostic is positioned from the uncoloured text, and escape
+ * sequences occupy no columns.
  */
 const COLORS = {
   mnemonic: 36,
@@ -69,78 +77,69 @@ const REGISTER = /^(?:d[0-7]|a[0-7]|sp|usp|ssp|pc|sr|ccr|fp[0-7])$/i;
 /** Numbers in every base an assembler accepts, strings, identifiers, punctuation. */
 const OPERAND_TOKEN = /(\$[0-9A-Fa-f]+|%[01]+|@[0-7]+|\d[0-9A-Fa-f]*)|("[^"]*"|'[^']*')|([A-Za-z_.][\w.$]*)|(\s+)|(.)/g;
 
-function highlightOperands(text: string, color: boolean): string {
-  return text.replace(OPERAND_TOKEN, (match: string, number: string, string_: string, word: string, space: string) => {
-    if (number || string_) return paint(color, COLORS.literal, match);
+/** Colour the registers, numbers and punctuation inside one operand. */
+function highlightOperand(text: string, color: boolean): string {
+  return text.replace(OPERAND_TOKEN, (match: string, num: string, str: string, word: string, space: string) => {
+    if (num || str) return paint(color, COLORS.literal, match);
+    // Symbols are left plain so the names carrying the meaning stay the most
+    // readable thing on the line.
     if (word) return REGISTER.test(word) ? paint(color, COLORS.register, match) : match;
-    if (space) return match;
-    return paint(color, COLORS.punctuation, match);
+    return space ? match : paint(color, COLORS.punctuation, match);
   });
 }
 
-/**
- * Colour one line of assembly.
- *
- * The line is read positionally, the way an assembler reads it: anything in
- * column zero is a label, the first word after that is the operation, and a
- * suffix on it is a size. Symbols and labels are left uncoloured so that the
- * names carrying the meaning stay the most readable thing on the line.
- */
+interface Span {
+  start: number;
+  end: number;
+  kind: "mnemonic" | "size" | "operand" | "comment";
+}
+
 export function highlightAsm(text: string, color: boolean): string {
   if (!color || !text.trim()) return text;
 
-  // A whole-line comment: `*` in column zero, or a line that opens with `;`.
-  if (/^\s*;/.test(text) || /^\*/.test(text)) return paint(color, COLORS.comment, text);
-
-  // Split off a trailing comment before anything else, so its contents are
-  // never mistaken for code.
-  const commentAt = findCommentStart(text);
-  if (commentAt !== -1) {
-    return highlightAsm(text.slice(0, commentAt), color) + paint(color, COLORS.comment, text.slice(commentAt));
+  let line;
+  try {
+    line = parseFile(text).lines[0];
+  } catch {
+    return text;
   }
+  if (!line) return text;
 
-  const indent = /^[ \t]*/.exec(text)![0];
-  let remainder = text.slice(indent.length);
-
-  // Only column zero holds a label. Matching one on an indented line would take
-  // the mnemonic for a label and leave the operation uncoloured.
-  let label = "";
-  let labelGap = "";
-  if (indent.length === 0) {
-    const labelMatch = /^([A-Za-z_.][\w.$]*:?)([ \t]*)/.exec(remainder);
-    if (labelMatch) {
-      [, label, labelGap] = labelMatch;
-      remainder = remainder.slice(labelMatch[0].length);
-    }
+  const spans: Span[] = [];
+  if (line.mnemonic) spans.push({ ...line.mnemonic.loc, kind: "mnemonic" });
+  if (line.qualifier) {
+    // The qualifier covers the size letter alone, so take the dot with it.
+    const start = line.qualifier.loc.start;
+    spans.push({ start: text[start - 1] === "." ? start - 1 : start, end: line.qualifier.loc.end, kind: "size" });
   }
+  for (const operand of line.operands ?? []) spans.push({ ...operand.loc, kind: "operand" });
+  if (line.comment) spans.push({ ...line.comment.loc, kind: "comment" });
+  spans.sort((a, b) => a.start - b.start);
 
-  const operationMatch = /^[A-Za-z_.][\w.$]*/.exec(remainder);
-  if (!operationMatch) return `${indent}${label}${labelGap}${highlightOperands(remainder, color)}`;
-  const operation = operationMatch[0];
-  const rest = remainder.slice(operation.length);
-
-  // A size suffix is coloured apart from the operation it qualifies, but only
-  // where it is really a size: `dbf` and `move.l` must not be split the same way.
-  const sized = /^(.*?)(\.[bwlsqdxp])$/i.exec(operation);
-  const operationText = sized
-    ? paint(color, COLORS.mnemonic, sized[1]) + paint(color, COLORS.size, sized[2])
-    : paint(color, COLORS.mnemonic, operation);
-
-  return `${indent}${label}${labelGap}${operationText}${highlightOperands(rest, color)}`;
+  const mnemonicEnd = line.mnemonic?.loc.end ?? Infinity;
+  const out: string[] = [];
+  let cursor = 0;
+  for (const span of spans) {
+    if (span.start < cursor) continue;
+    out.push(gap(text.slice(cursor, span.start), cursor >= mnemonicEnd, color));
+    const body = text.slice(span.start, span.end);
+    out.push(
+      span.kind === "operand"
+        ? highlightOperand(body, color)
+        : paint(color, COLORS[span.kind === "size" ? "size" : span.kind], body),
+    );
+    cursor = span.end;
+  }
+  out.push(gap(text.slice(cursor), cursor >= mnemonicEnd, color));
+  return out.join("");
 }
 
-/** The `;` that opens a trailing comment, ignoring any inside a string. */
-function findCommentStart(text: string): number {
-  let quote: string | undefined;
-  for (let i = 0; i < text.length; i++) {
-    const char = text[i];
-    if (quote) {
-      if (char === quote) quote = undefined;
-    } else if (char === '"' || char === "'") {
-      quote = char;
-    } else if (char === ";") {
-      return i;
-    }
-  }
-  return -1;
+/**
+ * Text between the spans the parser identified. After the mnemonic this is
+ * operand punctuation, mostly the separating commas; before it, the label and
+ * the whitespace around it, which are left plain.
+ */
+function gap(text: string, afterMnemonic: boolean, color: boolean): string {
+  if (!afterMnemonic || !text.trim()) return text;
+  return text.replace(/\S+/g, (match) => paint(color, COLORS.punctuation, match));
 }

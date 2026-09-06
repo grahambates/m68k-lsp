@@ -12,6 +12,9 @@ previously lived in `README.md`.
   and their size qualifiers, registers, literals in any base, strings,
   punctuation and comments each get a colour; symbols and labels are left plain
   so the names carrying the meaning stay the most readable thing on the line.
+  Structure comes from the parser, which already knows where each part of a line
+  begins and ends; only the inside of an operand is tokenised, since that is the
+  one split the parser does not provide.
   Colour is off when output is piped, and adds no visible width, so the caret
   underlining a diagnostic stays aligned.
 

@@ -88,6 +88,42 @@ describe("assembly highlighting", () => {
     });
   });
 
+  // Structure comes from the parser, so these cost nothing to get right here.
+  // A regex re-deriving them got the first of them wrong.
+  describe("cases the parser settles", () => {
+    test("an indented mnemonic is never read as a label", () => {
+      expect(paint("\tmuls.w\t#10,d0")).toContain(`${CYAN}muls${OFF}`);
+    });
+
+    test("a dot in a name is not a size qualifier", () => {
+      const out = paint("\tdbf\td7,.loop");
+      expect(out).toContain(`${CYAN}dbf${OFF}`);
+      expect(out).not.toContain(BLUE);
+      expect(out).toContain(".loop");
+    });
+
+    test("a local label in column zero is still a label", () => {
+      const out = paint(".loop:\tmove.b\t-(a1),d2");
+      expect(out.startsWith(".loop:")).toBe(true);
+      expect(out).toContain(`${CYAN}move${OFF}${BLUE}.b${OFF}`);
+    });
+
+    test("a branch size is a size", () => {
+      expect(paint("\tbsr.s\tmy_sub")).toContain(`${CYAN}bsr${OFF}${BLUE}.s${OFF}`);
+    });
+
+    test("postincrement punctuation inside an operand", () => {
+      const out = paint("\tmove.l\t(a0)+,d0");
+      expect(out).toContain(`${YELLOW}a0${OFF}`);
+      expect(visible(out)).toBe("\tmove.l\t(a0)+,d0");
+    });
+
+    test("a line that is not assembly is returned intact", () => {
+      const text = "\t!!! not assembly at all";
+      expect(visible(paint(text))).toBe(text);
+    });
+  });
+
   describe("comments", () => {
     test("a trailing comment is dimmed whole", () => {
       expect(paint("\tnop\t; explain")).toContain(`${GREY}; explain${OFF}`);
