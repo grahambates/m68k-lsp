@@ -83,9 +83,10 @@ form`. A reader has no way to check what a source said, and a claim repeated
 ### Added
 
 - `m68k-lint --init` writes a project config interactively, asking for platform,
-  processors, optimization goal and the style preset. It suggests source globs
-  from the directories actually present, writes only the answers that differ
-  from the defaults, and gives an ignore entry naming a bare directory the
+  processors, optimization goal and the style preset. Source globs are suggested
+  from where the assembly files actually are, which means `**` when any sit in
+  the project root. It writes only the answers that differ from the defaults,
+  and gives an ignore entry naming a bare directory the
   trailing `/**` it needs to match anything. It shows the file before writing
   and will not overwrite an existing config without asking.
 

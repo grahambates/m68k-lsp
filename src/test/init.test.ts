@@ -1,6 +1,6 @@
-import { mkdir, mkdtemp } from "node:fs/promises";
+import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import {
   collectInitAnswers,
   describeInitConfig,
@@ -110,12 +110,46 @@ describe("m68k-lint --init", () => {
     expect(validateProcessors(["mc68030"])).toEqual(["mc68030"]);
   });
 
-  test("suggests source directories that actually exist", async () => {
-    const root = await mkdtemp(join(tmpdir(), "m68k-lint-init-"));
-    expect(await detectSourceGlobs(root)).toEqual(["**"]);
-    await mkdir(join(root, "src"));
-    await mkdir(join(root, "asm"));
-    expect(await detectSourceGlobs(root)).toEqual(["src/**", "asm/**"]);
+  describe("source glob detection", () => {
+    const tree = async (files: string[]) => {
+      const root = await mkdtemp(join(tmpdir(), "m68k-lint-init-"));
+      for (const file of files) {
+        await mkdir(join(root, dirname(file)), { recursive: true });
+        await writeFile(join(root, file), "\tnop\n");
+      }
+      return root;
+    };
+
+    test("an empty project falls back to everything", async () => {
+      expect(await detectSourceGlobs(await tree([]))).toEqual(["**"]);
+    });
+
+    test("sources in the project root suggest everything", async () => {
+      // A common layout, and a narrower glob would silently miss these.
+      expect(await detectSourceGlobs(await tree(["main.s", "sprite.asm"]))).toEqual(["**"]);
+    });
+
+    test("sources only in the root win even when subdirectories exist", async () => {
+      expect(await detectSourceGlobs(await tree(["main.s", "lib/helper.s"]))).toEqual(["**"]);
+    });
+
+    test("sources confined to subdirectories suggest those", async () => {
+      expect(await detectSourceGlobs(await tree(["src/main.s", "lib/helper.i"]))).toEqual(["lib/**", "src/**"]);
+    });
+
+    test("finds sources nested well below a subdirectory", async () => {
+      expect(await detectSourceGlobs(await tree(["game/code/level/one.s"]))).toEqual(["game/**"]);
+    });
+
+    test("ignores directories that only hold other things", async () => {
+      // Detection is by file, not by directory name.
+      expect(await detectSourceGlobs(await tree(["src/main.s", "docs/readme.md"]))).toEqual(["src/**"]);
+    });
+
+    test("skips build output and dot directories", async () => {
+      const root = await tree(["dist/generated.s", ".cache/x.s", "node_modules/pkg/y.s"]);
+      expect(await detectSourceGlobs(root)).toEqual(["**"]);
+    });
   });
 
   test("summarises what the config turns on", () => {

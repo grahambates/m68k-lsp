@@ -1,6 +1,7 @@
-import { stat } from "node:fs/promises";
+import { readdir } from "node:fs/promises";
 import { join } from "node:path";
 import type { OptimizationGoal, Platform, Processor } from "../core/config.js";
+import { defaultAssemblyExtensions } from "./file-discovery.js";
 
 export const initConfigFileName = "m68k-lint.json";
 
@@ -27,18 +28,54 @@ const PLATFORMS: readonly Platform[] = ["generic", "amiga", "atari"];
 const PROCESSORS: readonly Processor[] = ["mc68000", "mc68010", "mc68020", "mc68030", "mc68040", "mc68060", "cpu32"];
 const GOALS: readonly OptimizationGoal[] = ["balanced", "speed", "size"];
 
-/** Suggest source globs from what is actually on disk, rather than guessing. */
-export async function detectSourceGlobs(root: string): Promise<string[]> {
-  const candidates = ["src", "source", "sources", "asm", "code"];
-  const found: string[] = [];
-  for (const name of candidates) {
-    try {
-      if ((await stat(join(root, name))).isDirectory()) found.push(`${name}/**`);
-    } catch {
-      // Not present; nothing to suggest from it.
+const SKIP_DIRECTORIES = new Set(["node_modules", "dist", "build", "out", "obj", "target"]);
+
+async function containsAssembly(directory: string, extensions: readonly string[], depth: number): Promise<boolean> {
+  let entries;
+  try {
+    entries = await readdir(directory, { withFileTypes: true });
+  } catch {
+    return false;
+  }
+  for (const entry of entries) {
+    if (entry.isFile() && extensions.some((ext) => entry.name.toLowerCase().endsWith(ext))) return true;
+    if (entry.isDirectory() && depth > 0 && !entry.name.startsWith(".") && !SKIP_DIRECTORIES.has(entry.name)) {
+      if (await containsAssembly(join(directory, entry.name), extensions, depth - 1)) return true;
     }
   }
-  return found.length ? found : ["**"];
+  return false;
+}
+
+/**
+ * Suggest source globs from where the assembly files actually are, rather than
+ * from directory names. Sources in the project root are common enough that
+ * guessing `src/**` would be wrong as often as it is right.
+ */
+export async function detectSourceGlobs(
+  root: string,
+  extensions: readonly string[] = defaultAssemblyExtensions,
+): Promise<string[]> {
+  let entries;
+  try {
+    entries = await readdir(root, { withFileTypes: true });
+  } catch {
+    return ["**"];
+  }
+
+  const directories: string[] = [];
+  for (const entry of entries) {
+    // Anything in the root means a narrower glob would miss files, so stop.
+    if (entry.isFile() && extensions.some((ext) => entry.name.toLowerCase().endsWith(ext))) return ["**"];
+    if (entry.isDirectory() && !entry.name.startsWith(".") && !SKIP_DIRECTORIES.has(entry.name)) {
+      directories.push(entry.name);
+    }
+  }
+
+  const withSources: string[] = [];
+  for (const name of directories) {
+    if (await containsAssembly(join(root, name), extensions, 6)) withSources.push(`${name}/**`);
+  }
+  return withSources.length ? withSources : ["**"];
 }
 
 export async function collectInitAnswers(prompt: Prompt, detectedFiles: readonly string[]): Promise<InitAnswers> {

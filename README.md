@@ -105,8 +105,10 @@ ctx.registers.isLiveAfter(0, "d0"); // "dead" | "live" | "unknown"
 m68k-lint --init
 ```
 
-Asks for platform, processors, optimization goal and the style preset, suggests
-source globs from the directories it finds, and writes `m68k-lint.json`. Only
+Asks for platform, processors, optimization goal and the style preset, then
+writes `m68k-lint.json`. Source globs are suggested from where the assembly
+files actually are: `**` when any sit in the project root, otherwise the
+subdirectories that contain them. Only
 answers that differ from the defaults are written, and an ignore entry naming a
 bare directory gets the trailing `/**` it needs to match anything. It shows the
 file and asks before writing, and asks again before overwriting an existing one.
