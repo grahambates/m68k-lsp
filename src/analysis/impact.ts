@@ -328,14 +328,6 @@ export function measureDiagnosticImpact(
       message: `This rule carried an unverified figure of ${sourceSize.delta > 0 ? "+" : ""}${sourceSize.delta} bytes, which the measurement above does not match.`,
     });
   }
-  if (impact.assessment === "regression") {
-    notes.push({
-      message:
-        "Measured on 68000 as a resource regression rather than an improvement; check whether it applies to your target.",
-    });
-  } else if (impact.assessment === "tradeoff") {
-    notes.push({ message: "Measured on 68000 as a trade-off rather than an unconditional improvement." });
-  }
 
   return {
     ...diagnostic,

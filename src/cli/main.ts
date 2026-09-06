@@ -700,7 +700,7 @@ async function main(): Promise<number> {
       if (counts.info) {
         totalGroups.push(paint(color, 90, `${counts.info} info`));
       }
-      console.log(`\n${total} issue${total === 1 ? "" : "s"}: ${totalGroups.join(", ")}`);
+      console.log(`\n\n${total} issue${total === 1 ? "" : "s"}: ${totalGroups.join(", ")}`);
     }
   }
 
