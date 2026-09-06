@@ -54,11 +54,11 @@ describe("replacements keep the symbols the source used", () => {
       expect(replacement("lea -SMALL(a0),a0", "optimization/prefer-lea-quick")).toBe("subq.w #SMALL,a0");
     });
 
-    // Anything compound would need `-(...)`, and an operand opening with `-(`
-    // is how predecrement is written, so the number is used instead.
-    test("a compound expression falls back to the evaluated number", () => {
+    // Unary minus binds tighter than the operators inside, so `-SCREEN_BW/2`
+    // would not be the negation of `SCREEN_BW/2`.
+    test("a compound expression is wrapped rather than prefixed", () => {
       expect(replacement("suba.w #SCREEN_BW/2+(SCREEN_H/2*SCREEN_BW),a3", "optimization/address-sub-to-lea")).toBe(
-        "lea -32160(a3),a3",
+        "lea -(SCREEN_BW/2+(SCREEN_H/2*SCREEN_BW))(a3),a3",
       );
     });
   });

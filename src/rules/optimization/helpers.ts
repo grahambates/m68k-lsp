@@ -91,22 +91,19 @@ function operandText(ctx: RuleContext, expression: ExpressionNode | undefined): 
 /**
  * The same, negated, for rules turning a subtraction into an addition.
  *
- * Only a bare symbol or number is negated in place. Anything compound would
- * need `-(...)`, and an operand opening with `-(` is how predecrement is
- * written, so rather than emit something an assembler may read as `-(An)` the
- * evaluated number is used. `-SCREEN_BW/2` cannot be used either: unary minus
- * binds tighter than the division, so it is not the negation of the whole
- * expression.
+ * A bare symbol or number is negated in place; anything compound is wrapped, as
+ * `-(SCREEN_BW/2+8)`, because unary minus binds tighter than the operators
+ * inside it and `-SCREEN_BW/2` is not the negation of `SCREEN_BW/2`. Negating
+ * an existing minus cancels instead of stacking, so `-SMALL` gives `SMALL`.
  */
 export function negatedValueText(ctx: RuleContext, expression: ExpressionNode | undefined, negated: number): string {
-  // Negating a minus gives the thing back, so `lea -SMALL(a0),a0` can become
-  // `subq.w #SMALL,a0` rather than falling back to a number.
   if (expression?.type === "unary-op" && expression.operator === "-") {
-    const inner = isAtom(expression.operand) ? operandText(ctx, expression.operand) : undefined;
+    const inner = operandText(ctx, expression.operand);
     if (inner) return inner;
   }
-  const text = isAtom(expression) ? operandText(ctx, expression) : undefined;
-  return text ? `-${text}` : String(negated);
+  const text = operandText(ctx, expression);
+  if (!text) return String(negated);
+  return isAtom(expression) ? `-${text}` : `-(${text})`;
 }
 
 function isAtom(expression: ExpressionNode | undefined): boolean {

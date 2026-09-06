@@ -16,7 +16,10 @@ previously lived in `README.md`.
   literal was written in is kept too, so a `$3f` mask stays hexadecimal.
   Applies to the fifteen rules that carry a value through unchanged; rules
   emitting a value they derived, such as a shift count from a multiplier, still
-  write a number, because there is no symbol to keep.
+  write a number, because there is no symbol to keep. Where a rule has to negate
+  the value, as SUB becoming LEA does, a bare symbol is negated in place and
+  anything compound is wrapped: `-(SCREEN_BW/2+8)`, since unary minus binds
+  tighter than the operators inside it.
 
 ### Added
 
