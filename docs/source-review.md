@@ -30,7 +30,11 @@ Candidate lints/advisories include:
 
 ## EAB optimization thread / community material
 
-Direct automated retrieval of the cited EAB thread was unreliable. A modern community compilation by Flamewing appears to incorporate ASP68K, Tricks and Traps, and selected Amiga forum posts. It contains many additional 68000-specific peepholes, especially:
+The thread is [68000 code optimisations](https://eab.abime.net/showthread.php?t=57587), at least eight pages long and still live.
+
+It cannot be retrieved automatically, and the reason is settled rather than intermittent: the board sits behind Anubis bot protection, which answers every request with `Access Denied` regardless of the URL form. `showthread.php`, `printthread.php` and an explicit `&styleid=` were all tried, and web.archive.org is unreachable from this environment. Mining it needs someone to open it in a browser and save the pages locally; there is no point retrying the fetch.
+
+Until then the closest available substitute is a modern community compilation by Flamewing, which appears to incorporate ASP68K, Tricks and Traps, and selected Amiga forum posts. It contains many additional 68000-specific peepholes, especially:
 
 - rotate-count normalization (`ROL` vs `ROR`, `SWAP` combinations),
 - aggressive variable-shift reductions when shift-count registers are known constants,
