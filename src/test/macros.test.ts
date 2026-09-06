@@ -93,3 +93,78 @@ describe("REPT assembles its body more than once", () => {
     ]);
   });
 });
+
+describe("conditional assembly arms are alternatives", () => {
+  // Exactly one arm is assembled. Treating the directives as ordinary skipped
+  // lines ran the arms into each other, so a write in the first looked
+  // overwritten by the second.
+  test("a write in one arm is not overwritten by the next", () => {
+    const source = [
+      "\tifne\tSHADOW_ON",
+      "\tmoveq\t#7-1,d7",
+      "\telse",
+      "\tmoveq\t#8-1,d7",
+      "\tendc",
+      "\tmove.w\td7,d0",
+      "\trts",
+    ];
+    expect(lint(source, DEAD_WRITE)).toEqual([]);
+  });
+
+  test("with no ELSE the code below is reachable without the arm", () => {
+    const source = ["\tmoveq\t#1,d7", "\tifne\tX", "\tmoveq\t#2,d7", "\tendc", "\tmove.w\td7,d0", "\trts"];
+    expect(lint(source, DEAD_WRITE)).toEqual([]);
+  });
+
+  test("ENDIF closes a block as well as ENDC", () => {
+    const source = ["\tifne\tX", "\tmoveq\t#1,d7", "\telse", "\tmoveq\t#2,d7", "\tendif", "\tmove.w\td7,d0", "\trts"];
+    expect(lint(source, DEAD_WRITE)).toEqual([]);
+  });
+
+  test("a write dead within a single arm is still reported", () => {
+    const source = [
+      "\tifne\tX",
+      "\tmoveq\t#1,d7",
+      "\tmoveq\t#2,d7",
+      "\telse",
+      "\tmoveq\t#3,d7",
+      "\tendc",
+      "\tmove.w\td7,d0",
+      "\trts",
+    ];
+    expect(lint(source, DEAD_WRITE)).toEqual([`${DEAD_WRITE}@2`]);
+  });
+
+  test("a write every arm overwrites is still reported", () => {
+    const source = [
+      "\tmoveq\t#0,d7",
+      "\tifne\tX",
+      "\tmoveq\t#1,d7",
+      "\telse",
+      "\tmoveq\t#2,d7",
+      "\tendc",
+      "\tmove.w\td7,d0",
+      "\trts",
+    ];
+    expect(lint(source, DEAD_WRITE)).toEqual([`${DEAD_WRITE}@1`]);
+  });
+
+  test("nested blocks nest", () => {
+    const source = [
+      "\tifne\tA",
+      "\tmoveq\t#1,d7",
+      "\tifne\tB",
+      "\tmoveq\t#2,d7",
+      "\telse",
+      "\tmoveq\t#3,d7",
+      "\tendc",
+      "\telse",
+      "\tmoveq\t#4,d7",
+      "\tendc",
+      "\tmove.w\td7,d0",
+      "\trts",
+    ];
+    // Every path out of the nested block rewrites D7, so line 2 is dead.
+    expect(lint(source, DEAD_WRITE)).toEqual([`${DEAD_WRITE}@2`]);
+  });
+});

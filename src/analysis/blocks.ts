@@ -15,6 +15,32 @@ export interface BlockStructure {
   region: number[];
   /** REPT blocks, as the index of the REPT directive and its matching ENDR. */
   repeats: { start: number; end: number }[];
+  /** Conditional assembly blocks, whose arms are alternatives rather than a sequence. */
+  conditionals: ConditionalBlock[];
+}
+
+/**
+ * An IF/ELSE/ENDC block. Exactly one arm is assembled, so the arms are
+ * alternatives: the code above the block reaches each of them, and each of them
+ * reaches the code below. Running one arm into the next, which is what treating
+ * the directives as ordinary skipped lines does, makes a write in the first arm
+ * look overwritten by the second.
+ */
+export interface ConditionalBlock {
+  /** The opening IF directive. */
+  start: number;
+  /** ELSE and ELSEIF directives, in order; each opens a further arm. */
+  alternatives: number[];
+  /** The closing ENDC or ENDIF. */
+  end: number;
+}
+
+const CONDITIONAL_ALTERNATIVES = new Set(["else", "elseif"]);
+const CONDITIONAL_ENDS = new Set(["endc", "endif"]);
+
+/** Every conditional opener is spelled IF something: IFNE, IFD, IFC and the rest. */
+function isConditionalOpener(directive: string): boolean {
+  return directive.startsWith("if");
 }
 
 export function directiveName(line: ParsedLine | undefined): string | undefined {
@@ -30,6 +56,8 @@ export function scanBlocks(file: ParsedFile): BlockStructure {
   const region = new Array<number>(file.lines.length).fill(0);
   const repeats: { start: number; end: number }[] = [];
   const repeatStack: number[] = [];
+  const conditionals: ConditionalBlock[] = [];
+  const conditionalStack: ConditionalBlock[] = [];
   let current = 0;
   let nextRegion = 0;
   let depth = 0;
@@ -53,8 +81,15 @@ export function scanBlocks(file: ParsedFile): BlockStructure {
     else if (directive === "endr") {
       const start = repeatStack.pop();
       if (start !== undefined) repeats.push({ start, end: i });
+    } else if (directive && isConditionalOpener(directive)) {
+      conditionalStack.push({ start: i, alternatives: [], end: i });
+    } else if (directive && CONDITIONAL_ALTERNATIVES.has(directive)) {
+      conditionalStack[conditionalStack.length - 1]?.alternatives.push(i);
+    } else if (directive && CONDITIONAL_ENDS.has(directive)) {
+      const block = conditionalStack.pop();
+      if (block) conditionals.push({ ...block, end: i });
     }
   }
 
-  return { region, repeats };
+  return { region, repeats, conditionals };
 }

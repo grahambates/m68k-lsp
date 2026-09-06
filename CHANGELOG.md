@@ -5,6 +5,27 @@ previously lived in `README.md`.
 
 ## Unreleased
 
+### Fixed
+
+- Conditional assembly arms are modelled as alternatives rather than a
+  sequence. Exactly one arm is assembled, but IF/ELSE/ENDC were treated as
+  ordinary skipped directives, so the first arm ran into the second and a write
+  in one looked overwritten by the other:
+
+  ```
+      ifne    SHADOW_ON
+      moveq   #7-1,d7     <- reported dead
+      else
+      moveq   #8-1,d7
+      endc
+  ```
+
+  The code above a block now reaches each arm and each arm reaches the code
+  below, with none reaching another. A block with no ELSE also reaches the code
+  below directly, since the condition may be false. Nesting, ELSEIF and ENDIF
+  are handled. A write that every arm overwrites, or one dead within a single
+  arm, is still reported.
+
 ### Changed
 
 - `suspicious/movea-word-sign-extension` reports only where the sign-extended
