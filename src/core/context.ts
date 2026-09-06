@@ -207,6 +207,48 @@ function attachLabel(replacement: string, label: string): string {
   return lines.join("\n");
 }
 
+/**
+ * A line's trailing comment together with the whitespace leading up to it, so
+ * `move.l #100,d0\t; how many faces` yields `\t; how many faces`.
+ *
+ * The original spacing is kept rather than normalised: it is what the author
+ * chose, and where a replacement is the same width as what it replaces the
+ * comment stays in its column.
+ */
+function trailingCommentOf(line: ParsedLine | undefined, sourceLine: string | undefined): string | undefined {
+  const start = line?.comment?.loc.start;
+  if (start === undefined || sourceLine === undefined) return undefined;
+  const gap = /[ \t]*$/.exec(sourceLine.slice(0, start))?.[0] ?? "";
+  const text = sourceLine.slice(start).trimEnd();
+  return text ? `${gap}${text}` : undefined;
+}
+
+/**
+ * Put the comments back.
+ *
+ * The first matched line's comment describes the operation being replaced, so
+ * it goes on the first line of the replacement whether that is one instruction
+ * or five. Comments further into a collapsing match have no line left to sit
+ * on; they are kept on their own rather than dropped, since a comment is
+ * usually the only record of why the code is the way it is.
+ */
+function attachComments(
+  replacement: string,
+  first: string | undefined,
+  rest: readonly string[],
+  indent: string,
+): string {
+  // An orphaned comment takes the indentation of the code it sat beside. A
+  // comment is legal in column zero, but putting it there beside indented
+  // instructions makes it read as a banner rather than an aside.
+  const orphan = (comment: string) => `${indent}${comment.trimStart()}`;
+
+  let lines = replacement.split("\n");
+  if (first && replacement.trim()) lines[0] = `${lines[0]}${first}`;
+  else if (first) lines = [orphan(first)];
+  return [...lines, ...rest.map(orphan)].join("\n");
+}
+
 export class DefaultRuleContext implements RuleContext {
   private readonly diagnostics: Diagnostic[] = [];
   private readonly sourceLines: string[];
@@ -295,7 +337,20 @@ export class DefaultRuleContext implements RuleContext {
     }
 
     const label = labelPrefixOf(first, sourceLine);
-    return { ...suggestion, replacement: label ? attachLabel(replacement, label) : replacement };
+    if (label) replacement = attachLabel(replacement, label);
+
+    // Everything on the matched lines that is not the instruction has to be put
+    // back, or applying the replacement quietly throws it away.
+    const firstComment = trailingCommentOf(first, sourceLine);
+    const laterComments = matched
+      .slice(1)
+      .map((line, offset) => trailingCommentOf(line, this.sourceLines[span.startLine + offset]))
+      .filter((comment): comment is string => comment !== undefined);
+    if (firstComment || laterComments.length) {
+      replacement = attachComments(replacement, firstComment, laterComments, indentOf(sourceLine));
+    }
+
+    return { ...suggestion, replacement };
   }
 
   /** Drop the record of constants borrowed from other files. Called per line. */

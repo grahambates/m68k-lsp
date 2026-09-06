@@ -218,6 +218,10 @@ into the match makes the finding manual, because a run collapsing to fewer lines
 leaves nowhere for a label that pointed into the middle of it. Deleting a
 labelled instruction leaves the label behind on its own.
 
+Trailing comments are carried across too, keeping the spacing the author chose.
+Where several matched lines collapse into fewer, comments with no line left to
+sit beside are kept on their own rather than dropped.
+
 A rewrite is withheld only when there is none to write. Where the text is known
 and its correctness rests on something statable but unprovable — a callee that
 must not read arguments relative to SP, a device that must tolerate a wider

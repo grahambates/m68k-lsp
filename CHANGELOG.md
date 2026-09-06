@@ -7,6 +7,16 @@ previously lived in `README.md`.
 
 ### Fixed
 
+- A replacement no longer discards the trailing comment on the code it
+  replaces. `move.l #100,d0 ; how many faces` becoming `moveq #100,d0` lost the
+  only record of what the value was for. The comment is carried across with the
+  spacing the author chose, and where one instruction becomes several it goes on
+  the first line, which is the operation it described. Where several lines
+  collapse into fewer, comments with no line left to sit beside are kept on
+  their own, indented to match, rather than dropped.
+
+### Fixed
+
 - A replacement no longer destroys a label on the code it replaces.
   `start: move.l #100,d0` becoming `moveq #100,d0` was a `safe` suggestion that
   deleted `start:`, and with it every branch to it. A label on the first matched
