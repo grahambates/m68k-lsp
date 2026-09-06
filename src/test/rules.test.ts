@@ -1345,6 +1345,87 @@ describe("platform modes", () => {
   });
 });
 
+describe("MOVEM save and restore mismatch", () => {
+  const cfg = { processors: ["mc68000" as const], measureImpact: false };
+  const ID = "suspicious/movem-restore-mismatch";
+  const find = (lines: string[]) => lint(lines.join("\n"), cfg).find((d) => d.ruleId === ID);
+  const flags = (lines: string[]) => find(lines) !== undefined;
+
+  test("accepts a matching save and restore", () => {
+    expect(flags(["movem.l d0-d7/a0-a6,-(sp)", "nop", "movem.l (sp)+,d0-d7/a0-a6", "rts"])).toBe(false);
+  });
+
+  test("names the register that goes missing", () => {
+    const diagnostic = find(["movem.l d0-d7/a0-a6,-(sp)", "nop", "movem.l (sp)+,d0-d7/a0-a5", "rts"]);
+    expect(diagnostic?.message).toContain("saves d0-d7/a0-a6 but restores d0-d7/a0-a5");
+    expect(diagnostic?.message).toContain("a6 saved but not restored");
+    expect(diagnostic?.notes?.[0]?.message).toContain("stack pointer is left unbalanced");
+  });
+
+  test("catches a restore of a register that was never saved", () => {
+    expect(find(["movem.l d0-d3,-(sp)", "movem.l (sp)+,d0-d4", "rts"])?.message).toContain("d4 restored but not saved");
+  });
+
+  test("catches a swap that keeps the stack balanced", () => {
+    // Same count, so the stack survives and only the values are wrong, which is
+    // the harder version to find by hand.
+    const diagnostic = find(["movem.l d0-d3,-(sp)", "movem.l (sp)+,d0-d2/a0", "rts"]);
+    expect(diagnostic?.message).toContain("d3 saved but not restored");
+    expect(diagnostic?.message).toContain("a0 restored but not saved");
+    expect(diagnostic?.notes?.[0]?.message).toContain("registers take each other's values");
+  });
+
+  test("catches a size mismatch even when the registers agree", () => {
+    expect(find(["movem.l d0-d3,-(sp)", "movem.w (sp)+,d0-d3", "rts"])?.message).toContain(
+      "saved as .l but restored as .w",
+    );
+  });
+
+  test("handles nested saves", () => {
+    expect(
+      flags(["movem.l d0-d1,-(sp)", "movem.l a0-a1,-(sp)", "movem.l (sp)+,a0-a1", "movem.l (sp)+,d0-d1", "rts"]),
+    ).toBe(false);
+  });
+
+  test("stays quiet where pairing is not knowable", () => {
+    // A second exit restores the same save, so by then there is nothing pending.
+    expect(
+      flags(["movem.l d0-d3,-(sp)", "beq .e", "movem.l (sp)+,d0-d3", "rts", ".e:", "movem.l (sp)+,d0-d3", "rts"]),
+    ).toBe(false);
+    // A restore with no visible save cannot be checked.
+    expect(flags(["movem.l (sp)+,d0-d3", "rts"])).toBe(false);
+  });
+
+  test("does not carry one routine's save into the next", () => {
+    expect(
+      flags([
+        "movem.l d0-d3,-(sp)",
+        "movem.l (sp)+,d0-d3",
+        "rts",
+        "second:",
+        "movem.l d0-d7,-(sp)",
+        "movem.l (sp)+,d0-d7",
+        "rts",
+      ]),
+    ).toBe(false);
+  });
+
+  test("covers a stack held in another address register", () => {
+    expect(find(["movem.l d0-d3,-(a3)", "nop", "movem.l (a3)+,d0-d2", "rts"])?.message).toContain(
+      "d3 saved but not restored",
+    );
+  });
+
+  test("covers the single-register spelling", () => {
+    expect(find(["movem.l d0,-(sp)", "movem.l (sp)+,d1", "rts"])?.message).toContain("saves d0 but restores d1");
+  });
+
+  test("points at the matching save", () => {
+    const diagnostic = find(["nop", "movem.l d0-d3,-(sp)", "nop", "movem.l (sp)+,d0-d2", "rts"]);
+    expect(diagnostic?.notes?.[1]?.message).toBe("The matching save is on line 2.");
+  });
+});
+
 describe("Amiga DMAB_/DMAF_ and INTB_/INTF_ constant misuse", () => {
   const amiga = { processors: ["mc68000"], platform: "amiga", measureImpact: false } as LintConfig;
   const ID = "correctness/amiga-bit-mask-constant";

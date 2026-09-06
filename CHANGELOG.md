@@ -82,6 +82,15 @@ form`. A reader has no way to check what a source said, and a claim repeated
 
 ### Added
 
+- `suspicious/movem-restore-mismatch` — a MOVEM save and its matching restore
+  must move the same register list. When the counts differ the stack pointer is
+  left unbalanced; when they match but the registers do not, the stack survives
+  and registers quietly take each other's values. Reports which registers are
+  saved but not restored and vice versa, catches a size mismatch, and points at
+  the matching save. Handles nested saves and stacks held in an address register
+  other than A7, and stays quiet where the pairing is not knowable, such as a
+  routine with more than one exit.
+
 - `m68k-lint --init` writes a project config interactively, asking for platform,
   processors, optimization goal and the style preset. Source globs are suggested
   from where the assembly files actually are, which means `**` when any sit in
