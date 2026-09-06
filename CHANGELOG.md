@@ -7,6 +7,13 @@ previously lived in `README.md`.
 
 ### Fixed
 
+- `suspicious/nop` no longer flags a NOP immediately before `RTE`. That is the
+  standard interrupt-exit delay: on Amiga the interrupt-request clear has to
+  reach the chipset before the return, or a fast CPU returns while the level is
+  still asserted and the interrupt fires again. A contiguous run of NOPs counts,
+  since some handlers use more than one. Not gated on `--platform amiga`,
+  because the idiom appears in sources linted without a platform selected.
+
 - The rule test suite had not been running. Thirteen call sites used
   `result.diagnostics` on a `Diagnostic[]`, which is a compile error, so ts-jest
   skipped the entire 1,326-line file and reported it as a single failure.

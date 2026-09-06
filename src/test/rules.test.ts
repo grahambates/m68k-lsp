@@ -292,6 +292,23 @@ describe("suspicious rules", () => {
 
     expect(diagnostics.map((d) => d.ruleId)).toContain("suspicious/nop");
   });
+
+  test("NOP before RTE is exempt as an interrupt-exit delay", () => {
+    // Clearing the interrupt request has to reach the hardware before the RTE,
+    // or a fast CPU returns while the level is still asserted.
+    const on = { processors: ["mc68000" as const], rules: { "suspicious/nop": "info" as const } };
+    const count = (source: string) => lint(source, on).filter((d) => d.ruleId === "suspicious/nop").length;
+
+    expect(count("    nop\n    rte")).toBe(0);
+    // Some handlers use more than one.
+    expect(count("    nop\n    nop\n    rte")).toBe(0);
+    expect(count("    move.w #$4020,$dff09c\n    nop\n    rte")).toBe(0);
+
+    // Only an interrupt return earns the exemption.
+    expect(count("    nop\n    rts")).toBe(1);
+    expect(count("    nop\n    move.l d0,d1\n    rte")).toBe(1);
+    expect(count("    nop")).toBe(1);
+  });
 });
 
 describe("configuration", () => {

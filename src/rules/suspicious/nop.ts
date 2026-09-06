@@ -1,5 +1,23 @@
+import type { RuleContext } from "../../core/context.js";
 import type { Rule } from "../../core/rule.js";
 import { isInstruction } from "../../util/ast.js";
+
+/**
+ * A NOP directly before RTE is a deliberate synchronisation delay, not leftover
+ * padding. On Amiga, clearing the interrupt request has to reach the chipset
+ * before the RTE, or a fast CPU returns while the level is still asserted and
+ * the interrupt fires again; the NOP buys that time. Some code uses more than
+ * one, so a contiguous run counts.
+ *
+ * This is not gated on `--platform amiga`. The idiom appears in Amiga sources
+ * that are linted without a platform selected, and a NOP placed immediately
+ * before an interrupt return is deliberate on any target.
+ */
+function precedesInterruptReturn(ctx: RuleContext, index: number): boolean {
+  let next = ctx.nextInstruction(index);
+  while (next && isInstruction(next.line, "nop")) next = ctx.nextInstruction(next.index);
+  return next !== undefined && isInstruction(next.line, "rte");
+}
 
 export const suspiciousNop: Rule = {
   meta: {
@@ -9,10 +27,14 @@ export const suspiciousNop: Rule = {
     enabledByDefault: false,
     description: "Flag NOP instructions for review",
     tags: ["timing", "padding", "likely-intentional"],
+    docs: {
+      note: "A NOP immediately before RTE is exempt: it is the standard delay that lets an interrupt-request clear reach the hardware before the return.",
+    },
   },
 
-  checkLine(ctx, line) {
+  checkLine(ctx, line, index) {
     if (!isInstruction(line, "nop")) return;
+    if (precedesInterruptReturn(ctx, index)) return;
 
     ctx.report({
       ruleId: this.meta.id,
