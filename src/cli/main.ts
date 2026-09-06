@@ -300,19 +300,12 @@ function formatDiagnostic(file: string, source: string, diagnostic: Diagnostic, 
   if (diagnostic.suggestion) {
     // "fix" rather than "suggestion": the severity column already says
     // suggestion, and the same word twice reads as a mistake.
-    lines.push(
-      `  ${paint(color, 36, "fix:")} ${diagnostic.suggestion.description} (${diagnostic.suggestion.applicability})`,
-    );
     const replacement = diagnostic.suggestion.replacement;
+    lines.push(
+      `${paint(color, 90, "fix:")} ${diagnostic.suggestion.description} (${diagnostic.suggestion.applicability})`,
+    );
     if (replacement) {
-      // A replacement carries the indentation of the code it replaces, so a
-      // multi-line one is shown as a block with that indentation intact rather
-      // than run into the label, where every line after the first would start
-      // at the left margin.
-      const replacementLines = replacement.split("\n");
-      const label = paint(color, 90, "replace with:");
-      if (replacementLines.length === 1) lines.push(`  ${label} ${replacementLines[0].trim()}`);
-      else lines.push(`  ${label}`, ...replacementLines.map((text) => `  ${text}`));
+      lines.push(...replacement.split("\n"));
     }
     const impact = diagnostic.suggestion.impact;
     if (impact) {
@@ -320,7 +313,10 @@ function formatDiagnostic(file: string, source: string, diagnostic: Diagnostic, 
       if (summary) lines.push(summary);
     }
   }
-  for (const note of diagnostic.notes ?? []) lines.push(`  ${paint(color, 90, "note:")} ${note.message}`);
+  const notes = diagnostic.notes ?? [];
+  if (notes.length) {
+    lines.push(`${paint(color, 90, "notes:")}`, ...notes.map((n) => n.message));
+  }
   return lines.join("\n");
 }
 
@@ -682,9 +678,22 @@ async function main(): Promise<number> {
     for (const d of diagnostics) counts[d.severity]++;
     const total = parseErrorCount + diagnostics.length;
     if (total) {
-      console.log(
-        `\n${total} issue${total === 1 ? "" : "s"}: ${parseErrorCount + counts.error} error, ${counts.warning} warning, ${counts.suggestion} suggestion, ${counts.info} info`,
-      );
+      const totalGroups = [];
+      const color = options.color;
+      const errorCoount = parseErrorCount + counts.error;
+      if (errorCoount) {
+        totalGroups.push(paint(color, 31, `${errorCoount} error${errorCoount > 1 ? "s" : ""}`));
+      }
+      if (counts.warning) {
+        totalGroups.push(paint(color, 33, `${counts.warning} warning${counts.warning > 1 ? "s" : ""}`));
+      }
+      if (counts.suggestion) {
+        totalGroups.push(paint(color, 36, `${counts.suggestion} suggestion${counts.suggestion > 1 ? "s" : ""}`));
+      }
+      if (counts.info) {
+        totalGroups.push(paint(color, 90, `${counts.info} info`));
+      }
+      console.log(`\n${total} issue${total === 1 ? "" : "s"}: ${totalGroups.join(", ")}`);
     }
   }
 

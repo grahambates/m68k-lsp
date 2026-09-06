@@ -40,5 +40,5 @@ export function formatImpact(impact: OptimizationImpact, color: boolean): string
   ].filter((value): value is NonNullable<typeof value> => value !== undefined);
   const inexact = confidences.find((value) => value !== "exact");
 
-  return `  ${paint(color, 90, "saves:")} ${parts.join(", ")}${inexact ? ` (${inexact})` : ""}`;
+  return `${paint(color, 90, "saves:")} ${parts.join(", ")}${inexact ? ` (${inexact})` : ""}`;
 }
