@@ -7,6 +7,19 @@ previously lived in `README.md`.
 
 ### Changed
 
+- `stale-condition-code` moved from `correctness` to `suspicious`. It fires
+  when no concrete definition of the tested flag can be shown to reach the
+  conditional, which usually means the producer is in another file or the
+  routine is entered from elsewhere: an analysis limitation, not a proven
+  fault. Relying on the CCR surviving across address arithmetic is also a
+  deliberate technique. Its sibling `condition-after-preserved-ccr` already
+  covers the provable case, so the less certain rule was carrying the stronger
+  category. See [`docs/rule-id-migrations.md`](docs/rule-id-migrations.md).
+- Rule files are laid out by category then platform, mirroring the rule ID:
+  `correctness/amiga-tas-unsupported` now lives in
+  `correctness/amiga/tas-unsupported.ts` rather than under a separate
+  `platform/` tree.
+
 - Rule files are named after the rules they hold rather than where the rules
   came from. `flamewing-shifts.ts` is now `known-register-shifts.ts`,
   `vasm-logical-identities.ts` is `logical-identity-to-tst.ts`, and so on for

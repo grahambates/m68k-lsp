@@ -11,7 +11,7 @@ import { preferBset, preferBclr } from "./optimization/prefer-bit-op.js";
 import { shiftToClear } from "./optimization/shift-to-clear.js";
 import { selfMove } from "./suspicious/self-move.js";
 import { suspiciousNop } from "./suspicious/nop.js";
-import { staleConditionCode } from "./correctness/stale-condition-code.js";
+import { staleConditionCode } from "./suspicious/stale-condition-code.js";
 import { zeroSizedStorage } from "./suspicious/zero-sized-storage.js";
 import { conditionAfterPreservedCcr } from "./suspicious/condition-after-preserved-ccr.js";
 import { moveaWordSignExtension } from "./suspicious/movea-word-sign-extension.js";
@@ -79,8 +79,8 @@ import { leaZeroAddress } from "./optimization/lea-zero-address.js";
 import { moveImmediateWordComplement, moveImmediateSwap } from "./optimization/move-immediate-word-synthesis.js";
 import { longShiftSequence } from "./optimization/long-shift-sequence.js";
 import { moveImmediateAddressToLea, moveAddressThenAddToLea } from "./optimization/movea-lea.js";
-import { atariTrapStackCleanup } from "./platform/atari/trap-stack-cleanup.js";
-import { amigaBitMaskConstants } from "./platform/amiga/bit-mask-constant.js";
+import { atariTrapStackCleanup } from "./suspicious/atari/trap-stack-cleanup.js";
+import { amigaBitMaskConstants } from "./correctness/amiga/bit-mask-constant.js";
 import { movemRestoreMismatch } from "./suspicious/movem-restore-mismatch.js";
 import { maskViaMoveq } from "./optimization/mask-via-moveq.js";
 import { carryToMaskViaSubx } from "./optimization/carry-to-mask-via-subx.js";
@@ -129,8 +129,8 @@ import { destructiveSmallCompareBranch } from "./optimization/destructive-small-
 import { jsrJmpDispatch } from "./optimization/jsr-jmp-tail-dispatch.js";
 import { stackAlignedWordShiftByEight, stackAlignedKnownRegisterShifts } from "./optimization/stack-scratch-shifts.js";
 import { vasmNegativeSignedMultiply } from "./optimization/negative-signed-multiply.js";
-import { amigaTasUnsupported } from "./platform/amiga/tas-unsupported.js";
-import { amigaCustomRegisterAccess } from "./platform/amiga/custom-register-access.js";
+import { amigaTasUnsupported } from "./correctness/amiga/tas-unsupported.js";
+import { amigaCustomRegisterAccess } from "./correctness/amiga/custom-register-access.js";
 
 export {
   amigaTasUnsupported,

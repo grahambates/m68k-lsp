@@ -1,4 +1,4 @@
-# Rule ID migrations (v0.40)
+# Rule ID migrations
 
 Rule IDs are now descriptive and source-neutral. Source provenance remains in rule metadata and audit documentation. If you have `--rule` overrides or editor configuration using an old ID, migrate it as follows:
 
@@ -33,3 +33,18 @@ Rule IDs are now descriptive and source-neutral. Source provenance remains in ru
 | `optimization/tricks-compare-moveq`                       | `optimization/compare-long-immediate-via-moveq` |
 | `optimization/tricks-compare-subq-branch`                 | `optimization/destructive-small-compare-branch` |
 | `optimization/tricks-jsr-jmp-dispatch`                    | `optimization/jsr-jmp-tail-dispatch`            |
+
+## Category change
+
+`stale-condition-code` moved from `correctness` to `suspicious`. It fires when
+no concrete definition of the tested flag can be shown to reach the conditional,
+which in practice usually means the producer is in another file or the routine
+is entered from elsewhere: an analysis limitation rather than a proven fault.
+Relying on the CCR surviving across address arithmetic is also a deliberate
+technique. Its sibling `suspicious/condition-after-preserved-ccr` already covers
+the case that can be proven, so the less certain rule was carrying the stronger
+category.
+
+| Old ID                             | New ID                            |
+| ---------------------------------- | --------------------------------- |
+| `correctness/stale-condition-code` | `suspicious/stale-condition-code` |

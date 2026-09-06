@@ -26,12 +26,12 @@ describe("correctness and suspicious footgun rules", () => {
       "    rts",
     ].join("\n");
     expect(ids(source)).toContain("suspicious/condition-after-preserved-ccr");
-    expect(ids(source)).not.toContain("correctness/stale-condition-code");
+    expect(ids(source)).not.toContain("suspicious/stale-condition-code");
   });
 
   test("stale unknown CCR remains owned by correctness rule, not suspicious preserved-CCR rule", () => {
     const source = ["    adda.w #4,a0", "    beq .done", ".done:", "    rts"].join("\n");
-    expect(ids(source)).toContain("correctness/stale-condition-code");
+    expect(ids(source)).toContain("suspicious/stale-condition-code");
     expect(ids(source)).not.toContain("suspicious/condition-after-preserved-ccr");
   });
 

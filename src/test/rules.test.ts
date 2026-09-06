@@ -325,7 +325,7 @@ describe("CCR analysis", () => {
     const source = ["cmp.l d0,d1", "movea.l (a0),a1", "beq .same", ".same:", "rts"].join("\n");
 
     const diagnostics = lint(source);
-    expect(diagnostics.map((d) => d.ruleId)).not.toContain("correctness/stale-condition-code");
+    expect(diagnostics.map((d) => d.ruleId)).not.toContain("suspicious/stale-condition-code");
   });
 
   test("flags become unknown at RTS if they survive to return", () => {
@@ -349,12 +349,12 @@ describe("CCR analysis", () => {
 
   test("warns when BEQ appears to expect MOVEA to set Z", () => {
     const source = ["movea.l d0,a0", "beq .null", ".null:", "rts"].join("\n");
-    expect(ids(source)).toContain("correctness/stale-condition-code");
+    expect(ids(source)).toContain("suspicious/stale-condition-code");
   });
 
   test("does not warn when MOVEA deliberately preserves a prior CMP result", () => {
     const source = ["cmp.l d0,d1", "movea.l (a0),a1", "beq .equal", ".equal:", "rts"].join("\n");
-    expect(ids(source)).not.toContain("correctness/stale-condition-code");
+    expect(ids(source)).not.toContain("suspicious/stale-condition-code");
   });
 
   test("populates quick arithmetic and simple constant rules", () => {
@@ -776,7 +776,7 @@ describe("operand-sensitive semantic normalisation", () => {
     expect(ids("move.l #42,a0")).toContain("optimization/prefer-move-word-address");
 
     const source = ["move.l d0,a0", "beq .foo", ".foo:", "rts"].join("\n");
-    expect(ids(source)).toContain("correctness/stale-condition-code");
+    expect(ids(source)).toContain("suspicious/stale-condition-code");
   });
 
   test("does not suggest TST for generic CMP to An", () => {

@@ -45,9 +45,10 @@ describe("rule file layout", () => {
     for (const [file, ids] of rulesByFile()) {
       if (ids.length !== 1) continue;
       let expected = ids[0].split("/")[1];
-      // Under platform/<name>/ the directory already carries the platform, so
-      // amiga-tas-unsupported lives in tas.ts rather than repeating it.
-      const platform = /^platform\/([^/]+)\//.exec(file)?.[1];
+      // A platform subdirectory already carries the platform name, so
+      // correctness/amiga-tas-unsupported lives in correctness/amiga/tas-unsupported.ts
+      // rather than repeating it in the filename.
+      const platform = /^[^/]+\/([^/]+)\//.exec(file)?.[1];
       if (platform && expected.startsWith(`${platform}-`)) expected = expected.slice(platform.length + 1);
       if (basename(file, ".ts") !== expected) wrong.push(`${file} defines only ${ids[0]}`);
     }

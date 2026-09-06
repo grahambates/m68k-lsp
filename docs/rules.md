@@ -12,7 +12,7 @@ configuration.
 **Source** records historical provenance. Rule IDs are deliberately descriptive
 rather than source-named; see `docs/rule-id-migrations.md`.
 
-## correctness (4)
+## correctness (3)
 
 Valid assembly with a provable semantic or runtime problem.
 
@@ -21,9 +21,8 @@ Valid assembly with a provable semantic or runtime problem.
 | `correctness/amiga-bit-mask-constant` | warning | Flag DMAB_/INTB_ bit numbers used where DMAF_/INTF_ masks are required, and the reverse *(amiga only)* | — |
 | `correctness/amiga-custom-register-access` | warning | Check read/write direction for Amiga custom-chip registers *(amiga only)* | Amiga Hardware Reference Manual |
 | `correctness/amiga-tas-unsupported` | error | TAS is not supported by the Amiga architecture *(amiga only)* | Amiga Hardware Reference Manual |
-| `correctness/stale-condition-code` | warning | Flag conditional operations that appear to test stale condition codes | — |
 
-## suspicious (10)
+## suspicious (11)
 
 Valid code that may be intentional but is easy to misread or misuse.
 
@@ -37,6 +36,7 @@ Valid code that may be intentional but is easy to misread or misuse.
 | `suspicious/nop` | off | Flag NOP instructions for review | — |
 | `suspicious/partial-register-write` | warning | Flag byte/word MOVE writes whose preserved upper bits are subsequently used | — |
 | `suspicious/self-move` | warning | Flag MOVE operations whose source and destination are the same register | — |
+| `suspicious/stale-condition-code` | warning | Flag conditional operations that appear to test stale condition codes | — |
 | `suspicious/unexpected-absolute-address` | warning | Flag unusual numeric absolute source addresses that may be missing an immediate '#' prefix *(amiga, atari only)* | — |
 | `suspicious/zero-sized-storage` | warning | Flag DS directives that reserve zero elements | — |
 

@@ -27,7 +27,7 @@ export const conditionAfterPreservedCcr: Rule = {
     if (previousSemantics.controlFlow !== "fallthrough") return;
     if (previousSemantics.writes.size !== 0 || previousSemantics.undefined.size !== 0) return;
 
-    // correctness/stale-condition-code owns cases where the condition reaches
+    // suspicious/stale-condition-code owns cases where the condition reaches
     // entry/unknown state. This rule is the complementary suspicious case:
     // the old flags are well-defined, but their preservation across the
     // intervening instruction is easy to miss while reading or editing code.

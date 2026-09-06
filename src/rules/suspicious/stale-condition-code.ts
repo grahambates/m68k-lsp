@@ -9,8 +9,8 @@ function mnemonic(line: ParsedLine | undefined): string | undefined {
 
 export const staleConditionCode: Rule = {
   meta: {
-    id: "correctness/stale-condition-code",
-    category: "correctness",
+    id: "suspicious/stale-condition-code",
+    category: "suspicious",
     defaultSeverity: "warning",
     description: "Flag conditional operations that appear to test stale condition codes",
     tags: ["ccr", "control-flow", "likely-bug"],
