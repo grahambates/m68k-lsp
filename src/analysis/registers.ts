@@ -111,6 +111,10 @@ export function analyzeRegisters(
         for (const succ of cfg.successors[i]) out = mergeLive(out, liveIn[succ].get(r) ?? "dead");
         let before: RegisterLiveness;
         if (sem.reads.has(r)) before = "live";
+        // A byte or word write to a data register leaves the bits above it in
+        // place, so it does not end the life of what was there: the register is
+        // live before exactly when those surviving bits are live after.
+        else if (sem.partialWrites.has(r)) before = out;
         else if (sem.writes.has(r)) before = "dead";
         else if (sem.unknownEffects) before = "unknown";
         else before = out;
@@ -335,6 +339,23 @@ export function analyzeRegisters(
     };
     const rotateHalves = (mask: number): number => ((mask << 16) | (mask >>> 16)) >>> 0;
 
+    /** Bits this instruction writes into the target data register, if knowable. */
+    const directWriteMask = (line: ParsedLine): number | undefined => {
+      const size = instructionSize(line);
+      const semantics = getRegisterSemantics(line);
+      if (!semantics.writes.has(target)) return 0;
+      // Only a destination written as a plain data register is width-bounded.
+      // A register list, or an operand shape not handled here, is not.
+      const direct = (line.operands ?? []).some(
+        (op) => op.type === "data-register" && normalizeRegister(op.register) === target,
+      );
+      if (!direct) return undefined;
+      if (!semantics.partialWrites.has(target)) return 0xffffffff;
+      if (size === "b") return 0xff;
+      if (size === "w") return 0xffff;
+      return undefined;
+    };
+
     const walk = (i: number, currentMask: number): RegisterBitsUse => {
       const key = `${i}:${currentMask >>> 0}`;
       const cached = memo.get(key);
@@ -381,9 +402,24 @@ export function analyzeRegisters(
           memo.set(key, "unused");
           return "unused";
         }
-        visiting.delete(i);
-        memo.set(key, "unknown");
-        return "unknown";
+        // A narrower write still ends the life of the bits it covers. Removing
+        // them from the mask answers the question this walk exists for: whether
+        // any of the bits we started with survive to be read. Giving up here
+        // reported `move.w d0,d1 / move.w d2,d1` as unknowable, when the first
+        // write is plainly overwritten.
+        const writeMask = directWriteMask(line);
+        if (writeMask === undefined) {
+          visiting.delete(i);
+          memo.set(key, "unknown");
+          return "unknown";
+        }
+        const remaining = (currentMask & ~writeMask) >>> 0;
+        if (remaining === 0) {
+          visiting.delete(i);
+          memo.set(key, "unused");
+          return "unused";
+        }
+        currentMask = remaining;
       }
       if (cfg.escapes[i]) {
         visiting.delete(i);

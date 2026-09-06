@@ -3,6 +3,7 @@ import type { Rule } from "../../core/rule.js";
 import { getFlagSemantics } from "../../semantics/flags.js";
 import { getRegisterSemantics } from "../../semantics/registers.js";
 import { semanticMnemonic } from "../../semantics/mnemonics.js";
+import { instructionSize } from "../../util/ast.js";
 
 /**
  * A write whose value is overwritten before anything reads it does nothing:
@@ -39,6 +40,15 @@ function readsMemory(line: ParsedLine, mnemonic: string): boolean {
   return (line.operands ?? []).some((op) => !isInertOperand(op));
 }
 
+/** The bits a narrow write covers, or nothing when the write is full width. */
+function partialWriteMask(line: ParsedLine, isPartial: boolean): number | undefined {
+  if (!isPartial) return undefined;
+  const size = instructionSize(line);
+  if (size === "b") return 0xff;
+  if (size === "w") return 0xffff;
+  return undefined;
+}
+
 export const deadRegisterWrite: Rule = {
   meta: {
     id: "suspicious/dead-register-write",
@@ -68,7 +78,17 @@ export const deadRegisterWrite: Rule = {
     const flags = getFlagSemantics(line);
     if (!CONTROL_FLOW_SAFE.has(flags.controlFlow)) return;
 
-    if (ctx.registers.isLiveAfter(index, written) !== "dead") return;
+    // Whole-register liveness treats a byte or word write to a data register as
+    // preserving what was there, which it does, so it never calls such a write
+    // dead. The narrower question is whether the bits this instruction actually
+    // writes are read again, and that is the one the rule needs: in
+    // `move.w d0,d1 / move.w d2,d1 / move.w d1,(a0)` the first write is dead
+    // even though D1 itself is live throughout.
+    const writtenBits = partialWriteMask(line, registers.partialWrites.has(written));
+    const dead =
+      ctx.registers.isLiveAfter(index, written) === "dead" ||
+      (writtenBits !== undefined && ctx.registers.dataRegisterBitsUseAfter(index, written, writtenBits) === "unused");
+    if (!dead) return;
     // Removing the instruction removes its flag effects too.
     for (const flag of [...flags.writes, ...flags.undefined]) {
       if (ctx.flags.isLiveAfter(index, flag) !== "dead") return;

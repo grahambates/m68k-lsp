@@ -1,6 +1,7 @@
 import type { OperandNode, ParsedLine } from "m68k-parser";
 import { getFlagSemantics } from "./flags.js";
 import { semanticMnemonic } from "./mnemonics.js";
+import { instructionSize } from "../util/ast.js";
 import { isMacroInvocation } from "../util/ast.js";
 
 export const DATA_REGISTERS = ["d0", "d1", "d2", "d3", "d4", "d5", "d6", "d7"] as const;
@@ -16,6 +17,16 @@ export function normalizeRegister(register: string): Register | undefined {
 export interface RegisterSemantics {
   reads: ReadonlySet<Register>;
   writes: ReadonlySet<Register>;
+  /**
+   * Written registers whose untouched bits survive the write.
+   *
+   * A byte or word operation on a data register leaves the bits above it
+   * alone, so it does not end the life of the value already there. Treating
+   * every write as a full kill made `swap d7 / move.w d4,d7 / swap d7` look
+   * like the first SWAP had no effect, when its result is exactly what the
+   * preserved upper half carries.
+   */
+  partialWrites: ReadonlySet<Register>;
   /** True when the instruction may read/write registers we have not modelled. */
   unknownEffects: boolean;
   call: boolean;
@@ -103,9 +114,9 @@ function computeRegisterSemantics(line: ParsedLine): RegisterSemantics {
   // code we cannot inspect; `unknownEffects` covers everything else.
   if (isMacroInvocation(line)) {
     for (const op of line.operands ?? []) addAll(reads, registersReadByOperand(op));
-    return { reads, writes, unknownEffects: true, call: false };
+    return { reads, writes, partialWrites: none(), unknownEffects: true, call: false };
   }
-  if (!mnemonic) return { reads, writes, unknownEffects: false, call: false };
+  if (!mnemonic) return { reads, writes, partialWrites: none(), unknownEffects: false, call: false };
   const ops = line.operands ?? [];
   const controlFlow = getFlagSemantics(line).controlFlow;
   const read = (i: number) => addAll(reads, registersReadByOperand(ops[i]));
@@ -117,11 +128,11 @@ function computeRegisterSemantics(line: ParsedLine): RegisterSemantics {
 
   if (controlFlow === "call") {
     read(0);
-    return { reads, writes, unknownEffects: true, call: true };
+    return { reads, writes, partialWrites: none(), unknownEffects: true, call: true };
   }
   if (controlFlow === "dynamic-jump") {
     read(0);
-    return { reads, writes, unknownEffects: false, call: false };
+    return { reads, writes, partialWrites: none(), unknownEffects: false, call: false };
   }
   if (
     controlFlow === "return" ||
@@ -133,25 +144,25 @@ function computeRegisterSemantics(line: ParsedLine): RegisterSemantics {
       read(0);
       writeDirect(0);
     }
-    return { reads, writes, unknownEffects: false, call: false };
+    return { reads, writes, partialWrites: none(), unknownEffects: false, call: false };
   }
-  if (mnemonic === "nop") return { reads, writes, unknownEffects: false, call: false };
+  if (mnemonic === "nop") return { reads, writes, partialWrites: none(), unknownEffects: false, call: false };
 
   if (["move", "movea"].includes(mnemonic)) {
     read(0);
     // Destination EA registers are read to form the address; a direct register is overwritten.
     if (!directRegister(ops[1])) read(1);
     writeDirect(1);
-    return { reads, writes, unknownEffects: false, call: false };
+    return { reads, writes, partialWrites: none(), unknownEffects: false, call: false };
   }
   if (mnemonic === "moveq") {
     writeDirect(1);
-    return { reads, writes, unknownEffects: false, call: false };
+    return { reads, writes, partialWrites: none(), unknownEffects: false, call: false };
   }
   if (mnemonic === "movem") {
     const leftList = ops[0]?.type === "register-list";
     const rightList = ops[1]?.type === "register-list";
-    if (leftList === rightList) return { reads, writes, unknownEffects: true, call: false };
+    if (leftList === rightList) return { reads, writes, partialWrites: none(), unknownEffects: true, call: false };
 
     if (leftList) {
       // Register list -> memory: listed registers are read; EA registers are read,
@@ -165,28 +176,31 @@ function computeRegisterSemantics(line: ParsedLine): RegisterSemantics {
       addEaSideEffectWrite(writes, ops[0]);
       addAll(writes, registersInList(ops[1]));
     }
-    return { reads, writes, unknownEffects: false, call: false };
+    return { reads, writes, partialWrites: none(), unknownEffects: false, call: false };
   }
   if (mnemonic === "lea") {
     read(0);
     writeDirect(1);
-    return { reads, writes, unknownEffects: false, call: false };
+    return { reads, writes, partialWrites: none(), unknownEffects: false, call: false };
   }
   if (["clr", "not", "neg", "negx", "swap", "ext", "extb", "tas"].includes(mnemonic)) {
-    // Memory EAs read address/index registers; direct registers are read only for read-modify-write ops.
-    if (mnemonic !== "clr" && mnemonic !== "ext" && mnemonic !== "extb") read(0);
+    // Memory EAs read address/index registers; direct registers are read only
+    // for read-modify-write ops. CLR is the sole one here that overwrites
+    // without reading: EXT and EXTB sign-extend the value already there, and
+    // treating them as write-only made the instruction feeding them look dead.
+    if (mnemonic !== "clr") read(0);
     else if (!directRegister(ops[0])) read(0);
     writeDirect(0);
-    return { reads, writes, unknownEffects: false, call: false };
+    return { reads, writes, partialWrites: none(), unknownEffects: false, call: false };
   }
   if (["tst"].includes(mnemonic)) {
     read(0);
-    return { reads, writes, unknownEffects: false, call: false };
+    return { reads, writes, partialWrites: none(), unknownEffects: false, call: false };
   }
   if (["cmp", "cmpa", "btst"].includes(mnemonic)) {
     read(0);
     read(1);
-    return { reads, writes, unknownEffects: false, call: false };
+    return { reads, writes, partialWrites: none(), unknownEffects: false, call: false };
   }
   if (
     [
@@ -215,37 +229,37 @@ function computeRegisterSemantics(line: ParsedLine): RegisterSemantics {
     read(0);
     read(1);
     writeDirect(1);
-    return { reads, writes, unknownEffects: false, call: false };
+    return { reads, writes, partialWrites: none(), unknownEffects: false, call: false };
   }
   if (["mulu", "muls", "divu", "divs"].includes(mnemonic)) {
     read(0);
     read(1);
     writeDirect(1);
-    return { reads, writes, unknownEffects: false, call: false };
+    return { reads, writes, partialWrites: none(), unknownEffects: false, call: false };
   }
   if (mnemonic === "exg") {
     read(0);
     read(1);
     writeDirect(0);
     writeDirect(1);
-    return { reads, writes, unknownEffects: false, call: false };
+    return { reads, writes, partialWrites: none(), unknownEffects: false, call: false };
   }
   if (mnemonic === "link") {
     read(0);
     writeDirect(0);
     writes.add("a7");
     reads.add("a7");
-    return { reads, writes, unknownEffects: false, call: false };
+    return { reads, writes, partialWrites: none(), unknownEffects: false, call: false };
   }
   if (mnemonic === "unlk") {
     read(0);
     writes.add("a7");
     writeDirect(0);
-    return { reads, writes, unknownEffects: false, call: false };
+    return { reads, writes, partialWrites: none(), unknownEffects: false, call: false };
   }
 
   // Uncommon/system/FPU instructions are intentionally conservative for now.
-  return { reads, writes, unknownEffects: true, call: false };
+  return { reads, writes, partialWrites: none(), unknownEffects: true, call: false };
 }
 
 /**
@@ -254,11 +268,45 @@ function computeRegisterSemantics(line: ParsedLine): RegisterSemantics {
  * to remember. Missing it made constant propagation believe an address register
  * still held its pre-increment value.
  */
+/**
+ * Word-sized instructions that still write the whole 32-bit register: the word
+ * multiplies produce a long result, and DIVU/DIVS pack remainder and quotient
+ * into one.
+ */
+const WORD_FORMS_WRITING_LONG = new Set(["muls", "mulu", "divs", "divu"]);
+
+function directDataRegister(op: OperandNode | undefined): Register | undefined {
+  if (!op || op.type !== "data-register") return undefined;
+  return normalizeRegister(op.register);
+}
+
+/**
+ * Which of the written registers keep the bits the instruction does not touch.
+ *
+ * Only a data register written directly by a byte or word operation. An
+ * address-register destination sign-extends across the whole register, MOVEM.W
+ * sign-extends each register it loads, and a postincrement side effect updates
+ * the whole address register, so none of those preserve anything.
+ */
+function partialWritesOf(line: ParsedLine, writes: ReadonlySet<Register>): Set<Register> {
+  const partial = new Set<Register>();
+  const size = instructionSize(line);
+  if (size !== "b" && size !== "w") return partial;
+  const mnemonic = semanticMnemonic(line);
+  if (mnemonic && WORD_FORMS_WRITING_LONG.has(mnemonic)) return partial;
+
+  for (const op of line.operands ?? []) {
+    const register = directDataRegister(op);
+    if (register && writes.has(register)) partial.add(register);
+  }
+  return partial;
+}
+
 export function getRegisterSemantics(line: ParsedLine): RegisterSemantics {
   const semantics = computeRegisterSemantics(line);
   if (semantics.unknownEffects) return semantics;
 
   const writes = new Set(semantics.writes);
   for (const op of line.operands ?? []) addEaSideEffectWrite(writes, op);
-  return writes.size === semantics.writes.size ? semantics : { ...semantics, writes };
+  return { ...semantics, writes, partialWrites: partialWritesOf(line, writes) };
 }

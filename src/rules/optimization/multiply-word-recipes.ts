@@ -1,17 +1,33 @@
 import type { Rule } from "../../core/rule.js";
 import { dataRegisterOperand, immediateExpressionOperand, instructionSize, isInstruction } from "../../util/ast.js";
 import { changedFlagsApplicability } from "./helpers.js";
+import { DATA_REGISTERS } from "../../semantics/registers.js";
 
 function m68000Only(ctx: Parameters<NonNullable<Rule["checkLine"]>>[0]): boolean {
   return ctx.config.processors.every((cpu) => cpu === "mc68000");
 }
 
+/**
+ * A data register the replacement may use as scratch.
+ *
+ * `mask` says how much of it the recipe touches. The word-only recipes write
+ * the scratch with word operations, so a register whose low word is dead
+ * qualifies even where its upper half carries something: that is the usual
+ * case, since the code being replaced typically writes the same register with
+ * a word move a moment later. The full-result recipes copy a long into it and
+ * need the whole register dead.
+ */
 function deadScratch(
   ctx: Parameters<NonNullable<Rule["checkLine"]>>[0],
   index: number,
   dest: string,
+  mask?: number,
 ): string | undefined {
-  return ctx.registers.deadDataRegistersAfter(index).find((r) => r !== dest.toLowerCase());
+  const skip = dest.toLowerCase();
+  if (mask === undefined) return ctx.registers.deadDataRegistersAfter(index).find((r) => r !== skip);
+  return DATA_REGISTERS.find(
+    (r) => r !== skip && ctx.registers.dataRegisterBitsUseAfter(index, r, mask) === "unused",
+  );
 }
 
 /**
@@ -132,7 +148,7 @@ export const flamewingMulsWordLowWordOnly: Rule = {
 
     const upperWordUse = ctx.registers.upperWordUseAfter(index, dest.register);
     if (upperWordUse !== "unused") return;
-    const scratch = deadScratch(ctx, index, dest.register);
+    const scratch = deadScratch(ctx, index, dest.register, 0xffff);
     if (!scratch) return;
     const safety = changedFlagsApplicability(ctx, index, ["X", "N", "Z", "V", "C"]);
     ctx.report({
@@ -205,7 +221,7 @@ export const flamewingMuluWordLowWordOnly: Rule = {
     if (ctx.registers.dataRegisterBitsUseAfter(index, dest.register, 0xffff0000) !== "unused") return;
 
     const needsScratch = ![1, 2, 4, 8, 16, 32].includes(value.value);
-    const scratch = needsScratch ? deadScratch(ctx, index, dest.register) : undefined;
+    const scratch = needsScratch ? deadScratch(ctx, index, dest.register, 0xffff) : undefined;
     if (needsScratch && !scratch) return;
 
     // MULU.W writes a 32-bit result and sets N/Z from that long result while
