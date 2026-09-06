@@ -100,3 +100,52 @@ describe("overlapping suggestions", () => {
     expect(round.applied.length + round.deferred).toBeGreaterThan(0);
   });
 });
+
+/**
+ * The 68k idioms these rules produce are opaque: a multiply becoming five
+ * instructions, a shift becoming a stack trick. The original is the
+ * documentation for what the replacement does, and once it is gone nothing in
+ * the file says what the sequence was for.
+ *
+ * Two signals decide, both measurable rather than a matter of taste: the
+ * replacement grew, or it dropped a name.
+ */
+describe("keeping the original above an opaque rewrite", () => {
+  const annotate = (source: string) =>
+    applyFixes(source, lint, { accept: ["safe", "conditional"], annotate: true }).output;
+
+  test("a rewrite that expands is annotated", () => {
+    const output = annotate("start:\n\tasr.w\t#8,d0\n\tmove.l\td1,d2\n\trts");
+    expect(output).toContain("\t; was:");
+    expect(output).toContain("\t; asr.w\t#8,d0");
+    expect(output).toContain("\tmove.w\td0,-(sp)");
+  });
+
+  // No expansion here, but SCALE is gone from the result.
+  test("a rewrite that drops a name is annotated", () => {
+    const output = annotate("SCALE equ 8\n\tdivu.w\t#SCALE,d0\n\tmove.w\td0,d1\n\tmoveq\t#0,d0\n\trts");
+    expect(output).toContain("; divu.w\t#SCALE,d0");
+    expect(output).toContain("\tlsr.l\t#3,d0");
+  });
+
+  test("a rewrite that is neither is left plain", () => {
+    expect(annotate("\tmove.l\t#100,d0\n\trts")).toBe("\tmoveq\t#100,d0\n\trts");
+  });
+
+  test("it does nothing unless asked", () => {
+    const source = "start:\n\tasr.w\t#8,d0\n\tmove.l\td1,d2\n\trts";
+    expect(applyFixes(source, lint, { accept: ["safe", "conditional"] }).output).not.toContain("; was:");
+  });
+
+  // The commented copy is documentation; the live label must stay live.
+  test("a label sharing the line stays on the replacement, not in the comment", () => {
+    const output = annotate("start:\tmuls.w\t#10,d0\n\tmove.l\td1,d2\n\trts");
+    expect(output).toContain("start:\text.l\td0");
+    expect(parseFile(output).errors).toHaveLength(0);
+  });
+
+  test("the annotated result still parses", () => {
+    const output = annotate("start:\n\tasr.w\t#8,d0\n\tmove.l\td1,d2\n\trts");
+    expect(parseFile(output).errors).toHaveLength(0);
+  });
+});

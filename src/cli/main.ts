@@ -76,10 +76,12 @@ interface CliOptions {
   fixConditional: boolean;
   /** Report what would be rewritten without touching anything. */
   fixDryRun: boolean;
+  /** Keep the original, commented out, above a rewrite that is hard to read back. */
+  fixAnnotate: boolean;
 }
 
 function usage(): string {
-  return `m68k-lint ${VERSION}\n\nUsage:\n  m68k-lint [options] <file|directory|glob ...>\n\nOptions:\n  --config <path>               Use a specific JSON config file\n  --no-config                   Disable config-file discovery\n  --ext <ext[,ext...]>          Extensions for directory/glob discovery; default: .s,.asm,.i\n  --ignore-pattern <glob>       Ignore matching files (repeatable)\n  --cpu <cpu[,cpu...]>          Target processor(s), default: mc68000\n  --platform <name>             generic, amiga, atari; default: generic\n  --preset <name[,name...]>     Enable rule preset(s): recommended, style\n  --goal <balanced|speed|size>  Filter known optimization trade-offs, default: balanced\n  --impact                      Enable exact 68000 impact measurement\n  --no-impact                   Disable exact 68000 impact measurement\n  --inline-config               Honor m68k-lint comment directives (default)\n  --no-inline-config            Ignore m68k-lint comment directives\n  --impact-summary              Summarize measured outcomes by rule\n  --audit-rule-impact           Run representative 68000 timing audit for every optimization rule\n  --only <category[,category]>  Run only selected rule categories\n  --disable-category <category> Disable a rule category (repeatable)\n  --rule <id>=<setting>         Override a rule: off|error|warning|suggestion|info\n  --fix                         Apply safe suggestions and rewrite the files\n  --fix-conditional             Also apply conditional ones; read their notes first\n  --fix-dry-run                 Report what --fix would change, writing nothing\n  --format <pretty|json>        Output format, default: pretty\n  --fail-on <severity>          Exit 1 at this severity or higher, default: error\n  --init                        Create a project config file interactively\n  --list-rules                  List built-in rules and exit\n  --asp68k-coverage             Show tracked ASP68K table coverage and exit\n  --color / --no-color          Force or disable ANSI colours; default: TTY only\n  -h, --help                    Show this help\n  -v, --version                 Show version\n\nExamples:\n  m68k-lint game.s\n  m68k-lint src/\n  m68k-lint "src/**/*.asm"\n  m68k-lint --ext .s,.asm,.i,.inc src/\n  m68k-lint --platform amiga --cpu mc68000 src/\n  m68k-lint --rule suspicious/nop=warning --fail-on warning game.s\n  m68k-lint --fix src/\n`;
+  return `m68k-lint ${VERSION}\n\nUsage:\n  m68k-lint [options] <file|directory|glob ...>\n\nOptions:\n  --config <path>               Use a specific JSON config file\n  --no-config                   Disable config-file discovery\n  --ext <ext[,ext...]>          Extensions for directory/glob discovery; default: .s,.asm,.i\n  --ignore-pattern <glob>       Ignore matching files (repeatable)\n  --cpu <cpu[,cpu...]>          Target processor(s), default: mc68000\n  --platform <name>             generic, amiga, atari; default: generic\n  --preset <name[,name...]>     Enable rule preset(s): recommended, style\n  --goal <balanced|speed|size>  Filter known optimization trade-offs, default: balanced\n  --impact                      Enable exact 68000 impact measurement\n  --no-impact                   Disable exact 68000 impact measurement\n  --inline-config               Honor m68k-lint comment directives (default)\n  --no-inline-config            Ignore m68k-lint comment directives\n  --impact-summary              Summarize measured outcomes by rule\n  --audit-rule-impact           Run representative 68000 timing audit for every optimization rule\n  --only <category[,category]>  Run only selected rule categories\n  --disable-category <category> Disable a rule category (repeatable)\n  --rule <id>=<setting>         Override a rule: off|error|warning|suggestion|info\n  --fix                         Apply safe suggestions and rewrite the files\n  --fix-conditional             Also apply conditional ones; read their notes first\n  --fix-annotate                Keep the original, commented out, above an opaque rewrite\n  --fix-dry-run                 Report what --fix would change, writing nothing\n  --format <pretty|json>        Output format, default: pretty\n  --fail-on <severity>          Exit 1 at this severity or higher, default: error\n  --init                        Create a project config file interactively\n  --list-rules                  List built-in rules and exit\n  --asp68k-coverage             Show tracked ASP68K table coverage and exit\n  --color / --no-color          Force or disable ANSI colours; default: TTY only\n  -h, --help                    Show this help\n  -v, --version                 Show version\n\nExamples:\n  m68k-lint game.s\n  m68k-lint src/\n  m68k-lint "src/**/*.asm"\n  m68k-lint --ext .s,.asm,.i,.inc src/\n  m68k-lint --platform amiga --cpu mc68000 src/\n  m68k-lint --rule suspicious/nop=warning --fail-on warning game.s\n  m68k-lint --fix src/\n`;
 }
 
 function requireValue(argv: string[], index: number, option: string): string {
@@ -120,6 +122,7 @@ function parseArgs(argv: string[]): CliOptions | "help" | "version" {
     fix: false,
     fixConditional: false,
     fixDryRun: false,
+    fixAnnotate: false,
   };
 
   for (let i = 0; i < argv.length; i++) {
@@ -157,6 +160,11 @@ function parseArgs(argv: string[]): CliOptions | "help" | "version" {
     if (arg === "--fix-conditional") {
       options.fix = true;
       options.fixConditional = true;
+      continue;
+    }
+    if (arg === "--fix-annotate") {
+      options.fix = true;
+      options.fixAnnotate = true;
       continue;
     }
     if (arg === "--fix-dry-run") {
@@ -400,6 +408,7 @@ async function lintOne(path: string, options: CliOptions, config: LintConfig, ex
     const errorCount = parseFile(source).errors.length;
     fixed = applyFixes(source, (text) => lintParsedFile(parseFile(text), text, config, undefined, external), {
       accept,
+      annotate: options.fixAnnotate,
       verify: (candidate) => parseFile(candidate).errors.length <= errorCount,
     });
     if (fixed.applied.length && !options.fixDryRun) {

@@ -240,6 +240,23 @@ offer one wherever a faithful rewrite is impossible: a label in the middle of a
 matched run, or a directive inside it. The replacement already carries the
 indentation, operand column, label and comments of the lines it replaces.
 
+`--fix-annotate` keeps the original above a rewrite that is hard to read back,
+commented out:
+
+```
+	; was:
+	; asr.w	#8,d0
+	;------------------------------
+	move.w	d0,-(sp)
+	move.b	(sp)+,d0
+	ext.w	d0
+	;------------------------------
+```
+
+Two things trigger it, both measurable: the replacement has more lines than what
+it replaces, or it dropped a name that the code no longer mentions. Ordinary
+one-for-one rewrites are left plain.
+
 Fixes are applied from the bottom of the file up so earlier line numbers stay
 valid, and overlapping ones are left for the next round rather than dropped.
 Rounds repeat because one rewrite exposes another, up to a limit. If a round

@@ -291,7 +291,10 @@ export class DefaultRuleContext implements RuleContext {
         },
       ];
     }
-    this.diagnostics.push({ ...diagnostic, notes, span, ...(suggestion ? { suggestion } : {}) });
+    // Also recorded rather than only described, so anything acting on the
+    // suggestion can see it without reading the prose back.
+    const data = lost.length ? { ...(diagnostic.data ?? {}), symbolsLost: lost } : diagnostic.data;
+    this.diagnostics.push({ ...diagnostic, notes, span, data, ...(suggestion ? { suggestion } : {}) });
   }
 
   /**

@@ -7,6 +7,15 @@ previously lived in `README.md`.
 
 ### Added
 
+- `--fix-annotate` keeps the original above a rewrite that is hard to read back,
+  commented out and delimited. Triggered by either of two measurable signals:
+  the replacement has more lines than what it replaces, or it dropped a name the
+  result no longer mentions. Ordinary one-for-one rewrites are left plain. A
+  label sharing the replaced line stays live on the replacement rather than
+  being commented out with it.
+
+### Added
+
 - `--fix` rewrites files in place, applying `safe` suggestions until nothing
   more changes. `--fix-conditional` also applies `conditional` ones, whose notes
   state the assumption each rests on, and `--fix-dry-run` reports what would

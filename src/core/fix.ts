@@ -24,6 +24,15 @@ export interface FixOptions {
    * writing files should not depend on having found every such bug.
    */
   verify?: (candidate: string) => boolean;
+  /**
+   * Keep the original above a rewrite that is hard to read back.
+   *
+   * The 68k idioms these rules produce are opaque: `muls.w #10,d0` becoming
+   * five instructions, or a shift becoming a stack trick. The original is the
+   * documentation for what the replacement is doing, and once it is gone
+   * nothing in the file says what the sequence was for.
+   */
+  annotate?: boolean;
 }
 
 export interface FixResult {
@@ -37,6 +46,47 @@ export interface FixResult {
 }
 
 const DEFAULT_MAX_PASSES = 10;
+
+/**
+ * Whether a rewrite is worth keeping the original above.
+ *
+ * Two signals, both measurable rather than a matter of taste. A replacement
+ * with more lines than it replaces has turned one instruction into an idiom.
+ * And one that dropped a name has worked a value out, so the reason for the
+ * number that replaced it is now only in the author's head.
+ */
+function obscures(diagnostic: Diagnostic, replacement: string): boolean {
+  const span = diagnostic.span;
+  if (!span || !replacement.trim()) return false;
+  if (Array.isArray(diagnostic.data?.symbolsLost) && diagnostic.data.symbolsLost.length > 0) return true;
+  const produced = replacement.split("\n").filter((line) => line.trim()).length;
+  return produced > span.endLine - span.startLine + 1;
+}
+
+/**
+ * The column the code sits in. Where a label occupies column zero, the gap
+ * between it and the mnemonic is the instruction's own indentation, and the
+ * annotation lines up with that rather than with the label.
+ */
+function indentOf(sourceLine: string): string {
+  const leading = /^[ \t]+/.exec(sourceLine)?.[0];
+  if (leading) return leading;
+  return /^\S+([ \t]+)(?=\S)/.exec(sourceLine)?.[1] ?? "\t";
+}
+
+/**
+ * Put the replaced lines above the replacement, commented out.
+ *
+ * `;` rather than `*`, because the block is indented to match the code and a
+ * `*` comment is only a comment in column zero.
+ */
+function annotated(original: readonly string[], replacement: string, indent: string): string {
+  const commented = original.map((line) => `${indent}; ${line.trim()}`);
+  return [`${indent}; was:`, ...commented, `${indent};${"-".repeat(30)}`, replacement, `${indent};${"-".repeat(30)}`].join(
+    "\n",
+  );
+}
+
 
 function eligible(diagnostic: Diagnostic, accept: readonly Applicability[]): boolean {
   const suggestion = diagnostic.suggestion;
@@ -60,6 +110,7 @@ export function applyOnce(
   source: string,
   diagnostics: readonly Diagnostic[],
   accept: readonly Applicability[],
+  annotate = false,
 ): { output: string; applied: FixResult["applied"]; deferred: number } {
   const lines = source.replace(/\r\n/g, "\n").replace(/\r/g, "\n").split("\n");
   const candidates = diagnostics
@@ -76,7 +127,12 @@ export function applyOnce(
       deferred++;
       continue;
     }
-    const replacement = diagnostic.suggestion!.replacement!;
+    let replacement = diagnostic.suggestion!.replacement!;
+    if (annotate && obscures(diagnostic, replacement)) {
+      const original = lines.slice(startLine - 1, endLine);
+      const indent = indentOf(original[0] ?? "");
+      replacement = annotated(original, replacement, indent);
+    }
     // An empty replacement removes the lines outright rather than leaving a
     // blank one behind.
     const inserted = replacement === "" ? [] : replacement.split("\n");
@@ -110,7 +166,7 @@ export function applyFixes(
   let rejected = false;
 
   while (passes < maxPasses) {
-    const round = applyOnce(output, lint(output), options.accept);
+    const round = applyOnce(output, lint(output), options.accept, options.annotate);
     if (round.applied.length === 0) {
       deferred = round.deferred;
       break;
