@@ -14,11 +14,12 @@ import { semanticMnemonic } from "../../semantics/mnemonics.js";
  * Often a typo — the first write was meant for a different register — so the
  * instruction is worth looking at even where the wasted cycles do not matter.
  *
- * Deliberately narrow. The instruction must do nothing except write one
- * register and set flags, both of which have to be provably unused. Anything
- * that touches memory is excluded: a load can be from a hardware register that
- * changes state when read, and removing it would change behaviour rather than
- * just save time.
+ * The instruction must do nothing except write one register and set flags, both
+ * of which have to be provably unused. A load from memory still counts, but the
+ * removal is only ever offered for review: the address may be a hardware
+ * register that changes state when read, and dropping the load would change
+ * behaviour rather than just save time. LEA is not a load - it computes an
+ * address without dereferencing it - so it keeps the plain reading.
  */
 const CONTROL_FLOW_SAFE = new Set(["none", "fallthrough"]);
 
@@ -27,32 +28,33 @@ function isInertOperand(op: OperandNode): boolean {
   return op.type === "data-register" || op.type === "address-register" || op.type === "immediate";
 }
 
-function hasOnlyInertOperands(line: ParsedLine, mnemonic: string): boolean {
-  const operands = line.operands ?? [];
-  if (!operands.length) return false;
-  // LEA computes an address without dereferencing it, and its source must be a
-  // control addressing mode, so it can never carry a side effect however the
-  // operand is written.
-  if (mnemonic === "lea") return true;
-  return operands.every(isInertOperand);
+/**
+ * Whether removing the instruction could lose a memory access. LEA never
+ * dereferences, so it is exempt however its operand is written. Postincrement
+ * and predecrement do not reach here: they write their address register too, so
+ * the single-register check below excludes them.
+ */
+function readsMemory(line: ParsedLine, mnemonic: string): boolean {
+  if (mnemonic === "lea") return false;
+  return (line.operands ?? []).some((op) => !isInertOperand(op));
 }
 
 export const deadRegisterWrite: Rule = {
   meta: {
-    id: "optimization/dead-register-write",
-    category: "optimization",
-    defaultSeverity: "suggestion",
-    description: "Remove a register write whose value is overwritten before it is read",
-    tags: ["dataflow", "register-analysis", "dead-code", "size", "speed"],
+    id: "suspicious/dead-register-write",
+    category: "suspicious",
+    defaultSeverity: "warning",
+    description: "Flag a register write whose value is overwritten before it is read",
+    tags: ["dataflow", "register-analysis", "dead-code", "likely-typo"],
     docs: {
-      note: "Restricted to instructions that only write one register and its flags, with register or immediate operands. Memory is excluded because a load may be from a location that changes state when read.",
+      note: "Usually a typo, where the write was meant for a different register, rather than an intentional waste of two bytes. Restricted to instructions that write one register and its flags, both provably unused. A load from memory is reported but never offered as a safe removal, since the address may change state when read.",
     },
   },
 
   checkLine(ctx, line, index) {
     const mnemonic = semanticMnemonic(line);
     if (!mnemonic) return;
-    if (!hasOnlyInertOperands(line, mnemonic)) return;
+    if (!(line.operands ?? []).length) return;
 
     const registers = getRegisterSemantics(line);
     if (registers.unknownEffects || registers.call) return;
@@ -72,18 +74,25 @@ export const deadRegisterWrite: Rule = {
       if (ctx.flags.isLiveAfter(index, flag) !== "dead") return;
     }
 
+    const fromMemory = readsMemory(line, mnemonic);
+
     ctx.report({
       ruleId: this.meta.id,
       category: this.meta.category,
       severity: this.meta.defaultSeverity,
-      confidence: "certain",
+      confidence: fromMemory ? "medium" : "certain",
       message: `${written.toUpperCase()} is overwritten before it is read, so this instruction has no effect`,
       loc: line.mnemonic!.loc,
-      suggestion: {
-        description: "Remove the instruction",
-        replacement: "",
-        applicability: "safe",
-      },
+      suggestion: fromMemory
+        ? {
+            description: "Remove the instruction, if the load has no side effect",
+            applicability: "manual",
+          }
+        : {
+            description: "Remove the instruction",
+            replacement: "",
+            applicability: "safe",
+          },
       notes: [
         { message: `Nothing reads ${written.toUpperCase()} between this write and the next one.` },
         { message: "The condition codes it sets are also unused, so removing it changes nothing." },
@@ -91,8 +100,16 @@ export const deadRegisterWrite: Rule = {
           message:
             "Worth checking the destination is the register you meant: a write nothing reads is often a typo rather than dead weight.",
         },
+        ...(fromMemory
+          ? [
+              {
+                message:
+                  "The value comes from memory, so removing the instruction also removes the read. Check the address is not a register that changes state when read.",
+              },
+            ]
+          : []),
       ],
-      data: { register: written },
+      data: { register: written, fromMemory },
     });
   },
 };

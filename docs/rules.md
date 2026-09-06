@@ -22,7 +22,7 @@ Valid assembly with a provable semantic or runtime problem.
 | `correctness/amiga-custom-register-access` | warning | Check read/write direction for Amiga custom-chip registers *(amiga only)* | Amiga Hardware Reference Manual |
 | `correctness/amiga-tas-unsupported` | error | TAS is not supported by the Amiga architecture *(amiga only)* | Amiga Hardware Reference Manual |
 
-## suspicious (11)
+## suspicious (12)
 
 Valid code that may be intentional but is easy to misread or misuse.
 
@@ -31,6 +31,7 @@ Valid code that may be intentional but is easy to misread or misuse.
 | `suspicious/atari-trap-stack-cleanup` | warning | Check that TOS trap parameters are removed from the stack by the caller *(atari only)* | — |
 | `suspicious/bit-number-wraparound` | warning | Flag immediate bit numbers that wrap modulo 8 or 32 | Motorola 68000 Family Programmer's Reference Manual |
 | `suspicious/condition-after-preserved-ccr` | warning | Flag conditional instructions that deliberately rely on CCR across a flag-preserving instruction | — |
+| `suspicious/dead-register-write` | warning | Flag a register write whose value is overwritten before it is read | — |
 | `suspicious/movea-word-sign-extension` | warning | Flag generic MOVE.W spellings to address registers because they have MOVEA.W sign-extension semantics | Motorola 68000 Family Programmer's Reference Manual |
 | `suspicious/movem-restore-mismatch` | warning | Flag a MOVEM restore whose register list does not match the matching save | — |
 | `suspicious/nop` | off | Flag NOP instructions for review | — |
@@ -40,7 +41,7 @@ Valid code that may be intentional but is easy to misread or misuse.
 | `suspicious/unexpected-absolute-address` | warning | Flag unusual numeric absolute source addresses that may be missing an immediate '#' prefix *(amiga, atari only)* | — |
 | `suspicious/zero-sized-storage` | warning | Flag DS directives that reserve zero elements | — |
 
-## optimization (110)
+## optimization (109)
 
 Smaller or faster equivalents, gated on CPU target and proven flag/register liveness.
 
@@ -72,7 +73,6 @@ Smaller or faster equivalents, gated on CPU target and proven flag/register live
 | `optimization/combine-ext-byte` | suggestion | Combine EXT.W + EXT.L into EXTB.L | ASP68K |
 | `optimization/compare-long-immediate-via-moveq` | suggestion | Compare a small long immediate via MOVEQ and a dead scratch register | Mike Morton, 68000 Tricks and Traps (BYTE, Sep 1986) |
 | `optimization/data-register-sign-bit-to-tas` | suggestion | Use TAS to set bit 7 of a data register | EAB 68000 code optimisations |
-| `optimization/dead-register-write` | suggestion | Remove a register write whose value is overwritten before it is read | — |
 | `optimization/destructive-small-compare-branch` | suggestion | Use SUBQ for a small compare when the compared register is disposable | Mike Morton, 68000 Tricks and Traps (BYTE, Sep 1986) |
 | `optimization/divu-long-power-of-two` | suggestion | Replace unsigned long division by a power of two with a logical shift | ASP68K |
 | `optimization/divu-word-power-of-two` | suggestion | Replace unsigned word division by a power of two with a logical shift when its remainder semantics are not needed | ASP68K |

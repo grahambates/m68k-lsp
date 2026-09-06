@@ -1474,7 +1474,7 @@ describe("register semantics", () => {
 
 describe("dead register write", () => {
   const cfg = { processors: ["mc68000" as const], measureImpact: false };
-  const ID = "optimization/dead-register-write";
+  const ID = "suspicious/dead-register-write";
   const lines = (source: string[]) =>
     lint(source.join("\n"), cfg)
       .filter((d) => d.ruleId === ID)
@@ -1506,11 +1506,34 @@ describe("dead register write", () => {
     expect(lines(["add.l d0,d1", "moveq #7,d1", "move.l d1,(a0)", "add.l d5,d6", "rts"])).toEqual([1]);
   });
 
-  test("leaves anything touching memory alone", () => {
-    // The load may be from a location that changes state when read, so removing
-    // it would change behaviour rather than just save time.
-    expect(lines(["move.w (a2),d1", "move.w d2,d1", "move.w d1,(a0)", "moveq #0,d7", "rts"])).toEqual([]);
+  test("reports a dead load but never offers it as a safe removal", () => {
+    // The address may be a register that changes state when read, so the
+    // removal is for a human to judge.
+    const source = ["move.w (a2),d1", "move.w d2,d1", "move.w d1,(a0)", "moveq #0,d7", "rts"].join("\n");
+    const diagnostic = lint(source, cfg).find((d) => d.ruleId === ID);
+    expect(diagnostic?.suggestion?.applicability).toBe("manual");
+    expect(diagnostic?.suggestion?.replacement).toBeUndefined();
+    expect(diagnostic?.notes?.some((n) => n.message.includes("changes state when read"))).toBe(true);
+  });
+
+  test("offers a plain removal where no memory is touched", () => {
+    const source = ["move.w d0,d1", "move.w d2,d1", "move.w d1,(a0)", "moveq #0,d7", "rts"].join("\n");
+    const diagnostic = lint(source, cfg).find((d) => d.ruleId === ID);
+    expect(diagnostic?.suggestion?.applicability).toBe("safe");
+    expect(diagnostic?.suggestion?.replacement).toBe("");
+  });
+
+  test("leaves a stepped pointer alone", () => {
+    // Postincrement and predecrement write their address register too, so the
+    // single-register check excludes them: removing one would stop the pointer
+    // advancing.
     expect(lines(["move.w (a2)+,d1", "move.w d2,d1", "move.w d1,(a0)", "moveq #0,d7", "rts"])).toEqual([]);
+    expect(lines(["move.w -(a2),d1", "move.w d2,d1", "move.w d1,(a0)", "moveq #0,d7", "rts"])).toEqual([]);
+  });
+
+  test("does not cover dead stores to memory", () => {
+    // That needs alias analysis, which this does not have.
+    expect(lines(["move.w d0,(a0)", "move.w d2,(a0)", "rts"])).toEqual([]);
   });
 });
 

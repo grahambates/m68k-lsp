@@ -138,14 +138,15 @@ form`. A reader has no way to check what a source said, and a claim repeated
 
 ### Added
 
-- `optimization/dead-register-write` — a write whose value is overwritten
-  before anything reads it. Often a typo, where the write was meant for a
-  different register, so the diagnostic says so as well as offering the
-  removal. Deliberately narrow: the instruction must do nothing beyond writing
-  one register and its flags, and both have to be provably unused. Anything
-  touching memory is excluded, since a load may be from a location that changes
-  state when read. LEA is included because it computes an address without
-  dereferencing it.
+- `suspicious/dead-register-write` — a write whose value is overwritten before
+  anything reads it. Usually a typo, where the write was meant for a different
+  register, rather than an intentional waste of two bytes, which is why it is
+  `suspicious` rather than an optimization. The instruction must write one
+  register and its flags, both provably unused. A dead load from memory is
+  reported too, but only ever for review: the address may be a register that
+  changes state when read. A stepped pointer is excluded, since postincrement
+  and predecrement write their address register as well. Dead stores to memory
+  are out of scope, needing alias analysis.
 
 - Three more rules from the saved sources: `optimization/carry-to-mask-via-subx`
   (`scs`/`ext.w`/`ext.l` is a single `subx.l dn,dn`, but only where one
