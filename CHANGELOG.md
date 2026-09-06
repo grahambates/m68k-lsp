@@ -92,6 +92,15 @@ form`. A reader has no way to check what a source said, and a claim repeated
 
 ### Removed
 
+- **Breaking:** `optimization/addq-address-word-size` and
+  `optimization/subq-address-word-size`. ASP68K records a speed win and
+  `M68000UM` lists `ADDQ.W #<data>,An` as `4(1/0)`, but Yacht documents that
+  figure as an error: the same microwords drive both forms, patent USP4325121
+  gives 8 cycles, and real-hardware evaluation confirms it. The EAB thread says
+  the same independently from measurement, and exact auditing here measures no
+  difference. With no size difference either, the transform did nothing. Their
+  ASP68K rows are now marked rejected.
+
 - **Breaking:** the `performance` rule category. It never had any rules, and
   nothing belonged in it: branch collapsing and redundant reloads are ordinary
   `optimization` substitutions. It is gone from `RuleCategory`, the CLI `--only`
@@ -100,6 +109,15 @@ form`. A reader has no way to check what a source said, and a claim repeated
   rather than being silently ignored. See [`docs/rule-roadmap.md`](docs/rule-roadmap.md).
 
 ### Added
+
+- Three rules mined from the saved EAB thread: `optimization/mask-via-moveq`
+  (`move.l (a0),d0` / `and.l #$3f,d0` becomes a MOVEQ seed plus an AND of the
+  source, since MOVEQ carries its value in the instruction word),
+  `optimization/data-register-sign-bit-to-tas` (`bset #7,dn` and
+  `ori.b #$80,dn` are a single TAS; unlike the memory form this is on by
+  default, because a data-register operand performs no memory access) and
+  `optimization/fold-index-into-effective-address` (an index added to an
+  address register purely to dereference it is what the indexed mode does).
 
 - `suspicious/movem-restore-mismatch` — a MOVEM save and its matching restore
   must move the same register list. When the counts differ the stack pointer is

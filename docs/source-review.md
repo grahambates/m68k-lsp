@@ -44,6 +44,34 @@ Until then the closest available substitute is a modern community compilation by
 
 These should be reviewed individually rather than imported wholesale. Several intentionally change flags, scratch registers, or high-word results and therefore map well to the existing liveness/sub-register analyses.
 
+## EAB thread audit
+
+Mined from the saved thread. Three rules landed: `mask-via-moveq`,
+`data-register-sign-bit-to-tas` and `fold-index-into-effective-address`.
+
+Two claims did not survive measurement, and one rule was removed as a result.
+
+**ADDQ/SUBQ.L to an address register is not slower than the word form.** ASP68K
+records a speed win, and `M68000UM` lists `ADDQ.W #<data>,An` as `4(1/0)`.
+Yacht records that figure as an error: the same microwords drive both forms,
+patent USP4325121 gives `8(3/0)`, and real-hardware evaluation confirms 8
+cycles. The thread says the same independently, from measurement. Exact
+auditing here agrees, and there is no size difference either, so
+`addq-address-word-size` and `subq-address-word-size` were removed and their
+ASP68K rows marked rejected.
+
+**MOVEM.W does not pay for itself on one register.** Replacing `move.w`/`ext.l`
+with `movem.w` to get the sign extension free measures as a regression for a
+single register: same size, four cycles and one read worse. The thread says so
+too, in passing: MOVEM only breaks even at three registers, and two are faster
+"only because of the desired sign extends". A rule for this would have to match
+two or more loads from consecutive addresses into consecutive registers,
+followed by their extensions. That is a narrow pattern needing a sequence
+matcher, and is not implemented.
+
+Still unmined from the thread: `and.w #2^n-1` for the remainder of a
+power-of-two division, and the `subx.l dn,dn` carry-to-mask idiom.
+
 ## Flamewing rotate/shift audit (v0.26)
 
 The register-count rotate recipes were checked as rotation identities rather than accepted from the table. For word rotates, a known count 8..15 can be replaced by an immediate rotate in the opposite direction by `16-count`. For long rotates, counts 9..31 reduce through the 16-bit `SWAP` identity and/or the opposite direction modulo 32. Removing the preceding `MOVEQ` is only safe when its count register is dead after the rotate or already held the same constant before the sequence.

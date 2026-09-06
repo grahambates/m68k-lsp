@@ -65,7 +65,11 @@ export const asp68kCoverage: readonly Asp68kCoverageEntry[] = [
   { rule: "optimization/prefer-addq", sourceLines: [170], status: "implemented" },
   { rule: "optimization/prefer-subq-negative-add", sourceLines: [174], status: "implemented" },
   { rule: "optimization/address-add-to-lea", sourceLines: [178], status: "implemented" },
-  { rule: "optimization/addq-address-word-size", sourceLines: [182], status: "implemented" },
+  {
+    sourceLines: [182],
+    status: "rejected",
+    note: "ADDQ.W #n,An and ADDQ.L #n,An both take 8(1/0) on 68000. The 4-cycle figure in M68000UM is a documented error: the same microwords drive both, real-hardware measurement confirms 8, and exact auditing here measures no difference. There is no size difference either, so the transform does nothing.",
+  },
   {
     rule: "optimization/combine-consecutive-addq",
     sourceLines: [184],
@@ -427,7 +431,11 @@ export const asp68kCoverage: readonly Asp68kCoverageEntry[] = [
   { rule: "optimization/prefer-addq-negative-sub", sourceLines: [1148], status: "implemented" },
   { rule: "optimization/prefer-subq", sourceLines: [1152], status: "implemented" },
   { rule: "optimization/address-sub-to-lea", sourceLines: [1156], status: "implemented" },
-  { rule: "optimization/subq-address-word-size", sourceLines: [1160], status: "implemented" },
+  {
+    sourceLines: [1160],
+    status: "rejected",
+    note: "SUBQ.W #n,An and SUBQ.L #n,An both take 8(1/0) on 68000; see the ADDQ row. The transform changes nothing.",
+  },
 ];
 
 export function asp68kCoverageSummary() {

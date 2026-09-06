@@ -34,7 +34,6 @@ import { preferStMinusOne } from "./optimization/prefer-st-minus-one.js";
 import { preferAddForShiftOne } from "./optimization/prefer-add-for-shift-one.js";
 import { preferMoveWordAddress } from "./optimization/prefer-move-word-address.js";
 import { zeroAddressRegister } from "./optimization/zero-address-register.js";
-import { addqAddressWordSize, subqAddressWordSize } from "./optimization/quick-address-word-size.js";
 import { preferUnlkSequence } from "./optimization/prefer-unlk-sequence.js";
 import { preferLinkSequence } from "./optimization/prefer-link-sequence.js";
 import { btstSignBranch } from "./optimization/btst-sign-branch.js";
@@ -83,6 +82,9 @@ import { moveImmediateAddressToLea, moveAddressThenAddToLea } from "./optimizati
 import { atariTrapStackCleanup } from "./platform/atari/trap-stack-cleanup.js";
 import { amigaBitMaskConstants } from "./platform/amiga/bit-mask-constant.js";
 import { movemRestoreMismatch } from "./suspicious/movem-restore-mismatch.js";
+import { maskViaMoveq } from "./optimization/mask-via-moveq.js";
+import { dataRegisterSignBitToTas } from "./optimization/data-register-sign-bit-to-tas.js";
+import { foldIndexIntoEffectiveAddress } from "./optimization/fold-index-into-effective-address.js";
 import { cancelMultiplePredecrementMoves } from "./optimization/cancel-multiple-predecrement-moves.js";
 import { cancelStackPeaSequence } from "./optimization/cancel-stack-pea-sequence.js";
 import { multiplyLongByOne } from "./optimization/multiply-long-by-one.js";
@@ -158,6 +160,9 @@ export {
   atariTrapStackCleanup,
   amigaBitMaskConstants,
   movemRestoreMismatch,
+  maskViaMoveq,
+  dataRegisterSignBitToTas,
+  foldIndexIntoEffectiveAddress,
   compareLongImmediateViaMoveq,
   destructiveSmallCompareBranch,
   jsrJmpDispatch,
@@ -178,8 +183,6 @@ export {
   preferAddForShiftOne,
   preferMoveWordAddress,
   zeroAddressRegister,
-  addqAddressWordSize,
-  subqAddressWordSize,
   preferUnlkSequence,
   preferLinkSequence,
   btstSignBranch,
@@ -349,9 +352,7 @@ export const defaultRules: readonly Rule[] = [
   preferMoveWordAddress,
   zeroAddressRegister,
   preferAddq,
-  addqAddressWordSize,
   preferSubq,
-  subqAddressWordSize,
   preferSubqForNegativeAdd,
   preferAddqForNegativeSub,
   preferNot,
@@ -383,6 +384,9 @@ export const defaultRules: readonly Rule[] = [
   atariTrapStackCleanup,
   amigaBitMaskConstants,
   movemRestoreMismatch,
+  maskViaMoveq,
+  dataRegisterSignBitToTas,
+  foldIndexIntoEffectiveAddress,
   selfMove,
   suspiciousNop,
   staleConditionCode,

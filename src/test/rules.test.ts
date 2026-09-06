@@ -146,13 +146,6 @@ describe("optimization rules", () => {
     expect(ids("move.l #0,a3")).not.toContain("optimization/prefer-move-word-address");
   });
 
-  test("uses word-sized ADDQ/SUBQ on address registers for 68000/68010", () => {
-    expect(ids("addq.l #4,a0")).toContain("optimization/addq-address-word-size");
-    expect(ids("subq.l #2,a1")).toContain("optimization/subq-address-word-size");
-    const laterCpu = lint("addq.l #4,a0", { processors: ["mc68030"] });
-    expect(laterCpu.map((d) => d.ruleId)).not.toContain("optimization/addq-address-word-size");
-  });
-
   test("recognises standard LINK and UNLK sequences", () => {
     const setup = ["move.l a6,-(sp)", "move.l sp,a6", "add.w #-32,sp"].join("\n");
     const link = lint(setup).find((d) => d.ruleId === "optimization/prefer-link-sequence");
@@ -1355,6 +1348,64 @@ describe("platform modes", () => {
     expect(lint("    move.w DMACONR+CUSTOM,d0\n", config).map((d) => d.ruleId)).not.toContain(
       "correctness/amiga-custom-register-access",
     );
+  });
+});
+
+describe("rules mined from the EAB thread", () => {
+  const cfg = { processors: ["mc68000" as const], measureImpact: false };
+  const rep = (source: string, id: string) => lint(source, cfg).find((d) => d.ruleId === id)?.suggestion?.replacement;
+
+  describe("mask via MOVEQ", () => {
+    const ID = "optimization/mask-via-moveq";
+
+    test("swaps a load-then-mask for a MOVEQ seed plus AND", () => {
+      expect(rep("move.l (a0),d0\nand.l #$3f,d0\nmoveq #0,d7\nrts", ID)).toBe("moveq #63,d0\nand.l (a0),d0");
+    });
+
+    test("only when the mask fits MOVEQ, or the seed needs its own extension word", () => {
+      expect(ids("move.l (a0),d0\nand.l #$3fff,d0\nrts", cfg)).not.toContain(ID);
+    });
+
+    test("leaves a source with side effects alone", () => {
+      // (a0)+ cannot be read a second time in the AND's place.
+      expect(ids("move.l (a0)+,d0\nand.l #$3f,d0\nrts", cfg)).not.toContain(ID);
+    });
+  });
+
+  describe("sign bit to TAS", () => {
+    const ID = "optimization/data-register-sign-bit-to-tas";
+
+    test("covers both spellings that set bit 7", () => {
+      expect(rep("bset #7,d0\nmoveq #0,d7\nrts", ID)).toBe("tas d0");
+      expect(rep("ori.b #$80,d0\nmoveq #0,d7\nrts", ID)).toBe("tas d0");
+    });
+
+    test("only bit 7, and only a data register", () => {
+      expect(ids("bset #6,d0\nrts", cfg)).not.toContain(ID);
+      // The memory form is the other rule's business, and is off by default
+      // because of the locked read-modify-write cycle.
+      expect(ids("bset #7,(a0)\nrts", cfg)).not.toContain(ID);
+    });
+  });
+
+  describe("fold an index into the effective address", () => {
+    const ID = "optimization/fold-index-into-effective-address";
+
+    test("folds the addition into the indexed mode", () => {
+      expect(rep("adda.w d4,a0\nmove.l (a0),a1\nlea buf,a0\nrts\nbuf:", ID)).toBe("move.l (a0,d4.w),a1");
+      expect(rep("adda.l d4,a0\nmove.l (a0),a1\nlea buf,a0\nrts\nbuf:", ID)).toBe("move.l (a0,d4.l),a1");
+    });
+
+    test("works for any instruction that dereferences the register", () => {
+      expect(rep("adda.w d4,a0\ntst.w (a0)\nlea buf,a0\nrts\nbuf:", ID)).toBe("tst.w (a0,d4.w)");
+    });
+
+    test("declines when the adjusted register is still needed", () => {
+      // The fold leaves the base unchanged, so a later read would differ.
+      expect(ids("adda.w d4,a0\nmove.l (a0),a1\nmove.l a0,d3\nrts", cfg)).not.toContain(ID);
+      // Unknown at a return counts as still needed.
+      expect(ids("adda.w d4,a0\nmove.l (a0),a1\nrts", cfg)).not.toContain(ID);
+    });
   });
 });
 

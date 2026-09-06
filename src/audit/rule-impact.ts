@@ -64,8 +64,6 @@ export const ruleImpactAuditCases: readonly RuleImpactAuditCase[] = [
   { ruleId: "optimization/shift-two-adds", source: "lsl.w #2,d0" },
   { ruleId: "optimization/prefer-move-word-address", source: "move.l #1234,a0" },
   { ruleId: "optimization/zero-address-register", source: "move.l #0,a0" },
-  { ruleId: "optimization/addq-address-word-size", source: "addq.l #4,a0" },
-  { ruleId: "optimization/subq-address-word-size", source: "subq.l #4,a0" },
   { ruleId: "optimization/push-immediate-pea", source: "move.l #1234,-(sp)" },
   { ruleId: "optimization/push-address-pea", source: "move.l a0,-(sp)\nadd.l #12,(sp)\nmoveq #0,d7" },
   { ruleId: "optimization/prefer-link-sequence", source: "move.l a6,-(sp)\nmove.l sp,a6\nadd.w #-16,sp" },
@@ -171,6 +169,13 @@ export const ruleImpactAuditCases: readonly RuleImpactAuditCase[] = [
     exempt: "advisory rule with no replacement text; the BRA rewrite changes stack depth and stays manual",
   },
   { ruleId: "optimization/null-branch", source: "bra next\nnext:\nnop" },
+  { ruleId: "optimization/mask-via-moveq", source: "move.l (a0),d0\nand.l #$3f,d0\nmoveq #0,d7" },
+  { ruleId: "optimization/data-register-sign-bit-to-tas", caseId: "bset", source: "bset #7,d0\nmoveq #0,d7" },
+  { ruleId: "optimization/data-register-sign-bit-to-tas", caseId: "ori", source: "ori.b #$80,d0\nmoveq #0,d7" },
+  {
+    ruleId: "optimization/fold-index-into-effective-address",
+    source: "adda.w d4,a0\nmove.l (a0),a1\nlea buf,a0\nbuf:",
+  },
 
   // No 68000 measurement is meaningful/available for these target-specific rules.
   { ruleId: "optimization/combine-ext-byte", exempt: "68040/68060-only" },
