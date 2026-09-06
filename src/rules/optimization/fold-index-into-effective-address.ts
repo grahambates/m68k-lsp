@@ -30,7 +30,7 @@ export const foldIndexIntoEffectiveAddress: Rule = {
     category: "optimization",
     defaultSeverity: "suggestion",
     description: "Fold an address-register index addition into the indexed addressing mode",
-    tags: ["addressing", "address-register", "sequence", "size", "speed"],
+    tags: ["addressing", "address-register", "sequence"],
     docs: { source: "EAB 68000 code optimisations" },
   },
 

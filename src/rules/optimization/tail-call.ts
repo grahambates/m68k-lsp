@@ -9,7 +9,7 @@ function makeTailCallRule(id: string, from: "jsr" | "bsr", to: "jmp" | "bra"): R
       category: "optimization",
       defaultSeverity: "suggestion",
       description: `Replace ${from.toUpperCase()} followed by RTS with ${to.toUpperCase()}`,
-      tags: ["asp68k", "control-flow", "tail-call", "size", "speed"],
+      tags: ["asp68k", "control-flow", "tail-call"],
       docs: { source: "ASP68K" },
     },
 
@@ -46,7 +46,12 @@ function makeTailCallRule(id: string, from: "jsr" | "bsr", to: "jmp" | "bra"): R
             message: `${to.toUpperCase()} leaves one fewer return address on the stack than ${from.toUpperCase()} + RTS, so the callee must not read arguments relative to SP or otherwise depend on the depth.`,
           },
           ...(labelled
-            ? [{ message: "A label inside the pair may be an externally reachable entry point; preserve it when rewriting." }]
+            ? [
+                {
+                  message:
+                    "A label inside the pair may be an externally reachable entry point; preserve it when rewriting.",
+                },
+              ]
             : []),
         ],
         data: { secondInstructionIndex: next.index },

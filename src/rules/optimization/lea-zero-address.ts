@@ -7,7 +7,7 @@ export const leaZeroAddress: Rule = {
     category: "optimization",
     defaultSeverity: "suggestion",
     description: "Zero an address register with SUBA/SUB where profitable",
-    tags: ["asp68k", "68000", "68010", "68030", "ccr", "size"],
+    tags: ["asp68k", "68000", "68010", "68030", "ccr"],
     docs: { source: "ASP68K" },
   },
   checkLine(ctx, line) {

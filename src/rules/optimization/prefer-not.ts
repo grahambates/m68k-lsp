@@ -7,7 +7,7 @@ export const preferNot: Rule = {
     category: "optimization",
     defaultSeverity: "suggestion",
     description: "Prefer NOT for EOR #-1",
-    tags: ["asp68k", "size"],
+    tags: ["asp68k"],
     docs: { source: "ASP68K" },
   },
   checkLine(ctx, line) {

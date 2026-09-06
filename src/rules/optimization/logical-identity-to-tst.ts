@@ -31,7 +31,7 @@ function makeIdentityRule(
       category: "optimization",
       defaultSeverity: "suggestion",
       description: `${label} can use TST`,
-      tags: ["vasm", "identity", "tst", "size", "speed", "ccr"],
+      tags: ["vasm", "identity", "tst", "ccr"],
       docs: { source: "vasm m68k optimization history" },
     },
     checkLine(ctx, line) {

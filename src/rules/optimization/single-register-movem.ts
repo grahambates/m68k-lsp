@@ -22,7 +22,7 @@ export const singleRegisterMovem: Rule = {
     category: "optimization",
     defaultSeverity: "suggestion",
     description: "Use MOVE instead of MOVEM for a single register",
-    tags: ["asp68k", "movem", "size", "ccr"],
+    tags: ["asp68k", "movem", "ccr"],
     docs: { source: "ASP68K" },
   },
   checkLine(ctx, line, index) {

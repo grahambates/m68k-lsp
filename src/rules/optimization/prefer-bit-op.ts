@@ -10,7 +10,7 @@ function bitRule(kind: "or" | "and"): Rule {
       category: "optimization",
       defaultSeverity: "suggestion",
       description: `Prefer ${kind === "or" ? "BSET" : "BCLR"} for a one-bit mask`,
-      tags: ["asp68k", "size", "ccr"],
+      tags: ["asp68k", "ccr"],
       docs: { source: "ASP68K" },
     },
     checkLine(ctx, line, index) {

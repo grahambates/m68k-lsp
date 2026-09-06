@@ -65,7 +65,7 @@ export const moveAddressThenAddToLea: Rule = {
     category: "optimization",
     defaultSeverity: "suggestion",
     description: "Combine MOVEA plus immediate ADDA into one LEA",
-    tags: ["asp68k", "address-register", "sequence", "size", "speed"],
+    tags: ["asp68k", "address-register", "sequence"],
     docs: { source: "ASP68K" },
   },
   checkLine(ctx, line, index) {

@@ -7,7 +7,7 @@ export const preferMoveqZero: Rule = {
     category: "optimization",
     defaultSeverity: "suggestion",
     description: "Prefer MOVEQ #0 to CLR.L on early 68k targets",
-    tags: ["asp68k", "speed", "68000", "68010"],
+    tags: ["asp68k", "68000", "68010"],
     docs: { source: "ASP68K" },
   },
   checkLine(ctx, line) {

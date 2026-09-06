@@ -29,7 +29,7 @@ export const foldAddressExpressionToLea: Rule = {
     category: "optimization",
     defaultSeverity: "suggestion",
     description: "Fold an address-register copy plus constant/index additions into LEA",
-    tags: ["asp68k", "address-register", "sequence", "lea", "size", "speed"],
+    tags: ["asp68k", "address-register", "sequence", "lea"],
     docs: { source: "ASP68K" },
   },
   checkLine(ctx, line, index) {

@@ -25,9 +25,7 @@ function deadScratch(
 ): string | undefined {
   const skip = dest.toLowerCase();
   if (mask === undefined) return ctx.registers.deadDataRegistersAfter(index).find((r) => r !== skip);
-  return DATA_REGISTERS.find(
-    (r) => r !== skip && ctx.registers.registerBitsUseAfter(index, r, mask) === "unused",
-  );
+  return DATA_REGISTERS.find((r) => r !== skip && ctx.registers.registerBitsUseAfter(index, r, mask) === "unused");
 }
 
 /**
@@ -133,7 +131,7 @@ export const flamewingMulsWordLowWordOnly: Rule = {
     category: "optimization",
     defaultSeverity: "suggestion",
     description: "Use shorter MULS.W recipes when the result's upper word is unobserved",
-    tags: ["flamewing", "68000", "multiply", "constant", "partial-register", "scratch", "ccr"],
+    tags: ["flamewing", "68000", "multiply", "constant", "partial-register", "scratch", "ccr", "speed-size-tradeoff"],
     docs: { source: "Flamewing M68000 Peephole Optimizations" },
   },
   checkLine(ctx, line, index) {
@@ -205,7 +203,7 @@ export const flamewingMuluWordLowWordOnly: Rule = {
     category: "optimization",
     defaultSeverity: "suggestion",
     description: "Use shorter MULU.W recipes when only the low word is observed",
-    tags: ["flamewing", "68000", "multiply", "constant", "partial-register", "ccr"],
+    tags: ["flamewing", "68000", "multiply", "constant", "partial-register", "ccr", "speed-size-tradeoff"],
     docs: { source: "Flamewing M68000 Peephole Optimizations" },
   },
   checkLine(ctx, line, index) {

@@ -23,7 +23,7 @@ export const preferLinkSequence: Rule = {
     category: "optimization",
     defaultSeverity: "suggestion",
     description: "Use LINK for a standard frame setup sequence",
-    tags: ["asp68k", "stack", "peephole", "size"],
+    tags: ["asp68k", "stack", "peephole"],
     docs: { source: "ASP68K" },
   },
   checkLine(ctx, line, index) {

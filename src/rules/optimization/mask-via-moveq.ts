@@ -23,7 +23,7 @@ export const maskViaMoveq: Rule = {
     category: "optimization",
     defaultSeverity: "suggestion",
     description: "Seed a MOVEQ mask and AND the source in, rather than loading then masking",
-    tags: ["constant", "size", "ccr"],
+    tags: ["constant", "ccr"],
     docs: { source: "EAB 68000 code optimisations" },
   },
 

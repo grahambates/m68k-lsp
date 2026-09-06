@@ -20,7 +20,7 @@ export const dataRegisterSignBitToTas: Rule = {
     category: "optimization",
     defaultSeverity: "suggestion",
     description: "Use TAS to set bit 7 of a data register",
-    tags: ["peephole", "tas", "ccr", "size", "speed"],
+    tags: ["peephole", "tas", "ccr"],
     docs: { source: "EAB 68000 code optimisations" },
   },
 

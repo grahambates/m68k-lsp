@@ -20,7 +20,7 @@ export const cancelMultiplePredecrementMoves: Rule = {
     category: "optimization",
     defaultSeverity: "suggestion",
     description: "Cancel an address ADDQ against two following predecrement stores",
-    tags: ["asp68k", "sequence", "address-register", "size", "speed"],
+    tags: ["asp68k", "sequence", "address-register"],
     docs: { source: "ASP68K" },
   },
   checkLine(ctx, line, index) {

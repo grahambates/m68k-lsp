@@ -32,7 +32,7 @@ export const btstSignBranch: Rule = {
     category: "optimization",
     defaultSeverity: "suggestion",
     description: "Use TST plus sign branch for a sign-bit BTST sequence",
-    tags: ["asp68k", "peephole", "ccr", "branch", "size"],
+    tags: ["asp68k", "peephole", "ccr", "branch"],
     docs: { source: "ASP68K" },
   },
   checkLine(ctx, line, index) {

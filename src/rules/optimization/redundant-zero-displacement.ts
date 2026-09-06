@@ -8,7 +8,7 @@ export const redundantZeroDisplacement: Rule = {
     category: "optimization",
     defaultSeverity: "suggestion",
     description: "Omit a zero address-register displacement",
-    tags: ["asp68k", "addressing", "size"],
+    tags: ["asp68k", "addressing"],
     docs: { source: "ASP68K" },
   },
   checkLine(ctx, line) {

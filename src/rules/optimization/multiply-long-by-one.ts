@@ -8,7 +8,7 @@ export const multiplyLongByOne: Rule = {
     category: "optimization",
     defaultSeverity: "suggestion",
     description: "Remove a long multiply by one on 68060",
-    tags: ["asp68k", "multiply", "68060", "size", "speed"],
+    tags: ["asp68k", "multiply", "68060"],
     docs: { source: "ASP68K" },
   },
   checkLine(ctx, line, index) {

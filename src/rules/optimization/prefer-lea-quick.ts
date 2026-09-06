@@ -22,7 +22,7 @@ export const preferLeaQuick: Rule = {
     category: "optimization",
     defaultSeverity: "suggestion",
     description: "Use ADDQ/SUBQ for small same-register LEA displacements",
-    tags: ["asp68k", "address-register", "size", "speed"],
+    tags: ["asp68k", "address-register"],
     docs: { source: "ASP68K" },
   },
 

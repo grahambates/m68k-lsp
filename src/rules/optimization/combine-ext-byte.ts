@@ -8,7 +8,7 @@ export const combineExtByte: Rule = {
     category: "optimization",
     defaultSeverity: "suggestion",
     description: "Combine EXT.W + EXT.L into EXTB.L",
-    tags: ["asp68k", "size", "speed", "sequence"],
+    tags: ["asp68k", "sequence"],
     docs: { source: "ASP68K" },
   },
 

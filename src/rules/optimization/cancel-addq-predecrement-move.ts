@@ -15,7 +15,7 @@ export const cancelAddqPredecrementMove: Rule = {
     category: "optimization",
     defaultSeverity: "suggestion",
     description: "Cancel ADDQ address adjustment against an immediately following predecrement MOVE",
-    tags: ["asp68k", "sequence", "address-register", "size", "speed"],
+    tags: ["asp68k", "sequence", "address-register"],
     docs: { source: "ASP68K" },
   },
   checkLine(ctx, line, index) {

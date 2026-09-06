@@ -8,7 +8,7 @@ export const preferAddForShiftOne: Rule = {
     category: "optimization",
     defaultSeverity: "suggestion",
     description: "Consider ADD Dn,Dn for a one-bit left shift",
-    tags: ["asp68k", "speed", "ccr"],
+    tags: ["asp68k", "ccr"],
     docs: { source: "ASP68K" },
   },
   checkLine(ctx, line, index) {

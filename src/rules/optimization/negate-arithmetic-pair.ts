@@ -9,7 +9,7 @@ function makeRule(id: string, secondMnemonic: "add" | "sub", replacementMnemonic
       category: "optimization",
       defaultSeverity: "suggestion",
       description: `Remove NEG before ${secondMnemonic.toUpperCase()} when the negated source is dead`,
-      tags: ["asp68k", "sequence", "register-liveness", "ccr", "size", "speed"],
+      tags: ["asp68k", "sequence", "register-liveness", "ccr"],
       docs: { source: "ASP68K" },
     },
     checkLine(ctx, line, index) {
@@ -79,7 +79,7 @@ export const negateAddMaskToEor: Rule = {
     defaultSeverity: "suggestion",
     description:
       "Replace NEG followed by ADD of a low-bit mask with an EOR by that mask when the input is proven in range",
-    tags: ["asp68k", "sequence", "constant-propagation", "ccr", "size", "speed"],
+    tags: ["asp68k", "sequence", "constant-propagation", "ccr"],
     docs: { source: "ASP68K" },
   },
   checkLine(ctx, line, index) {

@@ -22,7 +22,7 @@ export const preferUnlkSequence: Rule = {
     category: "optimization",
     defaultSeverity: "suggestion",
     description: "Use UNLK for a standard two-instruction frame teardown",
-    tags: ["asp68k", "stack", "peephole", "size"],
+    tags: ["asp68k", "stack", "peephole"],
     docs: { source: "ASP68K" },
   },
   checkLine(ctx, line, index) {

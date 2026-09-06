@@ -53,7 +53,7 @@ export const redundantTst: Rule = {
     category: "optimization",
     defaultSeverity: "suggestion",
     description: "Remove a TST when the previous instruction already established the required flags",
-    tags: ["peephole", "ccr", "size", "speed", "native"],
+    tags: ["peephole", "ccr", "native"],
     docs: { note: "m68k-lint native rule; not derived from ASP68K." },
   },
   checkLine(ctx, line, index) {

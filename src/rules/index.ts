@@ -59,11 +59,7 @@ import {
   multiplySignedWordHighPowerOfTwo,
   multiplyUnsignedWordHighPowerOfTwo,
 } from "./optimization/multiply-simple.js";
-import {
-  negateThenSubToAdd,
-  negateThenAddToSub,
-  negateAddMaskToEor,
-} from "./optimization/negate-arithmetic-pair.js";
+import { negateThenSubToAdd, negateThenAddToSub, negateAddMaskToEor } from "./optimization/negate-arithmetic-pair.js";
 import {
   moveImmediateBelowMoveq,
   moveImmediateByteComplement,

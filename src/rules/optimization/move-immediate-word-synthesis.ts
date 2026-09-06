@@ -37,7 +37,7 @@ function synthesisRule(
       category: "optimization",
       defaultSeverity: "suggestion",
       description: `Synthesize selected long immediates with MOVEQ + ${transformName.toUpperCase()}`,
-      tags: ["asp68k", "constant", "size", "ccr"],
+      tags: ["asp68k", "constant", "ccr"],
       docs: { source: "ASP68K" },
     },
     checkLine(ctx, line, index) {

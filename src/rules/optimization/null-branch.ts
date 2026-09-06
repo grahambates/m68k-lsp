@@ -28,7 +28,7 @@ export const nullBranch: Rule = {
     category: "optimization",
     defaultSeverity: "suggestion",
     description: "Remove an unconditional branch to the immediately following label",
-    tags: ["asp68k", "control-flow", "size"],
+    tags: ["asp68k", "control-flow"],
     docs: { source: "ASP68K" },
   },
 

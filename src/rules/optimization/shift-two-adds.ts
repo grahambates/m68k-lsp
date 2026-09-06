@@ -8,7 +8,7 @@ export const shiftTwoAdds: Rule = {
     category: "optimization",
     defaultSeverity: "suggestion",
     description: "Consider two ADDs for a two-bit byte/word left shift",
-    tags: ["asp68k", "speed", "ccr", "size-tradeoff"],
+    tags: ["asp68k", "ccr", "speed-size-tradeoff"],
     docs: { source: "ASP68K" },
   },
   checkLine(ctx, line, index) {

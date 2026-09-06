@@ -26,7 +26,7 @@ export const preferStMinusOne: Rule = {
     category: "optimization",
     defaultSeverity: "suggestion",
     description: "Prefer ST for MOVE.B #-1",
-    tags: ["asp68k", "size", "ccr"],
+    tags: ["asp68k", "ccr"],
     docs: { source: "ASP68K" },
   },
   checkLine(ctx, line, index) {

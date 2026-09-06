@@ -12,7 +12,7 @@ export const normalizeByteRotate: Rule = {
     category: "optimization",
     defaultSeverity: "suggestion",
     description: "Use the shorter-direction immediate byte rotate on 68000",
-    tags: ["flamewing", "68000", "rotate", "speed", "ccr"],
+    tags: ["flamewing", "68000", "rotate", "ccr"],
     docs: { source: "Flamewing M68000 Peephole Optimizations" },
   },
   checkLine(ctx, line, index) {

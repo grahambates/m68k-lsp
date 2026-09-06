@@ -11,7 +11,7 @@ export const zeroArithmeticToTst: Rule = {
     category: "optimization",
     defaultSeverity: "suggestion",
     description: "Use TST instead of adding/subtracting zero",
-    tags: ["asp68k", "size", "speed", "ccr"],
+    tags: ["asp68k", "ccr"],
     docs: { source: "ASP68K" },
   },
 

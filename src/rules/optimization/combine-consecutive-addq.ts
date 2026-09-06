@@ -14,7 +14,7 @@ export const combineConsecutiveAddq: Rule = {
     category: "optimization",
     defaultSeverity: "suggestion",
     description: "Combine consecutive ADDQ.L operations on the same register",
-    tags: ["asp68k", "sequence", "addq", "speed", "ccr"],
+    tags: ["asp68k", "sequence", "addq", "ccr"],
     docs: { source: "ASP68K" },
   },
   checkLine(ctx, line, index) {

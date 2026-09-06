@@ -55,7 +55,7 @@ export const stackAlignedWordShiftByEight: Rule = {
     category: "optimization",
     defaultSeverity: "suggestion",
     description: "Use the 68000 A7 byte-alignment quirk for a word shift by eight",
-    tags: ["flamewing", "68000", "shift", "stack", "speed", "size-tradeoff", "ccr"],
+    tags: ["flamewing", "68000", "shift", "stack", "speed-size-tradeoff", "ccr"],
     docs: {
       source: "Flamewing M68000 Peephole Optimizations / 68000 Tricks and Traps",
       note: "Uses two temporary stack bytes and restores SP exactly.",
@@ -122,7 +122,7 @@ export const stackAlignedKnownRegisterShifts: Rule = {
     category: "optimization",
     defaultSeverity: "suggestion",
     description: "Use bounded A7 scratch space for selected known register-count shifts",
-    tags: ["flamewing", "68000", "shift", "register-count", "stack", "speed", "size-tradeoff", "ccr"],
+    tags: ["flamewing", "68000", "shift", "register-count", "stack", "speed-size-tradeoff", "ccr"],
     docs: { source: "Flamewing M68000 Peephole Optimizations" },
   },
   checkLine(ctx, line, index) {

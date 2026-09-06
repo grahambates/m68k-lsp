@@ -8,7 +8,7 @@ export const preferAddq: Rule = {
     category: "optimization",
     defaultSeverity: "suggestion",
     description: "Prefer ADDQ for immediate additions from 1 through 8",
-    tags: ["asp68k", "size", "speed"],
+    tags: ["asp68k"],
     docs: { source: "ASP68K" },
   },
 

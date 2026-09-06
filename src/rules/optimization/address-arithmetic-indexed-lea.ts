@@ -32,7 +32,7 @@ export const foldAddressArithmeticToIndexedLea: Rule = {
     category: "optimization",
     defaultSeverity: "suggestion",
     description: "Fold address immediate arithmetic plus indexed addition into LEA",
-    tags: ["flamewing", "68000", "address-register", "lea", "sequence", "speed", "size"],
+    tags: ["flamewing", "68000", "address-register", "lea", "sequence"],
     docs: { source: "Flamewing M68000 Peephole Optimizations" },
   },
   checkLine(ctx, line, index) {

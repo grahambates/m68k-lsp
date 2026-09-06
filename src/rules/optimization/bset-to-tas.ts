@@ -32,7 +32,7 @@ export const bsetToTas: Rule = {
     defaultSeverity: "suggestion",
     enabledByDefault: false,
     description: "Use TAS for BSET bit 7 patterns",
-    tags: ["asp68k", "peephole", "ccr", "size", "tas", "disabled-by-default"],
+    tags: ["asp68k", "peephole", "ccr", "tas", "disabled-by-default"],
     docs: { source: "ASP68K" },
   },
   checkLine(ctx, line, index) {

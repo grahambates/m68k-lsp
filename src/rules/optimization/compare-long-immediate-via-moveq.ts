@@ -9,7 +9,7 @@ export const compareLongImmediateViaMoveq: Rule = {
     category: "optimization",
     defaultSeverity: "suggestion",
     description: "Compare a small long immediate via MOVEQ and a dead scratch register",
-    tags: ["tricks-and-traps", "68000", "speed", "size", "compare"],
+    tags: ["tricks-and-traps", "68000", "compare"],
     docs: { source: "Mike Morton, 68000 Tricks and Traps (BYTE, Sep 1986)" },
   },
   checkLine(ctx, line, index) {

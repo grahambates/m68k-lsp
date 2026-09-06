@@ -15,7 +15,7 @@ export const destructiveSmallCompareBranch: Rule = {
     category: "optimization",
     defaultSeverity: "suggestion",
     description: "Use SUBQ for a small compare when the compared register is disposable",
-    tags: ["tricks-and-traps", "68000", "speed", "size", "compare", "branch", "ccr"],
+    tags: ["tricks-and-traps", "68000", "compare", "branch", "ccr"],
     docs: { source: "Mike Morton, 68000 Tricks and Traps (BYTE, Sep 1986)" },
   },
   checkLine(ctx, line, index) {

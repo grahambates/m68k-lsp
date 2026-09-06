@@ -10,7 +10,7 @@ function makeAddressImmediateLea(mnemonic: "add" | "sub"): Rule {
       category: "optimization",
       defaultSeverity: "suggestion",
       description: `Use LEA to ${mnemonic.toUpperCase()} immediate to an address register`,
-      tags: ["asp68k", "address-register", "speed"],
+      tags: ["asp68k", "address-register"],
       docs: { source: "ASP68K" },
     },
     checkLine(ctx, line) {

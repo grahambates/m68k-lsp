@@ -8,7 +8,7 @@ export const preferSubq: Rule = {
     category: "optimization",
     defaultSeverity: "suggestion",
     description: "Prefer SUBQ for immediate subtractions from 1 through 8",
-    tags: ["asp68k", "size", "speed"],
+    tags: ["asp68k"],
     docs: { source: "ASP68K" },
   },
   checkLine(ctx, line) {

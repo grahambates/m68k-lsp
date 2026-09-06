@@ -22,7 +22,7 @@ function clearPair(fromSize: "b" | "w", toSize: "w" | "l", delta: number, id: st
       category: "optimization",
       defaultSeverity: "suggestion",
       description: `Combine adjacent CLR.${fromSize.toUpperCase()} writes`,
-      tags: ["asp68k", "peephole", "memory", "size"],
+      tags: ["asp68k", "peephole", "memory"],
       docs: { source: "ASP68K" },
     },
     checkLine(ctx, line, index) {

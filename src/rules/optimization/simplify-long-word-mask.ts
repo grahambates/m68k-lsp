@@ -12,7 +12,7 @@ export const simplifyLongWordMasks: Rule = {
     category: "optimization",
     defaultSeverity: "suggestion",
     description: "Simplify common 32-bit word masks on 68000",
-    tags: ["flamewing", "68000", "mask", "speed", "size", "ccr"],
+    tags: ["flamewing", "68000", "mask", "ccr"],
     docs: { source: "Flamewing M68000 Peephole Optimizations" },
   },
   checkLine(ctx, line, index) {

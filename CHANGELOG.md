@@ -5,6 +5,18 @@ previously lived in `README.md`.
 
 ## Unreleased
 
+### Changed
+
+- The `speed` and `size` tags are gone. `--goal speed` and `--goal size` filter
+  on measured impact, and nothing read those tags; they were hand-written
+  provenance that disagreed with the measurements in 49 places, including 41
+  rules that save cycles without being tagged `speed`.
+- `speed-size-tradeoff` stays, because it is the fallback where impact cannot be
+  measured: 68kcounter covers the 68000 only, and measurement can be turned off.
+  Six rules spelled it `size-tradeoff`, which the filter never matched, and
+  seven measured size-costing rules carried no tag at all. Both are fixed, and a
+  test now checks the tag against the audit so the two cannot drift apart again.
+
 ### Fixed
 
 - Rotate rules have their cycle saving measured. A rotate by a register has the

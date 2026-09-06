@@ -24,7 +24,7 @@ export const arithmeticImmediateViaScratch: Rule = {
     category: "optimization",
     defaultSeverity: "suggestion",
     description: "Materialize a small long immediate with MOVEQ before adding or subtracting it",
-    tags: ["register-analysis", "scratch-register", "moveq", "size", "speed"],
+    tags: ["register-analysis", "scratch-register", "moveq"],
     docs: { source: "EAB 68000 code optimisations; Optimizing 680x0 Applications" },
   },
 

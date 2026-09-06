@@ -61,7 +61,7 @@ export const cancelStackPeaSequence: Rule = {
     category: "optimization",
     defaultSeverity: "suggestion",
     description: "Cancel stack ADDQ/PEA/predecrement sequences into fixed-offset stores",
-    tags: ["asp68k", "stack", "pea", "sequence", "size", "speed"],
+    tags: ["asp68k", "stack", "pea", "sequence"],
     docs: { source: "ASP68K" },
   },
 

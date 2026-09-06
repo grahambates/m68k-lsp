@@ -31,7 +31,7 @@ export const pushAddressPea: Rule = {
     category: "optimization",
     defaultSeverity: "suggestion",
     description: "Fold an address-register push plus immediate stack adjustment into PEA",
-    tags: ["asp68k", "stack", "peephole", "size"],
+    tags: ["asp68k", "stack", "peephole"],
     docs: { source: "ASP68K" },
   },
 

@@ -25,7 +25,7 @@ export const moveImmediateViaScratch: Rule = {
     category: "optimization",
     defaultSeverity: "suggestion",
     description: "Materialize a small long immediate with MOVEQ before storing it",
-    tags: ["asp68k", "register-analysis", "scratch-register", "moveq", "size"],
+    tags: ["asp68k", "register-analysis", "scratch-register", "moveq"],
     docs: { source: "ASP68K" },
   },
   checkLine(ctx, line, index) {

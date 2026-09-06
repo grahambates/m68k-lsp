@@ -39,7 +39,7 @@ function movePair(
       category: "optimization",
       defaultSeverity: "suggestion",
       description: `Combine adjacent MOVE.${fromSize.toUpperCase()} immediate stores`,
-      tags: ["asp68k", "peephole", "memory", "size"],
+      tags: ["asp68k", "peephole", "memory"],
       docs: { source: "ASP68K" },
     },
     checkLine(ctx, line, index) {

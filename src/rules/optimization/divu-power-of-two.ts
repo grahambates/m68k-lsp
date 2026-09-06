@@ -73,8 +73,7 @@ export const divuWordPowerOfTwo: Rule = {
     }
     const flags = changedFlagsApplicability(ctx, index, ["X", "N", "Z", "V", "C"]);
     const valueSafe = quotientFits && upperUse === "unused";
-    const applicability =
-      valueSafe && flags.applicability === "safe" ? "safe" : "conditional";
+    const applicability = valueSafe && flags.applicability === "safe" ? "safe" : "conditional";
     const confidence = valueSafe ? flags.confidence : upperUse === "unused" ? "high" : "medium";
 
     ctx.report({

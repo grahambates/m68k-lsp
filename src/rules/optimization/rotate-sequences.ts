@@ -45,7 +45,7 @@ export const simplifyKnownRegisterRotate: Rule = {
     category: "optimization",
     defaultSeverity: "suggestion",
     description: "Replace a known register-count rotate with a shorter immediate rotate sequence",
-    tags: ["flamewing", "68000", "rotate", "sequence", "speed", "size", "ccr"],
+    tags: ["flamewing", "68000", "rotate", "sequence", "ccr"],
     docs: { source: "Flamewing M68000 Peephole Optimizations" },
   },
   checkLine(ctx, line, index) {
@@ -116,7 +116,7 @@ export const roxlToAddx: Rule = {
     category: "optimization",
     defaultSeverity: "suggestion",
     description: "Use ADDX for small rotate-through-extend-left counts on 68000",
-    tags: ["flamewing", "68000", "rotate", "addx", "speed", "ccr"],
+    tags: ["flamewing", "68000", "rotate", "addx", "ccr"],
     docs: { source: "Flamewing M68000 Peephole Optimizations" },
   },
   checkLine(ctx, line, index) {
@@ -162,7 +162,7 @@ export const lslByteSeven: Rule = {
     category: "optimization",
     defaultSeverity: "suggestion",
     description: "Replace LSL.B #7 with ROR.B #1 plus a mask on 68000",
-    tags: ["flamewing", "68000", "shift", "speed", "size-tradeoff", "ccr"],
+    tags: ["flamewing", "68000", "shift", "speed-size-tradeoff", "ccr"],
     docs: { source: "Flamewing M68000 Peephole Optimizations" },
   },
   checkLine(ctx, line, index) {

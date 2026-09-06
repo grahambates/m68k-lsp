@@ -8,7 +8,7 @@ export const pushImmediatePea: Rule = {
     category: "optimization",
     defaultSeverity: "suggestion",
     description: "Use PEA for a signed-16-bit immediate longword push",
-    tags: ["asp68k", "stack", "size", "ccr", "68000", "68010"],
+    tags: ["asp68k", "stack", "ccr", "68000", "68010"],
     docs: { source: "ASP68K" },
   },
   checkLine(ctx, line, index) {

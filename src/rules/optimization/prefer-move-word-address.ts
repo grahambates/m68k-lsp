@@ -8,7 +8,7 @@ export const preferMoveWordAddress: Rule = {
     category: "optimization",
     defaultSeverity: "suggestion",
     description: "Use a word immediate when loading a signed 16-bit address-register constant",
-    tags: ["asp68k", "size"],
+    tags: ["asp68k"],
     docs: { source: "ASP68K" },
   },
   checkLine(ctx, line) {

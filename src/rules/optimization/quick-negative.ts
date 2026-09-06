@@ -9,7 +9,7 @@ function quickNegative(id: string, from: "add" | "sub", to: "subq" | "addq"): Ru
       category: "optimization",
       defaultSeverity: "suggestion",
       description: `Use ${to.toUpperCase()} for negative ${from.toUpperCase()} immediates`,
-      tags: ["asp68k", "size", "speed"],
+      tags: ["asp68k"],
       docs: { source: "ASP68K" },
     },
     checkLine(ctx, line, index) {

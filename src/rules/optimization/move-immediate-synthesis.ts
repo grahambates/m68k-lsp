@@ -16,7 +16,7 @@ export const moveImmediateBelowMoveq: Rule = {
     category: "optimization",
     defaultSeverity: "suggestion",
     description: "Construct immediates just below MOVEQ range with MOVEQ plus SUBQ",
-    tags: ["asp68k", "constant", "size", "ccr"],
+    tags: ["asp68k", "constant", "ccr"],
     docs: { source: "ASP68K" },
   },
   checkLine(ctx, line, index) {
@@ -53,7 +53,7 @@ export const moveImmediateByteComplement: Rule = {
     category: "optimization",
     defaultSeverity: "suggestion",
     description: "Construct 128..255 using MOVEQ plus NOT.B",
-    tags: ["asp68k", "constant", "size", "ccr"],
+    tags: ["asp68k", "constant", "ccr"],
     docs: { source: "ASP68K" },
   },
   checkLine(ctx, line, index) {
@@ -94,7 +94,7 @@ export const moveImmediateDoubleByte: Rule = {
     category: "optimization",
     defaultSeverity: "suggestion",
     description: "Construct selected even immediates with MOVEQ plus ADD.B",
-    tags: ["asp68k", "constant", "size", "ccr"],
+    tags: ["asp68k", "constant", "ccr"],
     docs: { source: "ASP68K" },
   },
   checkLine(ctx, line, index) {

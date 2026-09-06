@@ -8,7 +8,7 @@ export const preferMoveq: Rule = {
     category: "optimization",
     defaultSeverity: "suggestion",
     description: "Prefer MOVEQ for long immediates in the signed 8-bit range",
-    tags: ["asp68k", "size", "68000"],
+    tags: ["asp68k", "68000"],
     docs: { source: "ASP68K" },
   },
 

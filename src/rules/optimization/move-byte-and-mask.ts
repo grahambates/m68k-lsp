@@ -23,7 +23,7 @@ export const moveByteAndMaskViaMoveq: Rule = {
     category: "optimization",
     defaultSeverity: "suggestion",
     description: "Replace MOVE.B + ANDI.B with MOVEQ + AND when upper bits are dead",
-    tags: ["flamewing", "68000", "partial-register", "mask", "speed", "size"],
+    tags: ["flamewing", "68000", "partial-register", "mask"],
     docs: { source: "Flamewing M68000 Peephole Optimizations" },
   },
   checkLine(ctx, line, index) {

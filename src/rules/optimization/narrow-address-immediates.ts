@@ -16,7 +16,7 @@ export const narrowMoveaImmediate: Rule = {
     category: "optimization",
     defaultSeverity: "suggestion",
     description: "Use MOVEA.W for signed 16-bit immediate address loads on 68000",
-    tags: ["flamewing", "68000", "size", "speed", "address-register"],
+    tags: ["flamewing", "68000", "address-register"],
     docs: { source: "Flamewing M68000 Peephole Optimizations" },
   },
   checkLine(ctx, line) {
@@ -56,7 +56,7 @@ export const narrowAddaSubaImmediate: Rule = {
     category: "optimization",
     defaultSeverity: "suggestion",
     description: "Use word-sized ADDA/SUBA immediates when the constant fits signed 16 bits",
-    tags: ["flamewing", "68000", "size", "speed", "address-register"],
+    tags: ["flamewing", "68000", "address-register"],
     docs: {
       source: "Flamewing M68000 Peephole Optimizations",
       note: "ADDA.L row is in the source; SUBA.L is a separately verified symmetric extension.",
@@ -100,7 +100,7 @@ export const narrowCmpaImmediate: Rule = {
     category: "optimization",
     defaultSeverity: "suggestion",
     description: "Use CMPA.W for signed 16-bit immediate comparisons",
-    tags: ["vasm", "size", "speed", "address-register"],
+    tags: ["vasm", "address-register"],
     docs: { source: "vasm m68k optimization history" },
   },
   checkLine(ctx, line) {

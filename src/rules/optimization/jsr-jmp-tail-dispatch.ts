@@ -8,7 +8,7 @@ export const jsrJmpDispatch: Rule = {
     category: "optimization",
     defaultSeverity: "suggestion",
     description: "Replace JSR sub / JMP next with PEA next / JMP sub",
-    tags: ["tricks-and-traps", "68000", "control-flow", "speed"],
+    tags: ["tricks-and-traps", "68000", "control-flow"],
     docs: { source: "Mike Morton, 68000 Tricks and Traps (BYTE, Sep 1986)" },
   },
   checkLine(ctx, line, index) {

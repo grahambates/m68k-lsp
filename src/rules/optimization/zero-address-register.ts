@@ -7,7 +7,7 @@ export const zeroAddressRegister: Rule = {
     category: "optimization",
     defaultSeverity: "suggestion",
     description: "Zero an address register with SUBA An,An",
-    tags: ["asp68k", "size", "speed"],
+    tags: ["asp68k"],
     docs: { source: "ASP68K" },
   },
   checkLine(ctx, line) {

@@ -34,7 +34,7 @@ export const carryToMaskViaSubx: Rule = {
     category: "optimization",
     defaultSeverity: "suggestion",
     description: "Use SUBX to turn the carry into an all-ones mask",
-    tags: ["peephole", "ccr", "size", "speed"],
+    tags: ["peephole", "ccr"],
     docs: { source: "EAB 68000 code optimisations" },
   },
 
