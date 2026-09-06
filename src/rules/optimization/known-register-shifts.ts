@@ -114,7 +114,8 @@ export const lsrByteSeven: Rule = {
     category: "optimization",
     defaultSeverity: "suggestion",
     description: "Replace LSR.B #7 with ADD/SUBX/NEG on 68000",
-    tags: ["flamewing", "68000", "shift", "speed-size-tradeoff", "ccr"],
+    tags: ["flamewing", "68000", "shift", "ccr"],
+    serves: "speed",
     docs: { source: "Flamewing M68000 Peephole Optimizations" },
   },
   checkLine(ctx, line, index) {
@@ -155,7 +156,8 @@ export const asrByteSaturate: Rule = {
     category: "optimization",
     defaultSeverity: "suggestion",
     description: "Replace ASR.B #7/#8 with ADD/SUBX on 68000",
-    tags: ["flamewing", "68000", "shift", "ccr", "speed-size-tradeoff"],
+    tags: ["flamewing", "68000", "shift", "ccr"],
+    serves: "speed",
     docs: { source: "Flamewing M68000 Peephole Optimizations" },
   },
   checkLine(ctx, line, index) {
@@ -202,7 +204,8 @@ export const knownRegisterShiftReduction: Rule = {
     category: "optimization",
     defaultSeverity: "suggestion",
     description: "Reduce a known register-count shift to immediate word/SWAP operations",
-    tags: ["flamewing", "68000", "shift", "register-count", "ccr", "speed-size-tradeoff"],
+    tags: ["flamewing", "68000", "shift", "register-count", "ccr"],
+    serves: "speed",
     docs: { source: "Flamewing M68000 Peephole Optimizations" },
   },
   checkLine(ctx, line, index) {
@@ -310,7 +313,8 @@ export const knownRegisterAsrWordLowOnly: Rule = {
     category: "optimization",
     defaultSeverity: "suggestion",
     description: "Reduce a known ASR.W count when only the low word is observed",
-    tags: ["flamewing", "68000", "shift", "register-count", "partial-register", "ccr", "speed-size-tradeoff"],
+    tags: ["flamewing", "68000", "shift", "register-count", "partial-register", "ccr"],
+    serves: "speed",
     docs: { source: "Flamewing M68000 Peephole Optimizations" },
   },
   checkLine(ctx, line, index) {
@@ -373,7 +377,8 @@ export const knownRegisterAsrLongHighReduction: Rule = {
     category: "optimization",
     defaultSeverity: "suggestion",
     description: "Reduce a known high-count ASR.L to SWAP/EXT/ROL operations",
-    tags: ["flamewing", "68000", "shift", "register-count", "speed-size-tradeoff", "ccr"],
+    tags: ["flamewing", "68000", "shift", "register-count", "ccr"],
+    serves: "speed",
     docs: { source: "Flamewing M68000 Peephole Optimizations" },
   },
   checkLine(ctx, line, index) {

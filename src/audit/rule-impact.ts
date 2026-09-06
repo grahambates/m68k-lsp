@@ -61,6 +61,9 @@ export const ruleImpactAuditCases: readonly RuleImpactAuditCase[] = [
   { ruleId: "optimization/redundant-lea", source: "lea (a0),a0" },
   { ruleId: "optimization/redundant-zero-displacement", source: "move.l 0(a0),d0" },
   { ruleId: "optimization/prefer-add-for-shift-one", source: "lsl.w #1,d0" },
+  // The inverse pair. Only one is live at a time, but both are measured so the
+  // declared goal can be checked against what each actually costs.
+  { ruleId: "optimization/adds-to-shift", source: "add.w d0,d0\nadd.w d0,d0\nmoveq #0,d7", processor: "mc68000" },
   { ruleId: "optimization/shift-two-adds", source: "lsl.w #2,d0" },
   { ruleId: "optimization/prefer-move-word-address", source: "move.l #1234,a0" },
   { ruleId: "optimization/zero-address-register", source: "move.l #0,a0" },

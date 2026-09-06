@@ -162,7 +162,8 @@ export const lslByteSeven: Rule = {
     category: "optimization",
     defaultSeverity: "suggestion",
     description: "Replace LSL.B #7 with ROR.B #1 plus a mask on 68000",
-    tags: ["flamewing", "68000", "shift", "speed-size-tradeoff", "ccr"],
+    tags: ["flamewing", "68000", "shift", "ccr"],
+    serves: "speed",
     docs: { source: "Flamewing M68000 Peephole Optimizations" },
   },
   checkLine(ctx, line, index) {

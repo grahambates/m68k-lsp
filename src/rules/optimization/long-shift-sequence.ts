@@ -16,7 +16,8 @@ export const longShiftSequence: Rule = {
     category: "optimization",
     defaultSeverity: "suggestion",
     description: "Replace selected 16..31-bit long shifts with word/SWAP sequences",
-    tags: ["asp68k", "shift", "sequence", "ccr", "68000", "68010", "speed-size-tradeoff"],
+    tags: ["asp68k", "shift", "sequence", "ccr", "68000", "68010"],
+    serves: "speed",
     docs: { source: "ASP68K" },
   },
   checkLine(ctx, line, index) {

@@ -5,6 +5,24 @@ previously lived in `README.md`.
 
 ## Unreleased
 
+### Added
+
+- `optimization/adds-to-shift`, the inverse of `optimization/shift-two-adds`:
+  a register doubled twice is a two-bit left shift, two bytes smaller and two
+  cycles slower. It runs only in size-focused runs.
+- Rules may declare `serves: "speed" | "size"` for a rewrite that trades one
+  resource for the other, and `inverseOf` for one that undoes another. A rule
+  that serves a goal is off under the other goal, and an inverse is off in
+  balanced runs, so a pair can never both be live. Without that, each would
+  recreate the other's input and a fixer applying safe rewrites to a fixpoint
+  would not terminate. Tests check the declaration against the audit and check
+  that no two live rules undo each other under any goal.
+
+### Changed
+
+- `serves` replaces the `speed-size-tradeoff` tag, which did the same job for
+  one goal only and was not checked against anything.
+
 ### Changed
 
 - The `speed` and `size` tags are gone. `--goal speed` and `--goal size` filter

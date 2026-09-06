@@ -21,7 +21,8 @@ export const vasmNegativeSignedMultiply: Rule = {
     category: "optimization",
     defaultSeverity: "suggestion",
     description: "Replace signed multiplication by -1 or a negative power of two with NEG/shift operations",
-    tags: ["vasm", "multiply", "speed-size-tradeoff"],
+    tags: ["vasm", "multiply"],
+    serves: "speed",
     docs: { source: "vasm m68k optimizer" },
   },
   checkLine(ctx, line, index) {

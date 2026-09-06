@@ -218,6 +218,24 @@ must not read arguments relative to SP, a device that must tolerate a wider
 access — that is `conditional`, and the replacement is given along with the
 condition.
 
+## Goals
+
+`--goal speed` and `--goal size` filter optimization suggestions on measured
+impact: a rewrite that costs bytes is not offered in a size-focused run, and one
+that costs cycles is not offered in a speed-focused run.
+
+Some rewrites only make sense in one direction, and a few have a useful inverse:
+doubling a register twice is faster than shifting it left by two, and shifting
+is two bytes smaller. Those rules declare which goal they serve, and an inverse
+names the rule it undoes. Only one of a pair is ever live — otherwise each would
+recreate the other's input, and applying fixes repeatedly would never settle. A
+balanced run keeps the canonical direction, which is the rule that does not
+declare itself an inverse.
+
+The declaration exists because impact is measured only for 68000 targets and
+only when measurement is enabled. It is checked against the audit, so a rule
+cannot claim to serve a goal the measurements contradict.
+
 The linter deliberately does not duplicate assembler validation. Illegal
 instruction, size and addressing-mode combinations belong to the assembler unless
 the linter can add materially better semantic or contextual information.

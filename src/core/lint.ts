@@ -16,9 +16,6 @@ function matchesOptimizationGoal(diagnostic: Diagnostic, rule: Rule | undefined,
   const impact = diagnostic.suggestion.impact;
   if (goal === "size") {
     if (impact?.sizeBytes) return impact.sizeBytes.delta <= 0;
-    // Historical sources often tell us a transform is a speed/size trade-off
-    // before we have exact byte metrics. Keep those out of size-focused runs.
-    if (rule?.meta.tags?.includes("speed-size-tradeoff")) return false;
     return true;
   }
 
@@ -28,9 +25,19 @@ function matchesOptimizationGoal(diagnostic: Diagnostic, rule: Rule | undefined,
   return true;
 }
 
-function effectiveSeverity(rule: Rule, config: LintConfig): Severity | "off" {
+export function effectiveSeverity(rule: Rule, config: LintConfig): Severity | "off" {
   if (config.categories?.[rule.meta.category] === false) return "off";
   if (rule.meta.platforms && !rule.meta.platforms.includes(config.platform ?? "generic")) return "off";
+
+  // A rewrite that trades one resource for the other is only advice under the
+  // goal it serves. Decided per rule rather than per diagnostic because impact
+  // is not measured for every target, and because two rules that undo each
+  // other must never both be live: applying one recreates the other's input.
+  const goal = config.goal ?? "balanced";
+  if (rule.meta.serves && goal !== "balanced" && rule.meta.serves !== goal) return "off";
+  // Balanced runs keep the canonical direction, which is the one that does not
+  // declare itself the inverse of another.
+  if (rule.meta.inverseOf && goal === "balanced") return "off";
 
   const explicit = config.rules?.[rule.meta.id];
   if (explicit) return explicit;

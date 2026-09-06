@@ -84,7 +84,8 @@ export const multiplyUnsignedWordByOne: Rule = {
     category: "optimization",
     defaultSeverity: "suggestion",
     description: "Replace MULU.W #1 with a zero-extension sequence",
-    tags: ["asp68k", "multiply", "constant", "speed-size-tradeoff"],
+    tags: ["asp68k", "multiply", "constant"],
+    serves: "speed",
     docs: { source: "ASP68K" },
   },
   checkLine(ctx, line) {
@@ -162,7 +163,8 @@ export const multiplyUnsignedWordPowerOfTwo: Rule = {
     category: "optimization",
     defaultSeverity: "suggestion",
     description: "Replace unsigned word multiply by a small power of two with zero-extension plus LSL",
-    tags: ["asp68k", "multiply", "constant", "ccr", "speed-size-tradeoff"],
+    tags: ["asp68k", "multiply", "constant", "ccr"],
+    serves: "speed",
     docs: { source: "ASP68K" },
   },
   checkLine(ctx, line, index) {
@@ -205,7 +207,8 @@ export const multiplySignedWordHighPowerOfTwo: Rule = {
     category: "optimization",
     defaultSeverity: "suggestion",
     description: "Replace signed word multiply by a large power of two with SWAP/CLR/ASR",
-    tags: ["asp68k", "multiply", "constant", "ccr", "speed-size-tradeoff"],
+    tags: ["asp68k", "multiply", "constant", "ccr"],
+    serves: "speed",
     docs: { source: "ASP68K" },
   },
   checkLine(ctx, line, index) {
@@ -252,7 +255,8 @@ export const multiplyUnsignedWordHighPowerOfTwo: Rule = {
     category: "optimization",
     defaultSeverity: "suggestion",
     description: "Replace unsigned word multiply by a large power of two with SWAP/CLR/LSR",
-    tags: ["asp68k", "multiply", "constant", "ccr", "speed-size-tradeoff"],
+    tags: ["asp68k", "multiply", "constant", "ccr"],
+    serves: "speed",
     docs: { source: "ASP68K" },
   },
   checkLine(ctx, line, index) {

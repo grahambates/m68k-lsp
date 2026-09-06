@@ -45,6 +45,7 @@ import { pushImmediatePea } from "./optimization/push-immediate-pea.js";
 import { singleRegisterMovem } from "./optimization/single-register-movem.js";
 import { bsetLowWordMask, bclrLowWordMask } from "./optimization/bit-op-low-word.js";
 import { shiftTwoAdds } from "./optimization/shift-two-adds.js";
+import { addsToShift } from "./optimization/adds-to-shift.js";
 
 import { knownZeroClear } from "./optimization/known-zero-clear.js";
 import { moveImmediateViaScratch } from "./optimization/move-immediate-via-scratch.js";
@@ -200,6 +201,7 @@ export {
   bsetLowWordMask,
   bclrLowWordMask,
   shiftTwoAdds,
+  addsToShift,
   knownZeroClear,
   moveImmediateViaScratch,
   cmpZeroAddressViaScratch,
@@ -349,6 +351,7 @@ export const defaultRules: readonly Rule[] = [
   bsetLowWordMask,
   bclrLowWordMask,
   shiftTwoAdds,
+  addsToShift,
   preferMoveq,
   preferMoveqZero,
   preferMoveWordAddress,

@@ -22,7 +22,8 @@ export const multiplySignedWordSelectedConstants: Rule = {
     category: "optimization",
     defaultSeverity: "suggestion",
     description: "Replace selected MULS.W constants with EXT/shifts/adds",
-    tags: ["asp68k", "multiply", "constant", "scratch", "ccr", "speed-size-tradeoff"],
+    tags: ["asp68k", "multiply", "constant", "scratch", "ccr"],
+    serves: "speed",
     docs: { source: "ASP68K" },
   },
   checkLine(ctx, line, index) {
