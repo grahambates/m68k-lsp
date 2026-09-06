@@ -14,6 +14,7 @@ import {
   type RuleSetting,
 } from "../core/config.js";
 import type { Diagnostic, RuleCategory, Severity } from "../core/diagnostic.js";
+import { formatImpact, paint } from "./format.js";
 import { defaultRules } from "../rules/index.js";
 import { asp68kCoverage, asp68kCoverageSummary } from "../coverage-asp68k.js";
 import { runRuleImpactAudit } from "../audit/rule-impact.js";
@@ -57,7 +58,7 @@ interface CliOptions {
 }
 
 function usage(): string {
-  return `m68k-lint ${VERSION}\n\nUsage:\n  m68k-lint [options] <file|directory|glob ...>\n\nOptions:\n  --config <path>               Use a specific JSON config file\n  --no-config                   Disable config-file discovery\n  --ext <ext[,ext...]>          Extensions for directory/glob discovery; default: .s,.asm,.i\n  --ignore-pattern <glob>       Ignore matching files (repeatable)\n  --cpu <cpu[,cpu...]>          Target processor(s), default: mc68000\n  --platform <name>             generic, amiga, atari; default: generic\n  --preset <name[,name...]>     Enable rule preset(s): recommended, style\n  --goal <balanced|speed|size>  Filter known optimization trade-offs, default: balanced\n  --impact                      Enable exact 68000 impact measurement\n  --no-impact                   Disable exact 68000 impact measurement\n  --inline-config               Honor m68k-lint comment directives (default)\n  --no-inline-config            Ignore m68k-lint comment directives\n  --impact-summary              Summarize measured outcomes by rule\n  --audit-rule-impact           Run representative 68000 timing audit for every optimization rule\n  --only <category[,category]>  Run only selected rule categories\n  --disable-category <category> Disable a rule category (repeatable)\n  --rule <id>=<setting>         Override a rule: off|error|warning|suggestion|info\n  --format <pretty|json>        Output format, default: pretty\n  --fail-on <severity>          Exit 1 at this severity or higher, default: error\n  --list-rules                  List built-in rules and exit\n  --asp68k-coverage             Show tracked ASP68K table coverage and exit\n  --no-color                    Disable ANSI colours\n  -h, --help                    Show this help\n  -v, --version                 Show version\n\nExamples:\n  m68k-lint game.s\n  m68k-lint src/\n  m68k-lint "src/**/*.asm"\n  m68k-lint --ext .s,.asm,.i,.inc src/\n  m68k-lint --platform amiga --cpu mc68000 src/\n  m68k-lint --rule suspicious/nop=warning --fail-on warning game.s\n`;
+  return `m68k-lint ${VERSION}\n\nUsage:\n  m68k-lint [options] <file|directory|glob ...>\n\nOptions:\n  --config <path>               Use a specific JSON config file\n  --no-config                   Disable config-file discovery\n  --ext <ext[,ext...]>          Extensions for directory/glob discovery; default: .s,.asm,.i\n  --ignore-pattern <glob>       Ignore matching files (repeatable)\n  --cpu <cpu[,cpu...]>          Target processor(s), default: mc68000\n  --platform <name>             generic, amiga, atari; default: generic\n  --preset <name[,name...]>     Enable rule preset(s): recommended, style\n  --goal <balanced|speed|size>  Filter known optimization trade-offs, default: balanced\n  --impact                      Enable exact 68000 impact measurement\n  --no-impact                   Disable exact 68000 impact measurement\n  --inline-config               Honor m68k-lint comment directives (default)\n  --no-inline-config            Ignore m68k-lint comment directives\n  --impact-summary              Summarize measured outcomes by rule\n  --audit-rule-impact           Run representative 68000 timing audit for every optimization rule\n  --only <category[,category]>  Run only selected rule categories\n  --disable-category <category> Disable a rule category (repeatable)\n  --rule <id>=<setting>         Override a rule: off|error|warning|suggestion|info\n  --format <pretty|json>        Output format, default: pretty\n  --fail-on <severity>          Exit 1 at this severity or higher, default: error\n  --list-rules                  List built-in rules and exit\n  --asp68k-coverage             Show tracked ASP68K table coverage and exit\n  --color / --no-color          Force or disable ANSI colours; default: TTY only\n  -h, --help                    Show this help\n  -v, --version                 Show version\n\nExamples:\n  m68k-lint game.s\n  m68k-lint src/\n  m68k-lint "src/**/*.asm"\n  m68k-lint --ext .s,.asm,.i,.inc src/\n  m68k-lint --platform amiga --cpu mc68000 src/\n  m68k-lint --rule suspicious/nop=warning --fail-on warning game.s\n`;
 }
 
 function requireValue(argv: string[], index: number, option: string): string {
@@ -102,6 +103,10 @@ function parseArgs(argv: string[]): CliOptions | "help" | "version" {
     if (arg === "-v" || arg === "--version") return "version";
     if (arg === "--no-color") {
       options.color = false;
+      continue;
+    }
+    if (arg === "--color") {
+      options.color = true;
       continue;
     }
     if (arg === "--impact") {
@@ -249,10 +254,6 @@ function buildConfig(options: CliOptions, project: ProjectConfig = {}): LintConf
   return config;
 }
 
-function paint(enabled: boolean, code: number, text: string): string {
-  return enabled ? `\u001b[${code}m${text}\u001b[0m` : text;
-}
-
 function severityLabel(severity: Severity, color: boolean): string {
   const code = severity === "error" ? 31 : severity === "warning" ? 33 : severity === "suggestion" ? 36 : 90;
   return paint(color, code, severity);
@@ -277,40 +278,17 @@ function formatDiagnostic(file: string, source: string, diagnostic: Diagnostic, 
   const header = `${file}:${line}:${col}  ${severityLabel(diagnostic.severity, color)}  ${diagnostic.message}  ${paint(color, 90, `[${diagnostic.ruleId}]`)}`;
   const lines = [header, ...sourceContext(source, line, diagnostic.loc.start, diagnostic.loc.end, color)];
   if (diagnostic.suggestion) {
+    // "fix" rather than "suggestion": the severity column already says
+    // suggestion, and the same word twice reads as a mistake.
     lines.push(
-      `  ${paint(color, 36, "suggestion:")} ${diagnostic.suggestion.description} (${diagnostic.suggestion.applicability})`,
+      `  ${paint(color, 36, "fix:")} ${diagnostic.suggestion.description} (${diagnostic.suggestion.applicability})`,
     );
     if (diagnostic.suggestion.replacement)
       lines.push(`  ${paint(color, 90, "replace with:")} ${diagnostic.suggestion.replacement}`);
     const impact = diagnostic.suggestion.impact;
-    if (impact?.sizeBytes) {
-      const m = impact.sizeBytes;
-      const d = m.delta;
-      const values =
-        m.before !== undefined && m.after !== undefined
-          ? `${m.before} → ${m.after} (${d > 0 ? "+" : ""}${d})`
-          : `${d > 0 ? "+" : ""}${d}`;
-      lines.push(`  ${paint(color, 90, "size:")} ${values} bytes (${m.confidence})`);
-    }
-    if (impact?.assessment) {
-      lines.push(`  ${paint(color, 90, "measured assessment:")} ${impact.assessment}`);
-    }
-    if (impact?.execution) {
-      const e = impact.execution;
-      const metrics = [
-        ["CPU cycles", e.cpuCycles],
-        ["read cycles", e.readCycles],
-        ["write cycles", e.writeCycles],
-      ] as const;
-      for (const [label, metric] of metrics) {
-        if (!metric) continue;
-        const d = metric.delta;
-        const values =
-          metric.before !== undefined && metric.after !== undefined
-            ? `${metric.before} → ${metric.after} (${d > 0 ? "+" : ""}${d})`
-            : `${d > 0 ? "+" : ""}${d}`;
-        lines.push(`  ${paint(color, 90, `${label}:`)} ${values} on ${e.processor} (${metric.confidence})`);
-      }
+    if (impact) {
+      const summary = formatImpact(impact, color);
+      if (summary) lines.push(summary);
     }
     for (const claim of impact?.sourceClaims ?? []) {
       if (claim.sizeBytes) {

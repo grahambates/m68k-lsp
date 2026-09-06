@@ -5,6 +5,17 @@ previously lived in `README.md`.
 
 ## Unreleased
 
+### Changed
+
+- CLI impact output is one line instead of five, in the `cycles(reads,writes)`
+  shape the 68k manuals and 68kcounter use: `saves: 4 bytes, 8(2,0) cycles`.
+  Numbers read as savings, so positive is cheaper than before and a cost shows
+  as a negative saving; with colour, savings are green and costs red. The
+  separate size, assessment and per-metric cycle lines are gone.
+- The suggestion heading is now `fix:`. It read `suggestion:` directly under the
+  `suggestion` severity column, which looked like a mistake.
+- Added `--color` to force ANSI colours on when stdout is not a TTY.
+
 ### Fixed
 
 - `suspicious/nop` no longer flags a NOP immediately before `RTE`. That is the

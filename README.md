@@ -13,12 +13,14 @@ so a claimed improvement is a measured one.
 game.s:42:9  suggestion  Immediate 42 fits the MOVEQ signed 8-bit range  [optimization/prefer-moveq]
         move.l #42,d3
         ^~~~
-  suggestion: Use moveq #42,d3 (safe)
+  fix: Use moveq #42,d3 (safe)
   replace with: moveq #42,d3
-  size: 6 → 2 (-4) bytes (exact)
-  measured assessment: improvement
-  CPU cycles: 12 → 4 (-8) on mc68000 (exact)
+  saves: 4 bytes, 8(2,0) cycles
 ```
+
+Measurements read as savings in the `cycles(reads,writes)` shape the 68k manuals
+use, so bigger is better; a cost shows as a negative saving. With colour, savings
+are green and costs red.
 
 ## Install
 
