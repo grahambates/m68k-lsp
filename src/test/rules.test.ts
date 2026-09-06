@@ -1458,6 +1458,20 @@ describe("rules mined from the EAB thread", () => {
   });
 });
 
+describe("register semantics", () => {
+  test("postincrement and predecrement update their address register", () => {
+    // Without this the value analysis believed the pointer still held its
+    // pre-increment value, which would misresolve any rule reading it.
+    const stepped = (source: string) => fixtureContext(source).registers.knownConstantBefore(2, "a2");
+
+    expect(stepped("lea $1000,a2\nmove.w (a2)+,d1\nmove.l a2,d3\nrts")).toBeUndefined();
+    expect(stepped("lea $1000,a2\nmove.w -(a2),d1\nmove.l a2,d3\nrts")).toBeUndefined();
+    expect(stepped("lea $1000,a2\nmove.w d1,(a2)+\nmove.l a2,d3\nrts")).toBeUndefined();
+    // A plain indirect does not move the pointer, so the value survives.
+    expect(stepped("lea $1000,a2\nmove.w (a2),d1\nmove.l a2,d3\nrts")).toBe(0x1000);
+  });
+});
+
 describe("dead register write", () => {
   const cfg = { processors: ["mc68000" as const], measureImpact: false };
   const ID = "optimization/dead-register-write";

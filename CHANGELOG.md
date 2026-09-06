@@ -49,6 +49,14 @@ form`. A reader has no way to check what a source said, and a claim repeated
 
 ### Fixed
 
+- Register analysis now records that postincrement and predecrement update
+  their address register. An `addEaSideEffectWrite` helper existed but was
+  wired into the MOVEM branch only, so for every other instruction the value
+  analysis believed a pointer still held its pre-increment value: after
+  `lea $1000,a2` and `move.w (a2)+,d1` it reported `a2` as `$1000` rather than
+  unknown. Any rule resolving an address register could be misled by that,
+  including the Amiga custom-register checks.
+
 - `suspicious/partial-register-write` no longer flags a narrow load into a
   register that was seeded with a known value. `moveq #0,d2` followed by
   `move.b 0(a2,d1.w),d2` is the ordinary zero-extension idiom, where the

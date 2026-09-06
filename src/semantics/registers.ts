@@ -92,7 +92,7 @@ function addEaSideEffectWrite(writes: Set<Register>, op: OperandNode | undefined
   if (r) writes.add(r);
 }
 
-export function getRegisterSemantics(line: ParsedLine): RegisterSemantics {
+function computeRegisterSemantics(line: ParsedLine): RegisterSemantics {
   const mnemonic = semanticMnemonic(line);
   const reads = none();
   const writes = none();
@@ -237,4 +237,19 @@ export function getRegisterSemantics(line: ParsedLine): RegisterSemantics {
 
   // Uncommon/system/FPU instructions are intentionally conservative for now.
   return { reads, writes, unknownEffects: true, call: false };
+}
+
+/**
+ * Postincrement and predecrement update their address register whatever the
+ * instruction is, so that is applied here rather than left to each branch above
+ * to remember. Missing it made constant propagation believe an address register
+ * still held its pre-increment value.
+ */
+export function getRegisterSemantics(line: ParsedLine): RegisterSemantics {
+  const semantics = computeRegisterSemantics(line);
+  if (semantics.unknownEffects) return semantics;
+
+  const writes = new Set(semantics.writes);
+  for (const op of line.operands ?? []) addEaSideEffectWrite(writes, op);
+  return writes.size === semantics.writes.size ? semantics : { ...semantics, writes };
 }
