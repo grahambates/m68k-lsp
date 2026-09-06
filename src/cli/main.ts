@@ -290,14 +290,6 @@ function formatDiagnostic(file: string, source: string, diagnostic: Diagnostic, 
       const summary = formatImpact(impact, color);
       if (summary) lines.push(summary);
     }
-    for (const claim of impact?.sourceClaims ?? []) {
-      if (claim.sizeBytes) {
-        const d = claim.sizeBytes.delta;
-        lines.push(
-          `  ${paint(color, 90, "source size claim:")} ${d > 0 ? "+" : ""}${d} bytes${claim.source ? ` (${claim.source})` : ""}`,
-        );
-      }
-    }
   }
   for (const note of diagnostic.notes ?? []) lines.push(`  ${paint(color, 90, "note:")} ${note.message}`);
   return lines.join("\n");

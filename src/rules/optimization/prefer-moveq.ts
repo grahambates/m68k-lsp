@@ -35,7 +35,7 @@ export const preferMoveq: Rule = {
         replacement: `moveq #${value.value},${dest.register}`,
         applicability: "safe",
       },
-      notes: [{ message: "ASP68K records a 4-byte size saving for this form." }],
+      notes: [{ message: "MOVEQ encodes the value in the instruction word, so no extension words are needed." }],
     });
   },
 };

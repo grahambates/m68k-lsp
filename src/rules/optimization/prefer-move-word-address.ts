@@ -30,7 +30,9 @@ export const preferMoveWordAddress: Rule = {
         replacement: `movea.w #${value.value},${dest.register}`,
         applicability: "safe",
       },
-      notes: [{ message: "ASP68K lists MOVE.L #n,An → MOVE.W #n,An for -32767..32767, saving 2 bytes." }],
+      notes: [
+        { message: "MOVEA.W sign-extends its source, so it reaches the same value for a signed 16-bit constant." },
+      ],
     });
   },
 };

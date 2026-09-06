@@ -7,6 +7,16 @@ previously lived in `README.md`.
 
 ### Changed
 
+- Diagnostics no longer name their sources. Notes read as the linter's own
+  findings and explain the mechanism rather than citing ASP68K, Flamewing or
+  68kcounter: `MOVEQ encodes the value in the instruction word, so no extension
+words are needed` in place of `ASP68K records a 4-byte size saving for this
+form`. A reader has no way to check what a source said, and a claim repeated
+  is a claim owned. Provenance stays in rule metadata and the coverage
+  manifests, and still appears in the generated rule documentation. The CLI's
+  `source size claim` line is gone; the claim remains in JSON output for
+  auditing. A test guards against attribution reappearing in emitted text.
+
 - CLI impact output is one line instead of five, in the `cycles(reads,writes)`
   shape the 68k manuals and 68kcounter use: `saves: 4 bytes, 8(2,0) cycles`.
   Numbers read as savings, so positive is cheaper than before and a cost shows

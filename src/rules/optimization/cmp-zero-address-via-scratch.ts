@@ -43,7 +43,8 @@ export const cmpZeroAddressViaScratch: Rule = {
             "For the .L form, MOVE sets N/Z from the full address-register value and clears V/C, matching comparison with zero; X is preserved by both.",
         },
         {
-          message: "ASP68K lists moving the address register to a scratch data register as an early-CPU optimisation.",
+          message:
+            "Comparing through a scratch data register avoids the address-register form; the register used here is proven dead.",
         },
         {
           message:

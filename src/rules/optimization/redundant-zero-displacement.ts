@@ -32,7 +32,12 @@ export const redundantZeroDisplacement: Rule = {
         message: `Zero displacement ${original ?? `0(${op.register.register})`} can use ${operandText}`,
         loc: op.loc,
         suggestion: { description: `Use ${operandText}`, replacement, applicability: "safe" },
-        notes: [{ message: "ASP68K lists 0(An) → (An) as a 2-byte saving." }],
+        notes: [
+          {
+            message:
+              "Both spellings address the same location; the zero displacement costs an extension word for nothing.",
+          },
+        ],
         data: { operandIndex: i },
       });
     }

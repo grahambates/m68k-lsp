@@ -66,7 +66,7 @@ export const multiplyLongSmallConstant: Rule = {
           replacement: `add.l ${d},${d}`,
           applicability: safety.applicability,
         },
-        notes: [{ message: "ASP68K lists this replacement for MULS.L/MULU.L #2; X/V/C can differ from MUL." }],
+        notes: [{ message: "Multiplying by two is a single left shift, but X/V/C can differ from the multiply." }],
       });
       return;
     }
@@ -89,7 +89,7 @@ export const multiplyLongSmallConstant: Rule = {
       message: `Long multiplication by ${factor} can use shifts/adds with dead scratch register ${scratch.toUpperCase()}`,
       loc: line.mnemonic!.loc,
       suggestion: {
-        description: `Replace MUL by the ASP68K ×${factor} sequence`,
+        description: `Replace MUL by a shift-and-add ×${factor} sequence`,
         replacement: recipe(d, scratch),
         applicability: safety.applicability,
       },
@@ -137,7 +137,7 @@ export const multiplyLongLargePowerOfTwo: Rule = {
       },
       notes: [
         { message: `${scratch.toUpperCase()} is proven dead after the original multiply.` },
-        { message: "ASP68K restricts this recipe to 8 < m < 14." },
+        { message: "This recipe applies for 8 < m < 14." },
       ],
     });
   },
@@ -187,7 +187,7 @@ export const multiplySignedLong060: Rule = {
         replacement: `asl.l #${shift},${dest.register}`,
         applicability: safety.applicability,
       },
-      notes: [{ message: "ASP68K lists this 68060-specific power-of-two replacement for 1 <= m <= 8." }],
+      notes: [{ message: "Multiplying by 2^m is a left shift of m; the 68060 form is used for 1 <= m <= 8." }],
     });
   },
 };

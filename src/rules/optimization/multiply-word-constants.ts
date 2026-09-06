@@ -50,7 +50,7 @@ export const multiplySignedWordSelectedConstants: Rule = {
           replacement: `ext.l ${d}\nadd.l ${d},${d}`,
           applicability: safety.applicability,
         },
-        notes: [{ message: "ASP68K lists this value-equivalent form; X/V/C can differ and are checked." }],
+        notes: [{ message: "The value is the same either way; X/V/C can differ, so their liveness is checked." }],
       });
       return;
     }

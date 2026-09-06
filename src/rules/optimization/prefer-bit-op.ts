@@ -39,7 +39,7 @@ function bitRule(kind: "or" | "and"): Rule {
           applicability: safety.applicability,
         },
         notes: [
-          { message: "ASP68K lists this transform for a one-bit mask." },
+          { message: "A single-bit mask is what the bit instructions operate on directly." },
           ...(safety.applicability === "safe"
             ? [{ message: "N/V/C are dead after this instruction, so the differing flag effects are unobservable." }]
             : [{ message: "Replacement has different condition-code effects; review subsequent flag use." }]),

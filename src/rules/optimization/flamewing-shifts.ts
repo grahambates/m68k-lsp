@@ -141,7 +141,7 @@ export const lsrByteSeven: Rule = {
         applicability: safety.applicability,
       },
       notes: [
-        { message: "Flamewing reports this as faster but four bytes larger." },
+        { message: "This trades four bytes of code size for speed." },
         ...(safety.applicability === "safe" ? [] : [{ message: "X/C differ from LSR.B #7 and must not be observed." }]),
       ],
     });
@@ -290,7 +290,7 @@ export const knownRegisterShiftReduction: Rule = {
           : [
               {
                 message:
-                  "Flamewing notes different CCR results; the replacement is only safe when the changed flags are not observed.",
+                  "The replacement produces different CCR results, so it is only safe when the changed flags are not observed.",
               },
             ]),
       ],
@@ -347,7 +347,7 @@ export const knownRegisterAsrWordLowOnly: Rule = {
       },
       notes: [
         {
-          message: `The analyser proves bits 16-31 of ${reg.toUpperCase()} are discarded before any read; Flamewing explicitly notes that the high word differs.`,
+          message: `The high word differs after this rewrite, but bits 16-31 of ${reg.toUpperCase()} are proven discarded before any read.`,
         },
         ...(safety.applicability === "safe"
           ? []
@@ -400,7 +400,7 @@ export const knownRegisterAsrLongHighReduction: Rule = {
       category: this.meta.category,
       severity: this.meta.defaultSeverity,
       confidence: safety.confidence,
-      message: `ASR.L uses known count ${count}; use Flamewing's non-stack SWAP/EXT/ROL reduction on 68000`,
+      message: `ASR.L uses known count ${count}; a SWAP/EXT/ROL reduction is shorter on 68000 without using stack scratch`,
       loc: setup.line.mnemonic!.loc,
       suggestion: {
         description: "Replace the count setup and ASR.L with the high-count reduction",
@@ -411,7 +411,7 @@ export const knownRegisterAsrLongHighReduction: Rule = {
         { message: "The replacement preserves the full 32-bit arithmetic-shift result without using the stack." },
         ...(safety.applicability === "safe"
           ? []
-          : [{ message: "Flamewing's sequence has different CCR results; changed flags must be unobserved." }]),
+          : [{ message: "The sequence produces different CCR results, so the changed flags must be unobserved." }]),
       ],
       data: { secondInstructionIndex: index, countRegister, shiftCount: count, provenance: "flamewing" },
     });

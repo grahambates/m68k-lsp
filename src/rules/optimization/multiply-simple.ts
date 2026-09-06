@@ -40,8 +40,7 @@ export const multiplyWordByZero: Rule = {
       notes: [
         { message: "The result and N/Z/V/C state are equivalent; X is preserved by both forms." },
         {
-          message:
-            "ASP68K lists the word multiply-by-zero transformation as faster/smaller on the CPUs for which it has timing data.",
+          message: "Multiplying by zero always yields zero, so the multiply is unnecessary.",
         },
       ],
     });
@@ -108,7 +107,7 @@ export const multiplyUnsignedWordByOne: Rule = {
       loc: line.mnemonic!.loc,
       suggestion: { description: `Zero-extend ${r.toUpperCase()} without MULU`, replacement, applicability: "safe" },
       notes: [
-        { message: "ASP68K records a speed win on these targets but a 2-byte code-size increase." },
+        { message: "This trades code size for speed rather than improving both." },
         { message: "The final SWAP leaves N/Z/V/C consistent with the zero-extended result; X is preserved." },
       ],
     });
@@ -148,7 +147,7 @@ export const multiplySignedWordPowerOfTwo: Rule = {
       loc: line.mnemonic!.loc,
       suggestion: { description: `Use EXT.L + ASL.L #${shift}`, replacement, applicability: safety.applicability },
       notes: [
-        { message: "ASP68K lists the power-of-two form for factors 2^m with 1 <= m <= 8." },
+        { message: "Multiplying by 2^m is a left shift of m, applied here for 1 <= m <= 8." },
         ...(safety.applicability === "safe"
           ? [{ message: "The differing X/V/C values are dead after this instruction." }]
           : [{ message: "ASL can leave different X/V/C values from MULS; review any later flag use." }]),
@@ -189,7 +188,8 @@ export const multiplyUnsignedWordPowerOfTwo: Rule = {
       suggestion: { description: `Zero-extend then LSL.L #${shift}`, replacement, applicability: safety.applicability },
       notes: [
         {
-          message: "ASP68K lists the power-of-two form for factors 2^m with 1 <= m <= 8; it is a speed/size trade-off.",
+          message:
+            "Multiplying by 2^m is a left shift of m, applied here for 1 <= m <= 8. It trades code size for speed.",
         },
         ...(safety.applicability === "safe"
           ? [{ message: "The differing X/V/C values are dead after this instruction." }]
@@ -236,8 +236,7 @@ export const multiplySignedWordHighPowerOfTwo: Rule = {
       },
       notes: [
         {
-          message:
-            "ASP68K lists this construction for 2^m with 8 <= m <= 15; this rule uses it for m=9..15 because m=8 is already covered by the simpler EXT+ASL rule.",
+          message: "Used for 2^m with m=9..15; m=8 is left to the simpler EXT+ASL form.",
         },
         ...(safety.applicability === "safe"
           ? [{ message: "The differing X/V/C values are dead after this instruction." }]
@@ -284,8 +283,7 @@ export const multiplyUnsignedWordHighPowerOfTwo: Rule = {
       },
       notes: [
         {
-          message:
-            "ASP68K lists this construction for 2^m with 8 <= m <= 15; this rule uses m=9..15 because m=8 is already covered by the lower-power rule.",
+          message: "Used for 2^m with m=9..15; m=8 is left to the lower-power form.",
         },
         ...(safety.applicability === "safe"
           ? [{ message: "The differing X/V/C values are dead after this instruction." }]

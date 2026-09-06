@@ -85,8 +85,7 @@ export const flamewingMulsWordFullResultConstants: Rule = {
       notes: [
         { message: `${scratch.toUpperCase()} is proven dead after the original multiply and may be clobbered.` },
         {
-          message:
-            "The recipe preserves the complete signed 16×constant 32-bit result; it is not one of Flamewing's low-word-only variants.",
+          message: "The recipe preserves the complete signed 16×constant 32-bit result, not just the low word.",
         },
         ...(safety.applicability === "safe"
           ? []
@@ -141,7 +140,7 @@ export const flamewingMulsWordLowWordOnly: Rule = {
       category: this.meta.category,
       severity: this.meta.defaultSeverity,
       confidence: safety.confidence,
-      message: `Only the low word of ${dest.register.toUpperCase()} is observed after MULS.W #${value.value}; use Flamewing's shorter word-only sequence`,
+      message: `Only the low word of ${dest.register.toUpperCase()} is observed after MULS.W #${value.value}; a shorter word-only sequence suffices`,
       loc: line.mnemonic!.loc,
       suggestion: {
         description: `Replace MULS.W #${value.value} with a word-only sequence`,
@@ -219,7 +218,7 @@ export const flamewingMuluWordLowWordOnly: Rule = {
       category: this.meta.category,
       severity: this.meta.defaultSeverity,
       confidence: safety.confidence,
-      message: `Only the low word of ${dest.register.toUpperCase()} is observed after MULU.W #${value.value}; use Flamewing's shorter word-only form`,
+      message: `Only the low word of ${dest.register.toUpperCase()} is observed after MULU.W #${value.value}; a shorter word-only form suffices`,
       loc: line.mnemonic!.loc,
       suggestion: {
         description: value.value === 1 ? "Remove the multiply" : `Replace MULU.W #${value.value} with word arithmetic`,

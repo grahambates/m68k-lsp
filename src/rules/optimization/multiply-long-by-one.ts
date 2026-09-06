@@ -34,7 +34,7 @@ export const multiplyLongByOne: Rule = {
         applicability: ccr.applicability,
       },
       notes: [
-        { message: "ASP68K records this as a 6-byte saving and a speed win on 68060." },
+        { message: "The replacement encodes in fewer words and avoids the multiply entirely." },
         ...(ccr.applicability === "safe"
           ? []
           : [{ message: "Removing MUL preserves the previous CCR instead of writing the multiply result flags." }]),

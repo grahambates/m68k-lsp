@@ -191,16 +191,16 @@ export function measureDiagnosticImpact(
   const sourceSize = prior?.sizeBytes?.confidence === "source" ? prior.sizeBytes : undefined;
   if (sourceSize && impact.sizeBytes && sourceSize.delta !== impact.sizeBytes.delta) {
     notes.push({
-      message: `Historical source claims ${sourceSize.delta > 0 ? "+" : ""}${sourceSize.delta} bytes, but 68kcounter measures ${impact.sizeBytes.delta > 0 ? "+" : ""}${impact.sizeBytes.delta} bytes on 68000.`,
+      message: `This rule carried an unverified figure of ${sourceSize.delta > 0 ? "+" : ""}${sourceSize.delta} bytes, which the measurement above does not match.`,
     });
   }
   if (impact.assessment === "regression") {
     notes.push({
       message:
-        "68kcounter measures this replacement as a 68000 resource regression; review the source rule/CPU applicability.",
+        "Measured on 68000 as a resource regression rather than an improvement; check whether it applies to your target.",
     });
   } else if (impact.assessment === "tradeoff") {
-    notes.push({ message: "68kcounter measures this as a 68000 trade-off rather than an unconditional improvement." });
+    notes.push({ message: "Measured on 68000 as a trade-off rather than an unconditional improvement." });
   }
 
   return {

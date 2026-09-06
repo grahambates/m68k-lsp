@@ -74,7 +74,7 @@ export const combineConsecutiveAddq: Rule = {
           message:
             total <= 8
               ? "The combined value still fits ADDQ, so one ADDQ is preferable to a full immediate ADD."
-              : "ASP68K records the full-immediate form as a speed win on 68010/68030 too. Exact 68000 auditing found no CPU-cycle gain and a 2-byte cost, so that path is suppressed for mc68000.",
+              : "On 68000 this form was measured as no faster and 2 bytes larger, so it is suppressed there; it remains available for 68010 and 68030.",
         },
         ...(isAddress || safety.applicability === "safe"
           ? []

@@ -39,7 +39,7 @@ export const shiftToClear: Rule = {
         applicability: safety.applicability,
       },
       notes: [
-        { message: "ASP68K lists these large-shift-to-zero transforms and warns that status flags differ." },
+        { message: "A shift at least as wide as the operand always produces zero, but the resulting flags differ." },
         ...(safety.applicability === "safe"
           ? [{ message: "All condition-code differences are dead here." }]
           : [{ message: "Condition-code values may be observable after this instruction." }]),

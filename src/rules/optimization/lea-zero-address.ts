@@ -35,7 +35,7 @@ export const leaZeroAddress: Rule = {
       notes: [
         {
           message:
-            "ASP68K lists LEA 0.w,An → SUB.L An,An on 68000/68010/68030; using the explicit SUBA spelling makes the CCR-preserving address-register form clear.",
+            "Subtracting a register from itself zeroes it. The explicit SUBA spelling makes the CCR-preserving address-register form clear.",
         },
       ],
     });

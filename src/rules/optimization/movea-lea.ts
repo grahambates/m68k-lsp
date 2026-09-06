@@ -106,7 +106,7 @@ export const moveAddressThenAddToLea: Rule = {
           message:
             "The .L source copy preserves the full base address, and the displacement is within the signed 16-bit LEA range.",
         },
-        { message: "ASP68K records a 2/4-byte saving for this sequence across its listed CPUs." },
+        { message: "The combined sequence encodes in fewer words than the instructions it replaces." },
       ],
       data: { secondInstructionIndex: next.index },
     });

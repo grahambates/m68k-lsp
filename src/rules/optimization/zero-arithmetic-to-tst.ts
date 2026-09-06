@@ -43,7 +43,7 @@ export const zeroArithmeticToTst: Rule = {
         applicability: safety.applicability,
       },
       notes: [
-        { message: "ASP68K lists ADD/SUB #0,Dn → TST Dn for 68000/68010/68030." },
+        { message: "Adding or subtracting zero leaves the value alone and only sets flags, which is what TST does." },
         ...(safety.applicability === "safe"
           ? [{ message: "X is dead after this instruction, so TST preserving X is unobservable." }]
           : [{ message: "ADD/SUB update X while TST preserves it; review later X/extend-dependent instructions." }]),

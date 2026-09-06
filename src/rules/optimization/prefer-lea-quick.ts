@@ -53,9 +53,7 @@ export const preferLeaQuick: Rule = {
         replacement: `${mnemonic}.w #${value},${register}`,
         applicability: "safe",
       },
-      notes: [
-        { message: "ASP68K gives ADDQ.W for +1..+8 and SUBQ.W for -1..-8 when LEA updates the same address register." },
-      ],
+      notes: [{ message: "The quick forms cover +1..+8 and -1..-8, which is why the displacement range is checked." }],
     });
   },
 };

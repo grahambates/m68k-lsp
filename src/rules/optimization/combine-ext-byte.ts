@@ -38,7 +38,7 @@ export const combineExtByte: Rule = {
         replacement: `extb.l ${first.register}`,
         applicability: "safe",
       },
-      notes: [{ message: "ASP68K lists EXTB.L as the 68040/68060 replacement for EXT.W + EXT.L." }],
+      notes: [{ message: "EXTB.L sign-extends byte to long in one instruction, and exists from the 68020." }],
       data: { secondInstructionIndex: next.index },
     });
   },

@@ -50,7 +50,7 @@ export const compareLongImmediateViaMoveq: Rule = {
       notes: [
         {
           message:
-            "Tricks and Traps recommends this for small long-immediate comparisons; the scratch register is proven dead here.",
+            "A small long immediate can be compared through a scratch register; the one used here is proven dead.",
         },
       ],
     });

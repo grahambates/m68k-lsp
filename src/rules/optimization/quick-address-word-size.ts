@@ -33,7 +33,7 @@ function makeRule(mnemonic: "addq" | "subq"): Rule {
         },
         notes: [
           {
-            message: `ASP68K lists ${mnemonic.toUpperCase()}.L #n,An → ${mnemonic.toUpperCase()}.W #n,An as faster on 68000/68010.`,
+            message: `The word form reaches the same address register value, since ${mnemonic.toUpperCase()} on an address register always updates all 32 bits.`,
           },
         ],
       });

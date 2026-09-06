@@ -42,7 +42,7 @@ function makeRule(kind: "bset" | "bclr"): Rule {
         },
         notes: [
           {
-            message: `ASP68K lists ${kind.toUpperCase()}.L #n,Dn → ${op.toUpperCase()}.W #mask,Dn for bit numbers 0..15.`,
+            message: `Bit numbers 0..15 lie in the low word, so the word-sized mask reaches the same bit.`,
           },
           ...(safety.applicability === "safe"
             ? []

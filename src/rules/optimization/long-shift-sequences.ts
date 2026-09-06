@@ -59,14 +59,13 @@ export const longShiftSequence: Rule = {
       message: `${kind.toUpperCase()}.L #${amount.value},${r} can use a shorter half-word/SWAP sequence on the selected target`,
       loc: line.mnemonic!.loc,
       suggestion: {
-        description: `Replace the ${amount.value}-bit long shift with the ASP68K sequence`,
+        description: `Replace the ${amount.value}-bit long shift with a word-oriented sequence`,
         replacement,
         applicability: safety.applicability,
       },
       notes: [
         {
-          message:
-            "ASP68K records the replacement as faster on the selected CPU(s), while also noting that condition codes differ.",
+          message: "The replacement is faster on the selected targets, but the condition codes differ.",
         },
         ...(safety.applicability === "safe"
           ? [{ message: "All differing condition-code values are proven dead here." }]

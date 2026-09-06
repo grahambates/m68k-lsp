@@ -36,7 +36,10 @@ describe("68000 impact measurement", () => {
     expect(result.suggestion?.impact?.sizeBytes?.confidence).toBe("exact");
     expect(result.suggestion?.impact?.sourceClaims?.[0]?.source).toBe("historical-test");
     expect(result.suggestion?.impact?.sourceClaims?.[0]?.sizeBytes?.delta).toBe(-99);
-    expect(result.notes?.some((n) => n.message.includes("Historical source claims"))).toBe(true);
+    // The claim stays in the data for auditing, but the note is phrased as our
+    // own finding rather than attributed to a source.
+    expect(result.notes?.some((n) => n.message.includes("unverified figure"))).toBe(true);
+    expect(result.notes?.every((n) => !/ASP68K|Flamewing|68kcounter/.test(n.message))).toBe(true);
   });
 
   test("measures empty replacement as zero bytes", () => {

@@ -38,7 +38,7 @@ export const moveImmediateBelowMoveq: Rule = {
       loc: line.mnemonic!.loc,
       suggestion: { description: "Use MOVEQ plus SUBQ", replacement, applicability: safety.applicability },
       notes: [
-        { message: "ASP68K records a 2-byte saving for -136 <= n <= -129." },
+        { message: "This form covers -136 <= n <= -129." },
         ...(safety.applicability === "safe"
           ? []
           : [{ message: "SUBQ can leave different X/V/C values from MOVE.L; review later CCR use." }]),
@@ -77,7 +77,7 @@ export const moveImmediateByteComplement: Rule = {
       loc: line.mnemonic!.loc,
       suggestion: { description: "Use MOVEQ plus NOT.B", replacement, applicability: safety.applicability },
       notes: [
-        { message: "ASP68K records a 2-byte saving for 128 <= n <= 255." },
+        { message: "This form covers 128 <= n <= 255." },
         ...(safety.applicability === "safe"
           ? []
           : [
@@ -118,7 +118,7 @@ export const moveImmediateDoubleByte: Rule = {
       loc: line.mnemonic!.loc,
       suggestion: { description: "Use MOVEQ plus ADD.B", replacement, applicability: safety.applicability },
       notes: [
-        { message: "ASP68K records a 2-byte saving for the documented even immediate ranges." },
+        { message: "This form covers the even immediate ranges checked above." },
         ...(safety.applicability === "safe"
           ? []
           : [{ message: "ADD.B can leave different X/V/C values from MOVE.L; review later CCR use." }]),

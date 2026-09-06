@@ -34,8 +34,7 @@ export const zeroAddressRegister: Rule = {
       },
       notes: [
         {
-          message:
-            "ASP68K lists MOVE #0,An → SUB.L An,An as a smaller early-CPU form. Address-register subtraction preserves CCR.",
+          message: "Subtracting a register from itself zeroes it, and address-register subtraction preserves CCR.",
         },
       ],
     });

@@ -79,7 +79,7 @@ function movePair(
         notes: [
           {
             message:
-              "ASP68K lists this adjacent immediate-store collapse; 68k byte order places the first value in the high-order part of the combined value.",
+              "The two addresses are adjacent, so one wider store covers both. 68k byte order places the first value in the high-order part.",
           },
           {
             message:

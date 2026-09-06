@@ -58,7 +58,10 @@ export const preferLinkSequence: Rule = {
         applicability: manual ? "manual" : "safe",
       },
       notes: [
-        { message: "ASP68K lists MOVE.L An,-(SP) + MOVE.L SP,An + ADD.W #n,SP → LINK An,#n." },
+        {
+          message:
+            "LINK performs the same three steps: save the frame pointer, take the new one, and reserve the frame.",
+        },
         ...(manual
           ? [
               {

@@ -35,7 +35,7 @@ function quickNegative(id: string, from: "add" | "sub", to: "subq" | "addq"): Ru
           replacement: d ? `${to}${suffix} #${magnitude},${d}` : undefined,
           applicability: "safe",
         },
-        notes: [{ message: "ASP68K specifies the quick-form transform for immediates -8 through -1." }],
+        notes: [{ message: "Negating the immediate moves it into the quick form's 1 to 8 range." }],
       });
     },
   };

@@ -79,7 +79,7 @@ export const cancelAddqPredecrementMove: Rule = {
           message:
             "The MOVE source does not read the adjusted address register, so its effective address is unchanged.",
         },
-        { message: `ASP68K records a 2-byte saving for the ${width}-byte form.` },
+        { message: `This form covers the ${width}-byte form.` },
       ],
       data: { sourceEndIndex: next.index },
     });

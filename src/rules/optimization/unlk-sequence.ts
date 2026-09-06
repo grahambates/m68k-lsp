@@ -50,7 +50,7 @@ export const preferUnlkSequence: Rule = {
         applicability: manual ? "manual" : "safe",
       },
       notes: [
-        { message: "ASP68K lists MOVE.L An,SP + MOVE.L (SP)+,An → UNLK An." },
+        { message: "UNLK performs the same two steps: release the frame and restore the frame pointer." },
         ...(manual
           ? [
               {

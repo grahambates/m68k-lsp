@@ -40,7 +40,7 @@ export const preferAddq: Rule = {
         replacement: originalDestination ? `addq${suffix} #${value.value},${originalDestination}` : undefined,
         applicability: "safe",
       },
-      notes: [{ message: "ASP68K specifies ADDQ when 1 <= n <= 8." }],
+      notes: [{ message: "ADDQ encodes its operand in three bits, covering 1 to 8." }],
     });
   },
 };

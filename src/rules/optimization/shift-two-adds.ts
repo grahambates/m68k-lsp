@@ -40,7 +40,7 @@ export const shiftTwoAdds: Rule = {
         applicability: safety.applicability,
       },
       notes: [
-        { message: "ASP68K lists this as a speed optimisation but it increases code size by 2 bytes." },
+        { message: "This trades code size for speed rather than improving both." },
         ...(safety.applicability === "safe"
           ? []
           : [

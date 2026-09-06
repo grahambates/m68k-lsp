@@ -62,7 +62,7 @@ function makeRule(id: string, secondMnemonic: "add" | "sub", replacementMnemonic
         },
         notes: [
           {
-            message: `The source register ${r.toUpperCase()} is proven dead after the pair, satisfying ASP68K's “dx is trashed” caveat.`,
+            message: `The source register ${r.toUpperCase()} is proven dead after the pair, so the fold trashing it is harmless.`,
           },
           ...(flagsDead
             ? []
@@ -126,7 +126,7 @@ export const negateAddPowerOfTwoToEor: Rule = {
       category: this.meta.category,
       severity: this.meta.defaultSeverity,
       confidence,
-      message: `Known ${reg.register.toUpperCase()}=${prior} satisfies the ASP68K power-of-two NEG/ADD identity`,
+      message: `Known ${reg.register.toUpperCase()}=${prior} satisfies the power-of-two NEG/ADD identity`,
       loc: line.mnemonic!.loc,
       suggestion: {
         description: `Replace both instructions with ${replacement.toUpperCase()}`,
@@ -134,7 +134,7 @@ export const negateAddPowerOfTwoToEor: Rule = {
         applicability,
       },
       notes: [
-        { message: `ASP68K requires n to be a power of two and dx<n; both are proven here (${prior}<${n.value}).` },
+        { message: `n must be a power of two with dx < n; both are proven here (${prior}<${n.value}).` },
         ...(flagsDead
           ? []
           : [{ message: "EOR leaves different arithmetic condition codes from NEG+ADD; review later CCR use." }]),

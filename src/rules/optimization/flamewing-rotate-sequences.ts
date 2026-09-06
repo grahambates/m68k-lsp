@@ -188,7 +188,7 @@ export const lslByteSeven: Rule = {
         applicability: safety.applicability,
       },
       notes: [
-        { message: "This is a speed-for-size tradeoff: Flamewing reports it faster but four bytes larger." },
+        { message: "This trades four bytes of code size for speed." },
         ...(safety.applicability === "safe"
           ? []
           : [{ message: "X/C differ from the original LSL and must not be observed." }]),

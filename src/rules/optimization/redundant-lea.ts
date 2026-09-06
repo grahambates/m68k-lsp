@@ -36,7 +36,7 @@ export const redundantLea: Rule = {
         replacement: canDeleteWholeLine ? "" : undefined,
         applicability: canDeleteWholeLine ? "safe" : "manual",
       },
-      notes: [{ message: "ASP68K lists LEA (An),An as deletable on all covered CPUs." }],
+      notes: [{ message: "The instruction loads the register with its own value, so it has no effect." }],
     });
   },
 };

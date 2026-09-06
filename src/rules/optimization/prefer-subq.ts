@@ -33,7 +33,7 @@ export const preferSubq: Rule = {
         replacement: d ? `subq${suffix} #${value.value},${d}` : undefined,
         applicability: "safe",
       },
-      notes: [{ message: "ASP68K specifies SUBQ when 1 <= n <= 8." }],
+      notes: [{ message: "SUBQ encodes its operand in three bits, covering 1 to 8." }],
     });
   },
 };

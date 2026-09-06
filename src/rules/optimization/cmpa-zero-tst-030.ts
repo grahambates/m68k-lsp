@@ -28,8 +28,7 @@ export const cmpaZeroToTst030: Rule = {
       suggestion: { description: "Use TST.L", replacement: `tst.l ${dest.register}`, applicability: "safe" },
       notes: [
         {
-          message:
-            "The long form has equivalent N/Z/V/C semantics for comparison with zero; ASP68K records a 68030 speed win.",
+          message: "The long form has equivalent N/Z/V/C semantics for comparison with zero.",
         },
         {
           message:

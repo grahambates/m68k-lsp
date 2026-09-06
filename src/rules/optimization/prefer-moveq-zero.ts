@@ -30,7 +30,7 @@ export const preferMoveqZero: Rule = {
         replacement: `moveq #0,${dest.register}`,
         applicability: "safe",
       },
-      notes: [{ message: "ASP68K lists CLR.L Dn → MOVEQ #0,Dn as faster on 68000/68010 with no size change." }],
+      notes: [{ message: "MOVEQ #0 zeroes the whole register in one word, with the same flag result as CLR.L." }],
     });
   },
 };

@@ -44,7 +44,7 @@ export const vasmNegativeSignedMultiply: Rule = {
         note = "vasm replaces MULS.L #-1,Dn with NEG.L Dn.";
       } else if (size === "w") {
         replacement = `ext.l ${r}\nneg.l ${r}`;
-        note = "vasm enables the MULS.W #-1 -> EXT.L + NEG.L form under speed optimization.";
+        note = "Multiplying by -1 is a sign extension followed by a negation.";
       } else return;
     } else {
       if (size !== "l" || !supportsLongMultiply(ctx)) return;

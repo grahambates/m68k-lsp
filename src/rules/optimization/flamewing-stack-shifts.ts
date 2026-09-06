@@ -164,7 +164,7 @@ export const stackAlignedKnownRegisterShifts: Rule = {
       category: this.meta.category,
       severity: this.meta.defaultSeverity,
       confidence: safety.confidence,
-      message: `${mnemonic.toUpperCase()}.${size.toUpperCase()} uses known count ${count}; Flamewing's bounded stack-scratch form is faster on 68000`,
+      message: `${mnemonic.toUpperCase()}.${size.toUpperCase()} uses known count ${count}; a bounded stack-scratch form is faster on 68000`,
       loc: setup.line.mnemonic!.loc,
       suggestion: {
         description: "Replace the MOVEQ count setup and register-count shift with the A7 scratch sequence",

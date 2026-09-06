@@ -36,7 +36,7 @@ function makeTailCallRule(id: string, from: "jsr" | "bsr", to: "jmp" | "bra"): R
         },
         notes: [
           {
-            message: `ASP68K suggests ${from.toUpperCase()} + RTS → ${to.toUpperCase()} and explicitly notes the different stack depth.`,
+            message: `${from.toUpperCase()} + RTS can become ${to.toUpperCase()}, but the stack depth in the callee differs.`,
           },
           ...(next.line.label
             ? [{ message: "The RTS line has a label; preserve any externally reachable label when rewriting." }]

@@ -70,7 +70,10 @@ export const pushAddressPea: Rule = {
         applicability: changed.applicability,
       },
       notes: [
-        { message: "ASP68K lists MOVE.L An,-(SP) followed by ADD/SUB on (SP) as a PEA folding opportunity." },
+        {
+          message:
+            "PEA computes the adjusted address directly, so the push and the arithmetic collapse into one instruction.",
+        },
         ...(changed.applicability === "safe"
           ? []
           : [{ message: "PEA preserves CCR, while the original arithmetic writes flags; review any later CCR use." }]),

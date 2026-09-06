@@ -42,7 +42,7 @@ export const preferTstZero: Rule = {
       message: "Comparison with zero can use TST",
       loc: line.mnemonic!.loc,
       suggestion: { description: "Use TST", replacement: d ? `tst${suffix} ${d}` : undefined, applicability: "safe" },
-      notes: [{ message: "ASP68K lists CMP #0 -> TST for data-register and memory operands." }],
+      notes: [{ message: "Comparing against zero is what TST does, without the immediate operand." }],
     });
   },
 };

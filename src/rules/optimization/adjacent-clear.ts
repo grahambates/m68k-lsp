@@ -56,7 +56,7 @@ function clearPair(fromSize: "b" | "w", toSize: "w" | "l", delta: number, id: st
           applicability: "manual",
         },
         notes: [
-          { message: "ASP68K lists this adjacent-clear collapse as a size/speed optimisation." },
+          { message: "The two addresses are adjacent, so one wider access covers both." },
           {
             message:
               "Manual review required: combining bus accesses can change behaviour for memory-mapped I/O, device registers, or fault boundaries.",

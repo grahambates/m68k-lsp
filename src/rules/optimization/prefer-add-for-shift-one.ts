@@ -41,7 +41,7 @@ export const preferAddForShiftOne: Rule = {
         applicability: safety.applicability,
       },
       notes: [
-        { message: "ASP68K lists ASL/LSL #1 → ADD Dn,Dn as faster on several early/mid 68k CPUs." },
+        { message: "Adding a register to itself doubles it, exactly as a one-bit left shift does." },
         ...(safety.applicability === "safe"
           ? []
           : [{ message: "Flag equivalence is not assumed here; review CCR use before applying." }]),

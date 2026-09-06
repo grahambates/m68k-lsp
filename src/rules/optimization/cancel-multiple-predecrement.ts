@@ -80,7 +80,7 @@ export const cancelMultiplePredecrementMoves: Rule = {
       notes: [
         {
           message:
-            "Both source effective addresses are independent of the adjusted address register, as required by ASP68K.",
+            "Both source effective addresses are independent of the adjusted address register, which the fold requires.",
         },
         {
           message:

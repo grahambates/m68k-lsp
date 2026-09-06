@@ -60,7 +60,12 @@ export const nullBranch: Rule = {
             replacement: canDeleteWholeLine ? "" : undefined,
             applicability: canDeleteWholeLine ? "safe" : "manual",
           },
-          notes: [{ message: "ASP68K recommends removing null branches while keeping the target label." }],
+          notes: [
+            {
+              message:
+                "The branch goes to the next instruction, so it has no effect. Keep the label: other code may target it.",
+            },
+          ],
         });
         return;
       }

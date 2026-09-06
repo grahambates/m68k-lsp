@@ -43,7 +43,7 @@ function makeAddressImmediateLea(mnemonic: "add" | "sub"): Rule {
         notes: [
           {
             message:
-              "Address-register ADD/SUB and LEA both preserve CCR; ASP68K gives this for signed 16-bit displacements outside the ADDQ/SUBQ range.",
+              "Address-register ADD/SUB and LEA both preserve CCR. This covers signed 16-bit displacements outside the ADDQ/SUBQ range.",
           },
         ],
       });

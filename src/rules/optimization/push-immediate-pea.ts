@@ -37,7 +37,7 @@ export const pushImmediatePea: Rule = {
         applicability: safety.applicability,
       },
       notes: [
-        { message: "ASP68K lists MOVE.L #n,-(SP) → PEA n.w for -32767..32767 on 68000/68010." },
+        { message: "PEA pushes an effective address, so it can replace the push of a signed 16-bit constant." },
         ...(safety.applicability === "safe"
           ? []
           : [{ message: "MOVE updates N/Z/V/C while PEA preserves CCR; review later flag use." }]),

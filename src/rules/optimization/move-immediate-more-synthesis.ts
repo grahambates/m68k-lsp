@@ -30,7 +30,6 @@ function synthesisRule(
   transformName: "not.w" | "swap",
   transform: (v: number) => number,
   allowed: readonly string[],
-  sourceLine: number,
 ): Rule {
   return {
     meta: {
@@ -68,7 +67,7 @@ function synthesisRule(
         },
         notes: [
           {
-            message: `ASP68K transformation row ${sourceLine}; candidate sequence is derived by evaluating all MOVEQ seeds rather than relying on the document's range notation.`,
+            message: `The candidate sequence is derived by evaluating every MOVEQ seed, so the range it covers is checked rather than assumed.`,
           },
           ...(safety.applicability === "safe"
             ? []
@@ -88,13 +87,9 @@ export const moveImmediateWordComplement = synthesisRule(
   "not.w",
   notWord,
   ["mc68000", "mc68010", "mc68030"],
-  616,
 );
 
-export const moveImmediateSwap = synthesisRule(
-  "optimization/move-immediate-swap",
-  "swap",
-  swapWord,
-  ["mc68000", "mc68010"],
-  622,
-);
+export const moveImmediateSwap = synthesisRule("optimization/move-immediate-swap", "swap", swapWord, [
+  "mc68000",
+  "mc68010",
+]);

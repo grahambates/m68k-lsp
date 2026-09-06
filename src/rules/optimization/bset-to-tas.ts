@@ -79,7 +79,9 @@ export const bsetToTas: Rule = {
           applicability: safety.applicability,
         },
         notes: [
-          { message: "ASP68K lists the BSET bit-7 + BEQ/BNE → TAS + BPL/BMI forms." },
+          {
+            message: "TAS sets bit 7 and tests the byte in one instruction, but the branch condition changes with it.",
+          },
           ...(safety.applicability === "safe"
             ? []
             : [{ message: "The replacement leaves different CCR values after the branch; review later flag use." }]),
@@ -107,7 +109,7 @@ export const bsetToTas: Rule = {
         applicability: safety.applicability,
       },
       notes: [
-        { message: "ASP68K lists this as a 2-byte saving on the supported targets." },
+        { message: "The quick form encodes its operand in the instruction word, with no extension word." },
         ...(safety.applicability === "safe"
           ? []
           : [{ message: "BSET and TAS set condition codes differently; review any later CCR use." }]),
