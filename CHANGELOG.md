@@ -5,6 +5,34 @@ previously lived in `README.md`.
 
 ## Unreleased
 
+### Added
+
+- `npm run verify:semantics`, a differential checker that runs each audit case
+  and its replacement on an m68k interpreter and compares every register and
+  condition-code bit. It exists because the impact audit proved replacements
+  were cheaper and nothing proved they were equivalent. It is a bug finder, not
+  a prover, and does not gate CI: the interpreter is a teaching tool whose
+  documentation disclaims full accuracy, so it is calibrated against 29
+  documented 68000 behaviours first, and a difference means a rule and an
+  interpreter disagree. See
+  [`docs/differential-checker.md`](docs/differential-checker.md).
+
+### Fixed
+
+- `optimization/prefer-link-sequence` claimed `applicability: "safe"` with no
+  flag check. LINK sets no condition codes, while the `MOVE.L a6,-(SP)` opening
+  the sequence it replaces sets N and Z and clears V and C. It is now `safe`
+  only where those four are dead, and `conditional` otherwise.
+- `optimization/quick-negative` claimed `applicability: "safe"` with no flag
+  check. ADD sets C on a carry out where SUB sets it on a borrow, so the two
+  forms leave opposite C and X for the same operands.
+- `optimization/negate-add-power-of-two-to-eor` was off by one and is renamed
+  `optimization/negate-add-mask-to-eor`. XOR by a mask `m` maps `x` to `m-x`, so
+  the identity pairs with `ADD #m`, not with the next power of two: `neg` then
+  `add #8` of 3 is 5, where `eor #7` of 3 is 4. The rule matched the power of
+  two and emitted the mask, producing a result one too low. It now matches the
+  mask. See [`docs/rule-id-migrations.md`](docs/rule-id-migrations.md).
+
 ### Changed
 
 - `stale-condition-code` moved from `correctness` to `suspicious`. It fires

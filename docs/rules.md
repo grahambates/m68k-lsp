@@ -119,7 +119,7 @@ Smaller or faster equivalents, gated on CPU target and proven flag/register live
 | `optimization/narrow-address-immediate-word` | suggestion | Use word-sized ADDA/SUBA immediates when the constant fits signed 16 bits | Flamewing M68000 Peephole Optimizations |
 | `optimization/narrow-cmpa-immediate-word` | suggestion | Use CMPA.W for signed 16-bit immediate comparisons | vasm m68k optimization history |
 | `optimization/narrow-movea-immediate-word` | suggestion | Use MOVEA.W for signed 16-bit immediate address loads on 68000 | Flamewing M68000 Peephole Optimizations |
-| `optimization/negate-add-power-of-two-to-eor` | suggestion | Replace NEG followed by ADD of a power of two with an EOR mask when the input is proven in range | ASP68K |
+| `optimization/negate-add-mask-to-eor` | suggestion | Replace NEG followed by ADD of a low-bit mask with an EOR by that mask when the input is proven in range | ASP68K |
 | `optimization/negate-add-to-sub` | suggestion | Remove NEG before ADD when the negated source is dead | ASP68K |
 | `optimization/negate-sub-to-add` | suggestion | Remove NEG before SUB when the negated source is dead | ASP68K |
 | `optimization/negative-signed-multiply` | suggestion | Replace signed multiplication by -1 or a negative power of two with NEG/shift operations | vasm m68k optimizer |

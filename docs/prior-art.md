@@ -97,20 +97,12 @@ wrong at least once in this project's history and will be again.
 translating a peephole and its replacement into SMT and proving equivalence, and
 has found real miscompilations that review missed. The 68000 equivalent does not
 need SMT: the state is small and concrete, so differential testing is enough.
-Take the before and after sequences a rule already emits, run both on an
-interpreter over randomised inputs, and compare every register and all five
-condition-code bits, ignoring flags the rule has proven dead.
 
-The pieces are largely present. The audit already holds 110 before/after pairs
-with a defined CPU target, and each carries the applicability and flag
-conditions the rule claims. What is missing is an execution engine;
-[`@specy/s68k`](https://www.npmjs.com/package/@specy/s68k) is a maintained
-Rust-to-WASM m68k interpreter published on npm, and
-[m68k-interpreter](https://github.com/gianlucarea/m68k-interpreter) is a
-dependency-free TypeScript core.
-
-This is the single largest improvement available to the project's confidence,
-and it is a bigger piece of work than any individual rule.
+**This is now built**, as `npm run verify:semantics` — see
+[`differential-checker.md`](differential-checker.md). It takes the before and
+after of each audit case, runs both on an interpreter over seeded inputs, and
+compares every register and all five condition-code bits. It has found three
+real rule defects so far, described there.
 
 ## Not found
 

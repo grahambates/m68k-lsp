@@ -1,6 +1,7 @@
 import type { ParsedLine } from "m68k-parser";
 import type { Rule } from "../../core/rule.js";
 import { addressRegisterOperand, immediateOperand, instructionSize, isInstruction, operand } from "../../util/ast.js";
+import { changedFlagsApplicability } from "./helpers.js";
 
 function isSpRegister(line: ParsedLine, operandIndex: number): boolean {
   const op = addressRegisterOperand(line, operandIndex);
@@ -44,24 +45,35 @@ export const preferLinkSequence: Rule = {
     const value = ctx.evaluate(imm.value);
     if (!value.known || value.value < -32767 || value.value > 32767) return;
 
+    // LINK sets no condition codes. The sequence it replaces does: the opening
+    // MOVE.L of the frame pointer to -(SP) sets N and Z from the value pushed
+    // and clears V and C. (The MOVEA and the ADDA are flag-free, so they
+    // contribute nothing.) X is preserved either way. So the rewrite is only
+    // unconditionally safe where those four are dead; the differential checker
+    // caught this claiming `safe` with no check at all.
+    const safety = changedFlagsApplicability(ctx, third.index, ["N", "Z", "V", "C"]);
+
     const manual = !!second.line.label || !!third.line.label;
     ctx.report({
       ruleId: this.meta.id,
       category: this.meta.category,
       severity: this.meta.defaultSeverity,
-      confidence: manual ? "high" : "certain",
+      confidence: manual ? "high" : safety.confidence,
       message: "Standard stack-frame setup can use LINK",
       loc: line.mnemonic!.loc,
       suggestion: {
         description: `Replace the three instructions with LINK ${frame.register},#${value.value}`,
         replacement: manual ? undefined : `link ${frame.register},#${value.value}`,
-        applicability: manual ? "manual" : "safe",
+        applicability: manual ? "manual" : safety.applicability,
       },
       notes: [
         {
           message:
             "LINK performs the same three steps: save the frame pointer, take the new one, and reserve the frame.",
         },
+        ...(safety.applicability === "safe"
+          ? []
+          : [{ message: "LINK leaves the condition codes untouched where the MOVE sets N and Z; review later CCR use." }]),
         ...(manual
           ? [
               {

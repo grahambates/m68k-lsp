@@ -155,6 +155,20 @@ describe("optimization rules", () => {
     const unlk = lint(teardown).find((d) => d.ruleId === "optimization/prefer-unlk-sequence");
     expect(unlk?.suggestion?.replacement).toBe("unlk a6");
   });
+
+  // The opening MOVE.L to -(SP) sets N and Z; LINK sets nothing. Found by the
+  // differential checker, which caught this claiming `safe` with no flag check.
+  test("LINK is only safe where the condition codes the MOVE sets are dead", () => {
+    const dead = ["move.l a6,-(sp)", "move.l sp,a6", "add.w #-32,sp", "moveq #0,d0", "rts"].join("\n");
+    expect(
+      lint(dead).find((d) => d.ruleId === "optimization/prefer-link-sequence")?.suggestion?.applicability,
+    ).toBe("safe");
+
+    const live = ["move.l a6,-(sp)", "move.l sp,a6", "add.w #-32,sp", "beq .out", ".out:", "rts"].join("\n");
+    expect(
+      lint(live).find((d) => d.ruleId === "optimization/prefer-link-sequence")?.suggestion?.applicability,
+    ).toBe("conditional");
+  });
 });
 
 test("DIVU.W power-of-two proves discarded remainder when upper word is overwritten", () => {
@@ -666,6 +680,19 @@ describe("v0.13 multiply and disposable-register sequence rules", () => {
     const source = ["neg.w d4", "add.w d4,d5", "moveq #0,d4", "move.l d0,d1", "rts"].join("\n");
     const diagnostic = lint(source).find((d) => d.ruleId === "optimization/negate-add-to-sub");
     expect(diagnostic?.suggestion?.replacement).toBe("sub.w d4,d5");
+  });
+
+  // XOR by a mask m maps x to m-x, so the identity pairs with ADD #m, not with
+  // the next power of two: neg/add #8 of 3 is 5 where eor #7 of 3 is 4. The
+  // rule matched the power of two and emitted the mask, and was off by one.
+  test("the NEG/ADD to EOR identity uses the mask, not the power of two above it", () => {
+    const mask = ["moveq #3,d0", "neg.l d0", "add.l #7,d0", "rts"].join("\n");
+    expect(lint(mask).find((d) => d.ruleId === "optimization/negate-add-mask-to-eor")?.suggestion?.replacement).toBe(
+      "eor.l #7,d0",
+    );
+
+    const powerOfTwo = ["moveq #3,d0", "neg.l d0", "add.l #8,d0", "rts"].join("\n");
+    expect(ids(powerOfTwo)).not.toContain("optimization/negate-add-mask-to-eor");
   });
 });
 

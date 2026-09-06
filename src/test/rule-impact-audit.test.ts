@@ -59,7 +59,7 @@ test("sequence folds measure their full source span", () => {
     "optimization/cancel-addq-predecrement-move",
     "optimization/negate-sub-to-add",
     "optimization/negate-add-to-sub",
-    "optimization/negate-add-power-of-two-to-eor",
+    "optimization/negate-add-mask-to-eor",
   ]) {
     const results = audit.filter((r) => r.ruleId === id);
     expect(results.length).toBeGreaterThan(0);

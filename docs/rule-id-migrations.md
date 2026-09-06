@@ -33,6 +33,7 @@ Rule IDs are now descriptive and source-neutral. Source provenance remains in ru
 | `optimization/tricks-compare-moveq`                       | `optimization/compare-long-immediate-via-moveq` |
 | `optimization/tricks-compare-subq-branch`                 | `optimization/destructive-small-compare-branch` |
 | `optimization/tricks-jsr-jmp-dispatch`                    | `optimization/jsr-jmp-tail-dispatch`            |
+| `optimization/negate-add-power-of-two-to-eor`              | `optimization/negate-add-mask-to-eor`           |
 
 ## Category change
 

@@ -62,7 +62,7 @@ import {
 import {
   negateThenSubToAdd,
   negateThenAddToSub,
-  negateAddPowerOfTwoToEor,
+  negateAddMaskToEor,
 } from "./optimization/negate-arithmetic-pair.js";
 import {
   moveImmediateBelowMoveq,
@@ -217,7 +217,7 @@ export {
   multiplyUnsignedWordHighPowerOfTwo,
   negateThenSubToAdd,
   negateThenAddToSub,
-  negateAddPowerOfTwoToEor,
+  negateAddMaskToEor,
   moveImmediateBelowMoveq,
   moveImmediateByteComplement,
   moveImmediateDoubleByte,
@@ -331,7 +331,7 @@ export const defaultRules: readonly Rule[] = [
   moveImmediateBelowMoveq,
   moveImmediateByteComplement,
   moveImmediateDoubleByte,
-  negateAddPowerOfTwoToEor,
+  negateAddMaskToEor,
   negateThenSubToAdd,
   negateThenAddToSub,
   multiplyUnsignedWordPowerOfTwo,

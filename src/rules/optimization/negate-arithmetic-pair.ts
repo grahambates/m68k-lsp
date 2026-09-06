@@ -72,12 +72,12 @@ export const negateThenSubToAdd = makeRule("optimization/negate-sub-to-add", "su
 
 export const negateThenAddToSub = makeRule("optimization/negate-add-to-sub", "add", "sub");
 
-export const negateAddPowerOfTwoToEor: Rule = {
+export const negateAddMaskToEor: Rule = {
   meta: {
-    id: "optimization/negate-add-power-of-two-to-eor",
+    id: "optimization/negate-add-mask-to-eor",
     category: "optimization",
     defaultSeverity: "suggestion",
-    description: "Replace NEG followed by ADD of a power of two with an EOR mask when the input is proven in range",
+    description: "Replace NEG followed by ADD of a low-bit mask with an EOR by that mask when the input is proven in range",
     tags: ["asp68k", "sequence", "constant-propagation", "ccr", "size", "speed"],
     docs: { source: "ASP68K" },
   },
@@ -102,25 +102,30 @@ export const negateAddPowerOfTwoToEor: Rule = {
       dest.register.toLowerCase() !== reg.register.toLowerCase()
     )
       return;
+    // The immediate must be a low-bit mask, not the power of two above it. XOR
+    // by a mask m maps x to m-x, so it matches NEG followed by ADD #m, and adding
+    // the next power of two instead lands one too high: with x=3, neg/add #8
+    // gives 5 while eor #7 gives 4. An earlier version of this rule matched #8
+    // and emitted #7, which the differential checker caught.
     const n = ctx.evaluate(imm.value);
-    if (!n.known || n.value <= 0 || (n.value & (n.value - 1)) !== 0 || prior >= n.value) return;
+    if (!n.known) return;
+    const mask = n.value;
+    if (mask <= 0 || ((mask + 1) & mask) !== 0 || prior > mask) return;
 
-    // The identity n-x == x XOR (n-1) holds for 0 <= x < n when n is a power of two.
-    // EOR and NEG+ADD do not have equivalent arithmetic flags, so only mark safe if all
-    // condition-code outputs are provably dead.
+    // EOR and NEG+ADD do not have equivalent arithmetic flags, so only mark safe if
+    // all condition-code outputs are provably dead.
     const flagStates = (["X", "N", "Z", "V", "C"] as const).map((flag) => ctx.flags.isLiveAfter(next.index, flag));
     const flagsDead = flagStates.every((state) => state === "dead");
     const flagsLive = flagStates.some((state) => state === "live");
     const applicability = flagsDead ? ("safe" as const) : ("conditional" as const);
     const confidence = flagsDead ? ("certain" as const) : flagsLive ? ("high" as const) : ("medium" as const);
-    const mask = n.value - 1;
     const replacement = `eor.${size} #${mask},${reg.register}`;
     ctx.report({
       ruleId: this.meta.id,
       category: this.meta.category,
       severity: this.meta.defaultSeverity,
       confidence,
-      message: `Known ${reg.register.toUpperCase()}=${prior} satisfies the power-of-two NEG/ADD identity`,
+      message: `Known ${reg.register.toUpperCase()}=${prior} satisfies the NEG/ADD mask identity`,
       loc: line.mnemonic!.loc,
       suggestion: {
         description: `Replace both instructions with ${replacement.toUpperCase()}`,
@@ -128,7 +133,7 @@ export const negateAddPowerOfTwoToEor: Rule = {
         applicability,
       },
       notes: [
-        { message: `n must be a power of two with dx < n; both are proven here (${prior}<${n.value}).` },
+        { message: `m must be a low-bit mask with dx <= m; both hold here (${prior}<=${mask}).` },
         ...(flagsDead
           ? []
           : [{ message: "EOR leaves different arithmetic condition codes from NEG+ADD; review later CCR use." }]),

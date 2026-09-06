@@ -233,7 +233,7 @@ export const asp68kCoverage: readonly Asp68kCoverageEntry[] = [
     note: "Requires the negated source register to be proven dead after the pair; CCR use is checked conservatively.",
   },
   {
-    rule: "optimization/negate-add-power-of-two-to-eor",
+    rule: "optimization/negate-add-mask-to-eor",
     sourceLines: [1128],
     status: "implemented",
     note: "Requires n power-of-two and a proven incoming dx value with 0<=dx<n; CCR use is checked.",

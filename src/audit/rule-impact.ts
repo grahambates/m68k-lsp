@@ -89,7 +89,7 @@ export const ruleImpactAuditCases: readonly RuleImpactAuditCase[] = [
   { ruleId: "optimization/muls-word-selected-constants", source: "muls.w #10,d0\nmoveq #0,d7" },
   { ruleId: "optimization/negate-sub-to-add", source: "neg.l d0\nsub.l d0,d1\nmoveq #0,d0" },
   { ruleId: "optimization/negate-add-to-sub", source: "neg.l d0\nadd.l d0,d1\nmoveq #0,d0" },
-  { ruleId: "optimization/negate-add-power-of-two-to-eor", source: "moveq #3,d0\nneg.l d0\nadd.l #8,d0\nmoveq #0,d7" },
+  { ruleId: "optimization/negate-add-mask-to-eor", source: "moveq #3,d0\nneg.l d0\nadd.l #7,d0\nmoveq #0,d7" },
   { ruleId: "optimization/move-immediate-below-moveq", source: "move.l #-129,d0\nmoveq #0,d7" },
   { ruleId: "optimization/move-immediate-byte-complement", source: "move.l #200,d0\nmoveq #0,d7" },
   { ruleId: "optimization/move-immediate-double-byte", source: "move.l #200,d0\nmoveq #0,d7" },
