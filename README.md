@@ -321,7 +321,8 @@ encodings that do not exist, and for claiming savings that measurement disproves
   [`docs/source-review.md`](docs/source-review.md).
 
 Further reading: [`docs/impact-measurement.md`](docs/impact-measurement.md),
-[`docs/rule-impact-audit.md`](docs/rule-impact-audit.md).
+[`docs/rule-impact-audit.md`](docs/rule-impact-audit.md),
+[`docs/prior-art.md`](docs/prior-art.md).
 Planned rules for the thinner categories, and the policy on what belongs here
 rather than in the assembler, are in
 [`docs/rule-roadmap.md`](docs/rule-roadmap.md).
