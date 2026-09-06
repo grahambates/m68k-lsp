@@ -82,6 +82,7 @@ import { longShiftSequence } from "./optimization/long-shift-sequences.js";
 import { moveImmediateAddressToLea, moveAddressThenAddToLea } from "./optimization/movea-lea.js";
 import { preferLeaForAddressSymbol } from "./optimization/lea-address-symbol.js";
 import { atariTrapStackCleanup } from "./platform/atari/trap-stack-cleanup.js";
+import { amigaBitMaskConstants } from "./platform/amiga/bit-mask-constants.js";
 import { cancelMultiplePredecrementMoves } from "./optimization/cancel-multiple-predecrement.js";
 import { cancelStackPeaSequence } from "./optimization/stack-pea-cancellation.js";
 import { multiplyLongByOne } from "./optimization/multiply-long-by-one.js";
@@ -160,6 +161,7 @@ export {
   partialRegisterWrite,
   unexpectedAbsoluteAddress,
   atariTrapStackCleanup,
+  amigaBitMaskConstants,
   requireInstructionSize,
   omitRedundantInstructionSize,
   preferAddressRegisterMnemonics,
@@ -381,6 +383,7 @@ export const defaultRules: readonly Rule[] = [
   partialRegisterWrite,
   unexpectedAbsoluteAddress,
   atariTrapStackCleanup,
+  amigaBitMaskConstants,
   selfMove,
   suspiciousNop,
   staleConditionCode,

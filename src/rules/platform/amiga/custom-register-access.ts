@@ -195,7 +195,16 @@ function knownAddressRegisterBefore(ctx: RuleContext, lineIndex: number, registe
   return undefined;
 }
 
-function effectiveAddress(ctx: RuleContext, op: OperandNode | undefined, lineIndex: number): number | undefined {
+/**
+ * Resolve an operand to a custom-register address, understanding both literal
+ * absolute addresses and the CUSTOM-base include convention. Shared with the
+ * bit/mask constant rule so both agree on what counts as a hardware register.
+ */
+export function amigaEffectiveAddress(
+  ctx: RuleContext,
+  op: OperandNode | undefined,
+  lineIndex: number,
+): number | undefined {
   if (!op) return undefined;
 
   if (op.type === "absolute-address") {
@@ -257,7 +266,7 @@ export const amigaCustomRegisterAccess: Rule = {
   checkLine(ctx, line, lineIndex) {
     for (let index = 0; index < (line.operands?.length ?? 0); index++) {
       const op = operand(line, index);
-      const address = effectiveAddress(ctx, op, lineIndex);
+      const address = amigaEffectiveAddress(ctx, op, lineIndex);
       if (address === undefined) continue;
       const register = amigaCustomRegisters.get(address);
       if (!register) continue;

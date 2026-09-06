@@ -1325,6 +1325,60 @@ describe("platform modes", () => {
   });
 });
 
+describe("Amiga DMAB_/DMAF_ and INTB_/INTF_ constant misuse", () => {
+  const amiga = { processors: ["mc68000"], platform: "amiga", measureImpact: false } as LintConfig;
+  const ID = "correctness/amiga-bit-mask-constant";
+  const base = "    lea CUSTOM,a6\n";
+  const find = (source: string) => lint(base + source, amiga).find((d) => d.ruleId === ID);
+  const flags = (source: string) => find(source) !== undefined;
+
+  test("accepts correctly paired constants", () => {
+    expect(flags("    move.w #DMAF_SETCLR!DMAF_MASTER!DMAF_COPPER,dmacon(a6)")).toBe(false);
+    expect(flags("    move.w #INTF_SETCLR!INTF_VERTB,intena(a6)")).toBe(false);
+    expect(flags("    btst #INTB_VERTB,intreqr+1(a6)")).toBe(false);
+  });
+
+  test("catches one wrong constant in an ORed list, with either operator", () => {
+    const bang = find("    move.w #DMAF_SETCLR!DMAB_MASTER!DMAF_COPPER,dmacon(a6)");
+    expect(bang?.message).toContain("DMAB_MASTER");
+    expect(bang?.suggestion?.replacement).toBe("move.w #DMAF_SETCLR!DMAF_MASTER!DMAF_COPPER,dmacon(a6)");
+
+    const pipe = find("    move.w #DMAF_SETCLR|DMAB_BLITTER,dmacon(a6)");
+    expect(pipe?.suggestion?.replacement).toBe("move.w #DMAF_SETCLR|DMAF_BLITTER,dmacon(a6)");
+  });
+
+  test("catches a mask used where a bit number is required", () => {
+    // The register is reached as a byte at intreqr+1, which still names INTREQR.
+    const diagnostic = find("    btst #INTF_VERTB,intreqr+1(a6)");
+    expect(diagnostic?.message).toContain("INTREQR");
+    expect(diagnostic?.suggestion?.replacement).toBe("btst #INTB_VERTB,intreqr+1(a6)");
+  });
+
+  test("catches the wrong family for the register", () => {
+    const diagnostic = find("    move.w #DMAF_SETCLR!INTF_COPER,dmacon(a6)");
+    expect(diagnostic?.message).toContain("INTF_COPER");
+    // No rename is offered: there is no DMA equivalent of an interrupt name.
+    expect(diagnostic?.suggestion?.replacement).toBeUndefined();
+  });
+
+  test("works through absolute addresses as well as the CUSTOM base", () => {
+    expect(
+      lint("    move.w #DMAF_SETCLR!DMAB_COPPER,$dff096", amiga).find((d) => d.ruleId === ID)?.suggestion?.replacement,
+    ).toBe("move.w #DMAF_SETCLR!DMAF_COPPER,$dff096");
+  });
+
+  test("uses the majority when no register is resolvable", () => {
+    const diagnostic = lint("    move.w #DMAF_SETCLR!DMAB_MASTER!DMAF_COPPER,d0", amiga).find((d) => d.ruleId === ID);
+    expect(diagnostic?.message).toContain("DMAB_MASTER");
+  });
+
+  test("leaves a lone bit number in a register alone", () => {
+    // Loading a bit number for a later BTST is legitimate.
+    expect(lint("    moveq #DMAB_COPPER,d0", amiga).some((d) => d.ruleId === ID)).toBe(false);
+    expect(lint("    move.w #FOO!BAR,$dff096", amiga).some((d) => d.ruleId === ID)).toBe(false);
+  });
+});
+
 describe("Amiga custom-register direction table", () => {
   const amiga = { processors: ["mc68000"], platform: "amiga", measureImpact: false } as LintConfig;
   const ID = "correctness/amiga-custom-register-access";

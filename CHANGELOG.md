@@ -52,6 +52,14 @@ previously lived in `README.md`.
 
 ### Added
 
+- `correctness/amiga-bit-mask-constant` — catches `DMAB_*`/`INTB_*` bit numbers
+  used where `DMAF_*`/`INTF_*` masks are required, and the reverse. The names
+  differ by one letter, so an editor completion picks the wrong one easily and
+  the value is silently wrong rather than rejected. Handles ORed lists with
+  either `!` or `|`, resolves the target through both absolute addresses and the
+  `CUSTOM` base convention including byte forms like `intreqr+1(a6)`, and
+  offers the corrected line. Classification is by symbol name, so no include
+  files are needed.
 - `suspicious/atari-trap-stack-cleanup` — GEMDOS, BIOS and XBIOS take their
   parameters on the stack and the caller removes them. This compares the pushes
   immediately before a trap against the adjustment immediately after, so it
