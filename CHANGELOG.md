@@ -5,6 +5,17 @@ previously lived in `README.md`.
 
 ## Unreleased
 
+### Fixed
+
+- A replacement no longer destroys a label on the code it replaces.
+  `start: move.l #100,d0` becoming `moveq #100,d0` was a `safe` suggestion that
+  deleted `start:`, and with it every branch to it. A label on the first matched
+  line is carried across, since it still points at the same instruction, and
+  deleting a labelled instruction leaves the label behind on its own line. A
+  label further into a match makes the finding `manual` with no rewrite: a run
+  collapsing to fewer lines leaves nowhere for a label that pointed into the
+  middle of it. Handled centrally, so no rule can forget.
+
 ### Added
 
 - A diagnostic says when its replacement works out a value rather than carrying

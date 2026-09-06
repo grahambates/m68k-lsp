@@ -41,10 +41,11 @@ describe("replacements adopt the source indentation", () => {
   });
 
   // A label occupies column zero, so the instruction's own indentation is the
-  // gap between the label and the mnemonic.
-  test("a label on the same line does not defeat the indent", () => {
+  // gap between the label and the mnemonic. The label itself is kept, since
+  // dropping it would break every branch to it.
+  test("a label on the same line is carried across with the indent", () => {
     const found = replacementFor("start:\tmove.l\t#100,d0\n\trts", "optimization/prefer-moveq");
-    expect(found).toBe("\tmoveq\t#100,d0");
+    expect(found).toBe("start:\tmoveq\t#100,d0");
   });
 
   test("a deletion stays empty rather than becoming whitespace", () => {

@@ -7,7 +7,7 @@ import { analyzeRegisters, type RegisterAnalysis } from "../analysis/registers.j
 import type { LintConfig } from "./config.js";
 import type { Diagnostic } from "./diagnostic.js";
 import { isMacroInvocation } from "../util/ast.js";
-import { computeSourceSpan } from "./span.js";
+import { computeSourceSpan, type SourceSpan } from "./span.js";
 
 export interface RuleContext {
   readonly file: ParsedFile;
@@ -186,6 +186,27 @@ function symbolsLostBy(original: readonly ParsedLine[], replacement: string): st
   return [...before].filter((name) => !after.has(name));
 }
 
+/**
+ * The text before the instruction on a line that carries a label, such as
+ * `start:` and the whitespace after it. Only a label sharing the line matters:
+ * one on its own line sits outside the span and is never touched.
+ */
+function labelPrefixOf(line: ParsedLine | undefined, sourceLine: string | undefined): string | undefined {
+  if (!line?.label || sourceLine === undefined) return undefined;
+  const start = line.mnemonic?.loc.start;
+  if (start === undefined || start <= 0) return undefined;
+  const prefix = sourceLine.slice(0, start);
+  return prefix.trim() ? prefix : undefined;
+}
+
+/** Put the label back on the first line of the replacement, or on its own if nothing is left. */
+function attachLabel(replacement: string, label: string): string {
+  if (!replacement.trim()) return label.trimEnd();
+  const lines = replacement.split("\n");
+  lines[0] = `${label}${lines[0].replace(/^[ \t]+/, "")}`;
+  return lines.join("\n");
+}
+
 export class DefaultRuleContext implements RuleContext {
   private readonly diagnostics: Diagnostic[] = [];
   private readonly sourceLines: string[];
@@ -210,7 +231,7 @@ export class DefaultRuleContext implements RuleContext {
 
   report(diagnostic: Diagnostic): void {
     const span = computeSourceSpan(diagnostic, this.file);
-    const suggestion = this.indentSuggestion(diagnostic);
+    const suggestion = this.placeSuggestion(diagnostic, span);
     const replacement = suggestion?.replacement ?? diagnostic.suggestion?.replacement;
     const lost =
       span && replacement !== undefined
@@ -239,15 +260,42 @@ export class DefaultRuleContext implements RuleContext {
    * indentation comes from the line the diagnostic is on, so a replacement
    * lands in the column its neighbours use.
    */
-  private indentSuggestion(diagnostic: Diagnostic): Diagnostic["suggestion"] {
-    const replacement = diagnostic.suggestion?.replacement;
-    if (!diagnostic.suggestion || !replacement) return undefined;
-    const lineIndex = (diagnostic.loc.line ?? 1) - 1;
-    const sourceLine = this.sourceLines[lineIndex];
-    const indented = indentBlock(replacement, indentOf(sourceLine));
-    const alignment = operandAlignmentOf(this.file.lines[lineIndex], sourceLine);
-    const aligned = alignment ? alignOperands(indented, alignment) : indented;
-    return { ...diagnostic.suggestion, replacement: aligned };
+  /**
+   * Lay a replacement out where it is going, and refuse where it cannot go.
+   *
+   * A replacement stands in for whole lines, so anything on them that is not
+   * the instruction is destroyed by applying it. A label is the case that
+   * matters: dropping one does not merely lose information, it breaks every
+   * branch to it. `start: move.l #100,d0` becoming `moveq #100,d0` was a
+   * `safe` suggestion that would have deleted `start:`.
+   *
+   * A label on the first line still points at the same instruction afterwards,
+   * so it is carried across. A label further into the run has nowhere to go
+   * once the run collapses -- three lines becoming one leaves no line for a
+   * label that pointed at the second -- so there is no rewrite to offer and the
+   * finding becomes a manual one. Done here rather than in each rule so that no
+   * rule can forget.
+   */
+  private placeSuggestion(diagnostic: Diagnostic, span: SourceSpan | undefined): Diagnostic["suggestion"] {
+    const suggestion = diagnostic.suggestion;
+    if (!suggestion || suggestion.replacement === undefined || !span) return undefined;
+
+    const matched = this.file.lines.slice(span.startLine - 1, span.endLine);
+    if (matched.slice(1).some((line) => line?.label)) {
+      return { ...suggestion, replacement: undefined, applicability: "manual" };
+    }
+
+    const first = this.file.lines[span.startLine - 1];
+    const sourceLine = this.sourceLines[span.startLine - 1];
+    let replacement = suggestion.replacement;
+    if (replacement) {
+      replacement = indentBlock(replacement, indentOf(sourceLine));
+      const alignment = operandAlignmentOf(first, sourceLine);
+      if (alignment) replacement = alignOperands(replacement, alignment);
+    }
+
+    const label = labelPrefixOf(first, sourceLine);
+    return { ...suggestion, replacement: label ? attachLabel(replacement, label) : replacement };
   }
 
   /** Drop the record of constants borrowed from other files. Called per line. */

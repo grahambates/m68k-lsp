@@ -212,6 +212,12 @@ always explicit:
   branches to, or the finding is a question about intent rather than a
   substitution.
 
+A replacement stands in for whole lines, so a label on the first of them is
+carried across — it still points at the same instruction — and a label further
+into the match makes the finding manual, because a run collapsing to fewer lines
+leaves nowhere for a label that pointed into the middle of it. Deleting a
+labelled instruction leaves the label behind on its own.
+
 A rewrite is withheld only when there is none to write. Where the text is known
 and its correctness rests on something statable but unprovable — a callee that
 must not read arguments relative to SP, a device that must tolerate a wider
