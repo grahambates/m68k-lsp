@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { readFile } from "node:fs/promises";
+import { readFile, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { parseFile, type ParseError } from "m68k-parser";
 import { lintParsedFile } from "../core/lint.js";
@@ -15,6 +15,16 @@ import {
 } from "../core/config.js";
 import type { Diagnostic, RuleCategory, Severity } from "../core/diagnostic.js";
 import { formatImpact, paint } from "./format.js";
+import {
+  collectInitAnswers,
+  describeInitConfig,
+  detectSourceGlobs,
+  initConfigFileName,
+  normalizeIgnoreGlobs,
+  renderInitConfig,
+  terminalPrompt,
+  validateProcessors,
+} from "./init.js";
 import { defaultRules } from "../rules/index.js";
 import { asp68kCoverage, asp68kCoverageSummary } from "../coverage-asp68k.js";
 import { runRuleImpactAudit } from "../audit/rule-impact.js";
@@ -55,10 +65,11 @@ interface CliOptions {
   inlineConfig?: boolean;
   impactSummary: boolean;
   auditRuleImpact: boolean;
+  init: boolean;
 }
 
 function usage(): string {
-  return `m68k-lint ${VERSION}\n\nUsage:\n  m68k-lint [options] <file|directory|glob ...>\n\nOptions:\n  --config <path>               Use a specific JSON config file\n  --no-config                   Disable config-file discovery\n  --ext <ext[,ext...]>          Extensions for directory/glob discovery; default: .s,.asm,.i\n  --ignore-pattern <glob>       Ignore matching files (repeatable)\n  --cpu <cpu[,cpu...]>          Target processor(s), default: mc68000\n  --platform <name>             generic, amiga, atari; default: generic\n  --preset <name[,name...]>     Enable rule preset(s): recommended, style\n  --goal <balanced|speed|size>  Filter known optimization trade-offs, default: balanced\n  --impact                      Enable exact 68000 impact measurement\n  --no-impact                   Disable exact 68000 impact measurement\n  --inline-config               Honor m68k-lint comment directives (default)\n  --no-inline-config            Ignore m68k-lint comment directives\n  --impact-summary              Summarize measured outcomes by rule\n  --audit-rule-impact           Run representative 68000 timing audit for every optimization rule\n  --only <category[,category]>  Run only selected rule categories\n  --disable-category <category> Disable a rule category (repeatable)\n  --rule <id>=<setting>         Override a rule: off|error|warning|suggestion|info\n  --format <pretty|json>        Output format, default: pretty\n  --fail-on <severity>          Exit 1 at this severity or higher, default: error\n  --list-rules                  List built-in rules and exit\n  --asp68k-coverage             Show tracked ASP68K table coverage and exit\n  --color / --no-color          Force or disable ANSI colours; default: TTY only\n  -h, --help                    Show this help\n  -v, --version                 Show version\n\nExamples:\n  m68k-lint game.s\n  m68k-lint src/\n  m68k-lint "src/**/*.asm"\n  m68k-lint --ext .s,.asm,.i,.inc src/\n  m68k-lint --platform amiga --cpu mc68000 src/\n  m68k-lint --rule suspicious/nop=warning --fail-on warning game.s\n`;
+  return `m68k-lint ${VERSION}\n\nUsage:\n  m68k-lint [options] <file|directory|glob ...>\n\nOptions:\n  --config <path>               Use a specific JSON config file\n  --no-config                   Disable config-file discovery\n  --ext <ext[,ext...]>          Extensions for directory/glob discovery; default: .s,.asm,.i\n  --ignore-pattern <glob>       Ignore matching files (repeatable)\n  --cpu <cpu[,cpu...]>          Target processor(s), default: mc68000\n  --platform <name>             generic, amiga, atari; default: generic\n  --preset <name[,name...]>     Enable rule preset(s): recommended, style\n  --goal <balanced|speed|size>  Filter known optimization trade-offs, default: balanced\n  --impact                      Enable exact 68000 impact measurement\n  --no-impact                   Disable exact 68000 impact measurement\n  --inline-config               Honor m68k-lint comment directives (default)\n  --no-inline-config            Ignore m68k-lint comment directives\n  --impact-summary              Summarize measured outcomes by rule\n  --audit-rule-impact           Run representative 68000 timing audit for every optimization rule\n  --only <category[,category]>  Run only selected rule categories\n  --disable-category <category> Disable a rule category (repeatable)\n  --rule <id>=<setting>         Override a rule: off|error|warning|suggestion|info\n  --format <pretty|json>        Output format, default: pretty\n  --fail-on <severity>          Exit 1 at this severity or higher, default: error\n  --init                        Create a project config file interactively\n  --list-rules                  List built-in rules and exit\n  --asp68k-coverage             Show tracked ASP68K table coverage and exit\n  --color / --no-color          Force or disable ANSI colours; default: TTY only\n  -h, --help                    Show this help\n  -v, --version                 Show version\n\nExamples:\n  m68k-lint game.s\n  m68k-lint src/\n  m68k-lint "src/**/*.asm"\n  m68k-lint --ext .s,.asm,.i,.inc src/\n  m68k-lint --platform amiga --cpu mc68000 src/\n  m68k-lint --rule suspicious/nop=warning --fail-on warning game.s\n`;
 }
 
 function requireValue(argv: string[], index: number, option: string): string {
@@ -95,6 +106,7 @@ function parseArgs(argv: string[]): CliOptions | "help" | "version" {
     asp68kCoverage: false,
     impactSummary: false,
     auditRuleImpact: false,
+    init: false,
   };
 
   for (let i = 0; i < argv.length; i++) {
@@ -135,6 +147,10 @@ function parseArgs(argv: string[]): CliOptions | "help" | "version" {
     }
     if (arg === "--audit-rule-impact") {
       options.auditRuleImpact = true;
+      continue;
+    }
+    if (arg === "--init") {
+      options.init = true;
       continue;
     }
     if (arg === "--list-rules") {
@@ -341,6 +357,53 @@ async function lintOne(path: string, options: CliOptions, config: LintConfig) {
   return { path, source, parseErrors: parsed.errors, diagnostics };
 }
 
+async function runInit(color: boolean): Promise<number> {
+  if (!process.stdin.isTTY) {
+    console.error("m68k-lint: --init needs an interactive terminal. Write m68k-lint.json by hand instead;");
+    console.error("its schema is at node_modules/m68k-lint/m68k-lint.schema.json.");
+    return 2;
+  }
+
+  const target = resolve(process.cwd(), initConfigFileName);
+  const { createInterface } = await import("node:readline/promises");
+  const rl = createInterface({ input: process.stdin, output: process.stdout });
+  try {
+    let existing = false;
+    try {
+      await readFile(target, "utf8");
+      existing = true;
+    } catch {
+      // No config yet, which is the normal case.
+    }
+
+    const prompt = terminalPrompt(rl);
+    if (existing && !(await prompt.confirm(`${initConfigFileName} already exists. Overwrite?`, false))) {
+      console.log("Cancelled; nothing written.");
+      return 0;
+    }
+
+    const answers = await collectInitAnswers(prompt, await detectSourceGlobs(process.cwd()));
+    answers.processors = validateProcessors(answers.processors);
+    answers.ignores = normalizeIgnoreGlobs(answers.ignores);
+
+    const contents = renderInitConfig(answers);
+    console.log(`\n${contents}`);
+    if (!(await prompt.confirm(`Write ${initConfigFileName}?`, true))) {
+      console.log("Cancelled; nothing written.");
+      return 0;
+    }
+
+    await writeFile(target, contents, "utf8");
+    console.log(`${paint(color, 32, "Created")} ${initConfigFileName} (${describeInitConfig(answers)})`);
+    return 0;
+  } catch (error) {
+    console.error(`m68k-lint: ${error instanceof Error ? error.message : String(error)}`);
+    return 2;
+  } finally {
+    rl.close();
+  }
+}
+
 async function main(): Promise<number> {
   let parsedArgs: CliOptions | "help" | "version";
   try {
@@ -361,6 +424,7 @@ async function main(): Promise<number> {
   }
 
   const options = parsedArgs;
+  if (options.init) return runInit(options.color);
   if (options.listRules) {
     for (const rule of defaultRules) {
       const state = rule.meta.enabledByDefault === false ? "off by default" : rule.meta.defaultSeverity;

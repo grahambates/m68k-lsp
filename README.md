@@ -101,6 +101,16 @@ ctx.registers.isLiveAfter(0, "d0"); // "dead" | "live" | "unknown"
 
 ## Configuration
 
+```sh
+m68k-lint --init
+```
+
+Asks for platform, processors, optimization goal and the style preset, suggests
+source globs from the directories it finds, and writes `m68k-lint.json`. Only
+answers that differ from the defaults are written, and an ignore entry naming a
+bare directory gets the trailing `/**` it needs to match anything. It shows the
+file and asks before writing, and asks again before overwriting an existing one.
+
 The CLI searches upward for `m68k-lint.json` or `.m68klintrc.json`. Precedence is
 defaults < config file < CLI, with `rules` merged so `--rule` overrides only the
 named rule. File and ignore patterns are relative to the config file's directory.

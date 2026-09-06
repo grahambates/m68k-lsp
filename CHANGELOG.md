@@ -82,6 +82,13 @@ form`. A reader has no way to check what a source said, and a claim repeated
 
 ### Added
 
+- `m68k-lint --init` writes a project config interactively, asking for platform,
+  processors, optimization goal and the style preset. It suggests source globs
+  from the directories actually present, writes only the answers that differ
+  from the defaults, and gives an ignore entry naming a bare directory the
+  trailing `/**` it needs to match anything. It shows the file before writing
+  and will not overwrite an existing config without asking.
+
 - `correctness/amiga-bit-mask-constant` — catches `DMAB_*`/`INTB_*` bit numbers
   used where `DMAF_*`/`INTF_*` masks are required, and the reverse. The names
   differ by one letter, so an editor completion picks the wrong one easily and
