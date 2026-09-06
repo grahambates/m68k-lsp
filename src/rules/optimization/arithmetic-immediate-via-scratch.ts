@@ -1,6 +1,7 @@
 import type { Rule } from "../../core/rule.js";
 import { dataRegisterOperand, immediateOperand, instructionSize } from "../../util/ast.js";
 import { semanticMnemonic } from "../../semantics/mnemonics.js";
+import { valueText } from "./helpers.js";
 
 /**
  * A long immediate in the MOVEQ range costs two extension words; MOVEQ carries
@@ -47,7 +48,7 @@ export const arithmeticImmediateViaScratch: Rule = {
     const scratch = ctx.registers.deadDataRegistersAfter(index).find((register) => register.toLowerCase() !== target);
     if (!scratch) return;
 
-    const replacement = `moveq #${value.value},${scratch}\n${mnemonic}.l ${scratch},${destination.register}`;
+    const replacement = `moveq #${valueText(ctx, immediate.value, value.value)},${scratch}\n${mnemonic}.l ${scratch},${destination.register}`;
 
     ctx.report({
       ruleId: this.meta.id,

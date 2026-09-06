@@ -1,6 +1,6 @@
 import type { Rule } from "../../core/rule.js";
 import { immediateOperand, instructionSize, isAddqDestination, isInstructionFamily, operand } from "../../util/ast.js";
-import { sourceOperand } from "./helpers.js";
+import { sourceOperand, valueText } from "./helpers.js";
 
 export const preferSubq: Rule = {
   meta: {
@@ -21,6 +21,8 @@ export const preferSubq: Rule = {
     if (!value.known || value.value < 1 || value.value > 8) return;
     const suffix = size ? `.${size}` : "";
     const d = sourceOperand(ctx, line, 1);
+    const written = valueText(ctx, imm.value, value.value);
+
     ctx.report({
       ruleId: this.meta.id,
       category: this.meta.category,
@@ -30,7 +32,7 @@ export const preferSubq: Rule = {
       loc: line.mnemonic!.loc,
       suggestion: {
         description: "Use SUBQ",
-        replacement: d ? `subq${suffix} #${value.value},${d}` : undefined,
+        replacement: d ? `subq${suffix} #${written},${d}` : undefined,
         applicability: "safe",
       },
       notes: [{ message: "SUBQ encodes its operand in three bits, covering 1 to 8." }],

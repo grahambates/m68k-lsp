@@ -1,6 +1,6 @@
 import type { Rule } from "../../core/rule.js";
 import { addressRegisterOperand, immediateOperand, instructionSize, isInstruction } from "../../util/ast.js";
-import { sourceOperand } from "./helpers.js";
+import { sourceOperand, valueText } from "./helpers.js";
 
 function stripImmediate(text: string): string {
   return text.trim().replace(/^#\s*/, "");
@@ -92,7 +92,7 @@ export const moveAddressThenAddToLea: Rule = {
     const value = ctx.evaluate(imm.value);
     if (!value.known || value.value < -32768 || value.value > 32767) return;
 
-    const replacement = `lea ${value.value}(${source.register}),${dest.register}`;
+    const replacement = `lea ${valueText(ctx, imm.value, value.value)}(${source.register}),${dest.register}`;
     ctx.report({
       ruleId: this.meta.id,
       category: this.meta.category,

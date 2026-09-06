@@ -1,5 +1,6 @@
 import type { Rule } from "../../core/rule.js";
 import { addressRegisterOperand, immediateExpressionOperand, instructionSize, isInstruction } from "../../util/ast.js";
+import { valueText } from "./helpers.js";
 
 function m68000Only(ctx: Parameters<NonNullable<Rule["checkLine"]>>[0]): boolean {
   return ctx.config.processors.every((cpu) => cpu === "mc68000");
@@ -35,7 +36,7 @@ export const narrowMoveaImmediate: Rule = {
       loc: line.mnemonic!.loc,
       suggestion: {
         description: "Use MOVEA.W immediate",
-        replacement: `movea.w #${value.value},${dst.register}`,
+        replacement: `movea.w #${valueText(ctx, expr, value.value)},${dst.register}`,
         applicability: "safe",
         impact: { sizeBytes: { delta: -2, confidence: "source" } },
       },
@@ -80,7 +81,7 @@ export const narrowAddaSubaImmediate: Rule = {
       loc: line.mnemonic!.loc,
       suggestion: {
         description: `Use ${op.toUpperCase()}.W immediate`,
-        replacement: `${op}.w #${value.value},${dst.register}`,
+        replacement: `${op}.w #${valueText(ctx, expr, value.value)},${dst.register}`,
         applicability: "safe",
         impact: { sizeBytes: { delta: -2, confidence: "source" } },
       },
@@ -119,7 +120,7 @@ export const narrowCmpaImmediate: Rule = {
       loc: line.mnemonic!.loc,
       suggestion: {
         description: "Use CMPA.W immediate",
-        replacement: `cmpa.w #${value.value},${dst.register}`,
+        replacement: `cmpa.w #${valueText(ctx, expr, value.value)},${dst.register}`,
         applicability: "safe",
         impact: { sizeBytes: { delta: -2, confidence: "source" } },
       },

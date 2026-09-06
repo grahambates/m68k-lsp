@@ -1,7 +1,7 @@
 import type { ParsedLine } from "m68k-parser";
 import type { Rule } from "../../core/rule.js";
 import { addressRegisterOperand, immediateOperand, instructionSize, isInstruction, operand } from "../../util/ast.js";
-import { changedFlagsApplicability } from "./helpers.js";
+import { changedFlagsApplicability, valueText } from "./helpers.js";
 
 function isSpRegister(line: ParsedLine, operandIndex: number): boolean {
   const op = addressRegisterOperand(line, operandIndex);
@@ -63,7 +63,7 @@ export const preferLinkSequence: Rule = {
       loc: line.mnemonic!.loc,
       suggestion: {
         description: `Replace the three instructions with LINK ${frame.register},#${value.value}`,
-        replacement: manual ? undefined : `link ${frame.register},#${value.value}`,
+        replacement: manual ? undefined : `link ${frame.register},#${valueText(ctx, imm.value, value.value)}`,
         applicability: manual ? "manual" : safety.applicability,
       },
       notes: [
@@ -73,7 +73,11 @@ export const preferLinkSequence: Rule = {
         },
         ...(safety.applicability === "safe"
           ? []
-          : [{ message: "LINK leaves the condition codes untouched where the MOVE sets N and Z; review later CCR use." }]),
+          : [
+              {
+                message: "LINK leaves the condition codes untouched where the MOVE sets N and Z; review later CCR use.",
+              },
+            ]),
         ...(manual
           ? [
               {

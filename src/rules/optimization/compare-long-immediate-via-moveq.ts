@@ -1,6 +1,7 @@
 import type { Rule } from "../../core/rule.js";
 import { dataRegisterOperand, immediateExpressionOperand, instructionSize, isInstruction } from "../../util/ast.js";
 import { normalizeRegister } from "../../semantics/registers.js";
+import { valueText } from "./helpers.js";
 
 export const compareLongImmediateViaMoveq: Rule = {
   meta: {
@@ -32,7 +33,7 @@ export const compareLongImmediateViaMoveq: Rule = {
       loc: line.mnemonic!.loc,
       suggestion: {
         description: `Load the small constant with MOVEQ into ${scratch.toUpperCase()} and compare registers`,
-        replacement: `moveq #${value.value},${scratch}\ncmp.l ${scratch},${target}`,
+        replacement: `moveq #${valueText(ctx, expr, value.value)},${scratch}\ncmp.l ${scratch},${target}`,
         applicability: "safe",
       },
       notes: [

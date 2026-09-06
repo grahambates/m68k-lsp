@@ -2,7 +2,7 @@ import type { Rule } from "../../core/rule.js";
 import { dataRegisterOperand, immediateExpressionOperand, instructionSize, isInstruction } from "../../util/ast.js";
 import { normalizeRegister } from "../../semantics/registers.js";
 import { canonicalMnemonic } from "../../semantics/mnemonics.js";
-import { hasLabelBetween, sourceOperand } from "./helpers.js";
+import { hasLabelBetween, sourceOperand, valueText } from "./helpers.js";
 
 function isConditionalBranch(line: Parameters<NonNullable<Rule["checkLine"]>>[1]): boolean {
   const m = canonicalMnemonic(line) ?? "";
@@ -48,7 +48,7 @@ export const destructiveSmallCompareBranch: Rule = {
       loc: line.mnemonic!.loc,
       suggestion: {
         description: "Use SUBQ to set the same NZVC flags because the compared register and X are dead afterwards",
-        replacement: `subq.${size} #${value.value},${reg}\n${branch}${suffix} ${branchTarget}`,
+        replacement: `subq.${size} #${valueText(ctx, expr, value.value)},${reg}\n${branch}${suffix} ${branchTarget}`,
         applicability: "safe",
       },
       notes: [

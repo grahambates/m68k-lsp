@@ -2,7 +2,7 @@ import type { OperandNode } from "m68k-parser";
 import type { Rule } from "../../core/rule.js";
 import { registersReadByOperand } from "../../semantics/registers.js";
 import { immediateOperand, instructionSize, isInstruction, operand } from "../../util/ast.js";
-import { sourceOperand } from "./helpers.js";
+import { sourceOperand, valueText } from "./helpers.js";
 
 function isMemoryDestination(op: OperandNode | undefined): boolean {
   return (
@@ -43,7 +43,7 @@ export const moveImmediateViaScratch: Rule = {
     const destText = sourceOperand(ctx, line, 1);
     if (!destText) return;
 
-    const replacement = `moveq #${value.value},${scratch}\nmove.l ${scratch},${destText}`;
+    const replacement = `moveq #${valueText(ctx, source.value, value.value)},${scratch}\nmove.l ${scratch},${destText}`;
     ctx.report({
       ruleId: this.meta.id,
       category: this.meta.category,

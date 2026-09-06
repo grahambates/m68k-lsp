@@ -1,6 +1,6 @@
 import type { Rule } from "../../core/rule.js";
 import { immediateOperand, instructionSize, isInstruction, operand } from "../../util/ast.js";
-import { changedFlagsApplicability } from "./helpers.js";
+import { changedFlagsApplicability, valueText } from "./helpers.js";
 
 export const pushImmediatePea: Rule = {
   meta: {
@@ -24,6 +24,8 @@ export const pushImmediatePea: Rule = {
     if (!ctx.config.processors.every((cpu) => cpu === "mc68000" || cpu === "mc68010")) return;
 
     const safety = changedFlagsApplicability(ctx, index, ["N", "Z", "V", "C"]);
+    const written = valueText(ctx, source.value, value.value);
+
     ctx.report({
       ruleId: this.meta.id,
       category: this.meta.category,
@@ -32,8 +34,8 @@ export const pushImmediatePea: Rule = {
       message: "Immediate longword push can use PEA with an absolute-short effective address",
       loc: line.mnemonic!.loc,
       suggestion: {
-        description: `Use PEA ${value.value}.w`,
-        replacement: `pea ${value.value}.w`,
+        description: `Use PEA ${written}.w`,
+        replacement: `pea ${written}.w`,
         applicability: safety.applicability,
       },
       notes: [

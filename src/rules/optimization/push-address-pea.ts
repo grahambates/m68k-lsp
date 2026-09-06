@@ -1,7 +1,7 @@
 import type { ParsedLine } from "m68k-parser";
 import type { Rule } from "../../core/rule.js";
 import { addressRegisterOperand, immediateOperand, instructionSize, isInstruction, operand } from "../../util/ast.js";
-import { changedFlagsApplicability, sourceOperand } from "./helpers.js";
+import { changedFlagsApplicability, negatedValueText, sourceOperand, valueText } from "./helpers.js";
 
 function isStackPredecrement(line: ParsedLine, operandIndex: number): boolean {
   const op = operand(line, operandIndex);
@@ -51,6 +51,8 @@ export const pushAddressPea: Rule = {
     if (!value.known) return;
 
     const displacement = op === "add" ? value.value : -value.value;
+    const displacementText =
+      op === "add" ? valueText(ctx, imm.value, displacement) : negatedValueText(ctx, imm.value, displacement);
     // On 68000-class addressing, d16(An) is the useful portable form.
     if (displacement < -32768 || displacement > 32767) return;
 
@@ -66,7 +68,7 @@ export const pushAddressPea: Rule = {
       loc: line.mnemonic!.loc,
       suggestion: {
         description: `Replace the two instructions with PEA ${displacement}(${register})`,
-        replacement: `pea ${displacement}(${register})`,
+        replacement: `pea ${displacementText}(${register})`,
         applicability: changed.applicability,
       },
       notes: [

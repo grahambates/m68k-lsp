@@ -1,5 +1,6 @@
 import type { Rule } from "../../core/rule.js";
 import { addressRegisterOperand, immediateOperand, instructionSize, isInstructionFamily } from "../../util/ast.js";
+import { negatedValueText, valueText } from "./helpers.js";
 
 function makeAddressImmediateLea(mnemonic: "add" | "sub"): Rule {
   const id = mnemonic === "add" ? "optimization/address-add-to-lea" : "optimization/address-sub-to-lea";
@@ -24,6 +25,12 @@ function makeAddressImmediateLea(mnemonic: "add" | "sub"): Rule {
       const displacement = mnemonic === "add" ? value.value : -value.value;
       if (Math.abs(value.value) < 9 || displacement < -32767 || displacement > 32767) return;
 
+      // ADD carries the immediate across untouched, so the displacement is
+      // written exactly as the author wrote it. SUB has to negate it, which can
+      // only be done in the text for a bare symbol or number.
+      const displacementText =
+        mnemonic === "add" ? valueText(ctx, imm.value, displacement) : negatedValueText(ctx, imm.value, displacement);
+
       const allowed =
         mnemonic === "add" ? ["mc68000", "mc68010", "mc68030"] : ["mc68000", "mc68010", "mc68030", "mc68040"];
       if (!ctx.config.processors.every((cpu) => allowed.includes(cpu))) return;
@@ -36,8 +43,8 @@ function makeAddressImmediateLea(mnemonic: "add" | "sub"): Rule {
         message: `${mnemonic.toUpperCase()} immediate to ${dest.register} can use LEA on this target`,
         loc: line.mnemonic!.loc,
         suggestion: {
-          description: `Use LEA ${displacement}(${dest.register}),${dest.register}`,
-          replacement: `lea ${displacement}(${dest.register}),${dest.register}`,
+          description: `Use LEA ${displacementText}(${dest.register}),${dest.register}`,
+          replacement: `lea ${displacementText}(${dest.register}),${dest.register}`,
           applicability: "safe",
         },
         notes: [

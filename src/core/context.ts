@@ -19,6 +19,8 @@ export interface RuleContext {
   evaluate(expr: ExpressionNode): ConstantResult;
   line(index: number): ParsedLine | undefined;
   sourceLine(index: number): string | undefined;
+  /** The exact source text of a parsed node, so replacements can keep what the author wrote. */
+  sourceTextOf(node: { loc?: { line?: number; start: number; end: number } } | undefined): string | undefined;
   previousInstruction(index: number): { line: ParsedLine; index: number } | undefined;
   nextInstruction(index: number): { line: ParsedLine; index: number } | undefined;
 }
@@ -81,6 +83,23 @@ export class DefaultRuleContext implements RuleContext {
 
   sourceLine(index: number): string | undefined {
     return this.sourceLines[index];
+  }
+
+  /**
+   * The source text a node was parsed from.
+   *
+   * Rules that pass a value straight through use this instead of the number it
+   * evaluates to, so a replacement for `adda.w #SCREEN_BW/2,a3` reads
+   * `lea SCREEN_BW/2(a3),a3` rather than `lea 160(a3),a3`. Substituting the
+   * number is a correct instruction and a bad edit: it discards the name that
+   * says what the value means, and freezes a number that was meant to follow
+   * the constant when it changes.
+   */
+  sourceTextOf(node: { loc?: { line?: number; start: number; end: number } } | undefined): string | undefined {
+    const loc = node?.loc;
+    if (!loc || loc.line === undefined) return undefined;
+    const text = this.sourceLines[loc.line - 1]?.slice(loc.start, loc.end).trim();
+    return text ? text : undefined;
   }
 
   /**

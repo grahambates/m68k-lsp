@@ -5,6 +5,19 @@ previously lived in `README.md`.
 
 ## Unreleased
 
+### Changed
+
+- Suggested replacements keep the expression the source wrote instead of the
+  number it evaluates to. `adda.w #SCREEN_BW/2+(SCREEN_H/2*SCREEN_BW),a3` now
+  suggests `lea SCREEN_BW/2+(SCREEN_H/2*SCREEN_BW)(a3),a3` rather than
+  `lea 1610(a3),a3`. Substituting the value produced a correct instruction and a
+  bad edit: it discarded the name saying what the number meant, and froze a
+  value that was supposed to follow the constant when it changed. The base a
+  literal was written in is kept too, so a `$3f` mask stays hexadecimal.
+  Applies to the fifteen rules that carry a value through unchanged; rules
+  emitting a value they derived, such as a shift count from a multiplier, still
+  write a number, because there is no symbol to keep.
+
 ### Added
 
 - Constants are resolved across the project. Files are linted one at a time, so

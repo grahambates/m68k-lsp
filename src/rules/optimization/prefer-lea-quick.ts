@@ -1,6 +1,6 @@
 import type { Rule } from "../../core/rule.js";
 import { addressRegisterOperand, isInstruction, operand } from "../../util/ast.js";
-import { sourceOperand } from "./helpers.js";
+import { negatedValueText, sourceOperand, valueText } from "./helpers.js";
 
 function sameAddressRegister(a: unknown, b: unknown): boolean {
   return (
@@ -40,6 +40,10 @@ export const preferLeaQuick: Rule = {
     const positive = displacement.value > 0;
     const mnemonic = positive ? "addq" : "subq";
     const value = Math.abs(displacement.value);
+    // SUBQ carries the magnitude, so a negative displacement needs the text negated.
+    const written = positive
+      ? valueText(ctx, source.displacement, value)
+      : negatedValueText(ctx, source.displacement, value);
 
     ctx.report({
       ruleId: this.meta.id,
@@ -50,7 +54,7 @@ export const preferLeaQuick: Rule = {
       loc: line.mnemonic!.loc,
       suggestion: {
         description: `Use ${mnemonic.toUpperCase()}.W`,
-        replacement: `${mnemonic}.w #${value},${register}`,
+        replacement: `${mnemonic}.w #${written},${register}`,
         applicability: "safe",
       },
       notes: [{ message: "The quick forms cover +1..+8 and -1..-8, which is why the displacement range is checked." }],

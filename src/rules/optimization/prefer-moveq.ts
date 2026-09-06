@@ -1,5 +1,6 @@
 import type { Rule } from "../../core/rule.js";
 import { dataRegisterOperand, immediateOperand, instructionSize, isInstruction } from "../../util/ast.js";
+import { valueText } from "./helpers.js";
 
 export const preferMoveq: Rule = {
   meta: {
@@ -23,6 +24,8 @@ export const preferMoveq: Rule = {
     const value = ctx.evaluate(source.value);
     if (!value.known || value.value < -128 || value.value > 127) return;
 
+    const written = valueText(ctx, source.value, value.value);
+
     ctx.report({
       ruleId: this.meta.id,
       category: this.meta.category,
@@ -31,8 +34,8 @@ export const preferMoveq: Rule = {
       message: `Immediate ${value.value} fits the MOVEQ signed 8-bit range`,
       loc: line.mnemonic!.loc,
       suggestion: {
-        description: `Use moveq #${value.value},${dest.register}`,
-        replacement: `moveq #${value.value},${dest.register}`,
+        description: `Use moveq #${written},${dest.register}`,
+        replacement: `moveq #${written},${dest.register}`,
         applicability: "safe",
       },
       notes: [{ message: "MOVEQ encodes the value in the instruction word, so no extension words are needed." }],

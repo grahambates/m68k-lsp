@@ -1386,7 +1386,8 @@ describe("rules mined from the EAB thread", () => {
     const ID = "optimization/mask-via-moveq";
 
     test("swaps a load-then-mask for a MOVEQ seed plus AND", () => {
-      expect(rep("move.l (a0),d0\nand.l #$3f,d0\nmoveq #0,d7\nrts", ID)).toBe("moveq #63,d0\nand.l (a0),d0");
+      // The mask keeps the hex the author wrote rather than becoming 63.
+      expect(rep("move.l (a0),d0\nand.l #$3f,d0\nmoveq #0,d7\nrts", ID)).toBe("moveq #$3f,d0\nand.l (a0),d0");
     });
 
     test("only when the mask fits MOVEQ, or the seed needs its own extension word", () => {

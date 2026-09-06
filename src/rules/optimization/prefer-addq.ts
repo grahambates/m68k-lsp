@@ -1,5 +1,6 @@
 import type { Rule } from "../../core/rule.js";
 import { immediateOperand, instructionSize, isAddqDestination, isInstructionFamily, operand } from "../../util/ast.js";
+import { valueText } from "./helpers.js";
 
 export const preferAddq: Rule = {
   meta: {
@@ -28,6 +29,8 @@ export const preferAddq: Rule = {
       ? ctx.sourceLine((line.lineNumber ?? 1) - 1)?.slice(destination.loc.start, destination.loc.end)
       : undefined;
 
+    const written = valueText(ctx, immediate.value, value.value);
+
     ctx.report({
       ruleId: this.meta.id,
       category: this.meta.category,
@@ -37,7 +40,7 @@ export const preferAddq: Rule = {
       loc: line.mnemonic!.loc,
       suggestion: {
         description: "Use ADDQ",
-        replacement: originalDestination ? `addq${suffix} #${value.value},${originalDestination}` : undefined,
+        replacement: originalDestination ? `addq${suffix} #${written},${originalDestination}` : undefined,
         applicability: "safe",
       },
       notes: [{ message: "ADDQ encodes its operand in three bits, covering 1 to 8." }],

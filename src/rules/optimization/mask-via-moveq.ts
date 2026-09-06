@@ -6,7 +6,7 @@ import {
   isInstruction,
   operand,
 } from "../../util/ast.js";
-import { changedFlagsApplicability, hasLabelBetween, sourceOperand } from "./helpers.js";
+import { changedFlagsApplicability, hasLabelBetween, sourceOperand, valueText } from "./helpers.js";
 
 /**
  * A load followed by a masking AND with a MOVEQ-sized constant is shorter the
@@ -53,7 +53,7 @@ export const maskViaMoveq: Rule = {
     if (!sourceText) return;
 
     const register = loaded.register;
-    const replacement = `moveq #${mask.value},${register}\nand.l ${sourceText},${register}`;
+    const replacement = `moveq #${valueText(ctx, immediate, mask.value)},${register}\nand.l ${sourceText},${register}`;
     // MOVEQ sets N/Z from the seed and clears V/C, then AND sets them from the
     // result, so the final CCR matches. The intermediate state differs, which
     // only matters if something reads flags between the two instructions.

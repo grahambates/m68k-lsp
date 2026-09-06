@@ -1,5 +1,6 @@
 import type { Rule } from "../../core/rule.js";
 import { addressRegisterOperand, immediateOperand, instructionSize, isInstruction } from "../../util/ast.js";
+import { valueText } from "./helpers.js";
 
 export const preferMoveWordAddress: Rule = {
   meta: {
@@ -18,6 +19,8 @@ export const preferMoveWordAddress: Rule = {
     const value = ctx.evaluate(imm.value);
     if (!value.known || value.value === 0 || value.value < -32767 || value.value > 32767) return;
 
+    const written = valueText(ctx, imm.value, value.value);
+
     ctx.report({
       ruleId: this.meta.id,
       category: this.meta.category,
@@ -26,8 +29,8 @@ export const preferMoveWordAddress: Rule = {
       message: "This address-register immediate fits the sign-extended word form",
       loc: line.mnemonic!.loc,
       suggestion: {
-        description: `Use MOVEA.W #${value.value},${dest.register}`,
-        replacement: `movea.w #${value.value},${dest.register}`,
+        description: `Use MOVEA.W #${written},${dest.register}`,
+        replacement: `movea.w #${written},${dest.register}`,
         applicability: "safe",
       },
       notes: [

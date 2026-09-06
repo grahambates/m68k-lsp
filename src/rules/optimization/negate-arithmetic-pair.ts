@@ -77,7 +77,8 @@ export const negateAddMaskToEor: Rule = {
     id: "optimization/negate-add-mask-to-eor",
     category: "optimization",
     defaultSeverity: "suggestion",
-    description: "Replace NEG followed by ADD of a low-bit mask with an EOR by that mask when the input is proven in range",
+    description:
+      "Replace NEG followed by ADD of a low-bit mask with an EOR by that mask when the input is proven in range",
     tags: ["asp68k", "sequence", "constant-propagation", "ccr", "size", "speed"],
     docs: { source: "ASP68K" },
   },
