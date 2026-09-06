@@ -3,15 +3,19 @@ import type { Rule } from "../../core/rule.js";
 import { isInstruction } from "../../util/ast.js";
 
 /**
- * A NOP directly before RTE is a deliberate synchronisation delay, not leftover
- * padding. On Amiga, clearing the interrupt request has to reach the chipset
- * before the RTE, or a fast CPU returns while the level is still asserted and
- * the interrupt fires again; the NOP buys that time. Some code uses more than
- * one, so a contiguous run counts.
+ * A NOP immediately before RTE is a deliberate synchronisation delay, not
+ * leftover padding. On Amiga, clearing the interrupt request has to reach the
+ * chipset before the RTE, or a fast CPU returns while the level is still
+ * asserted and the interrupt fires again; the NOP buys that time. Some handlers
+ * use more than one, so a contiguous run counts.
  *
- * This is not gated on `--platform amiga`. The idiom appears in Amiga sources
- * that are linted without a platform selected, and a NOP placed immediately
- * before an interrupt return is deliberate on any target.
+ * A label between the two is unusual but harmless: the NOP still falls through
+ * to the RTE. An intervening instruction is not, since the delay then no longer
+ * sits against the return.
+ *
+ * Not gated on `--platform amiga`. The idiom appears in Amiga sources that are
+ * linted without a platform selected, and a NOP placed immediately before an
+ * interrupt return is deliberate on any target. RTR is deliberately excluded.
  */
 function precedesInterruptReturn(ctx: RuleContext, index: number): boolean {
   let next = ctx.nextInstruction(index);

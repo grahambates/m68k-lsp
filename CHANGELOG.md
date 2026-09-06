@@ -11,7 +11,9 @@ previously lived in `README.md`.
   standard interrupt-exit delay: on Amiga the interrupt-request clear has to
   reach the chipset before the return, or a fast CPU returns while the level is
   still asserted and the interrupt fires again. A contiguous run of NOPs counts,
-  since some handlers use more than one. Not gated on `--platform amiga`,
+  since some handlers use more than one, and an intervening label is tolerated
+  because the NOP still falls through to the return; an intervening instruction
+  is not. `RTR` is deliberately not covered. Not gated on `--platform amiga`,
   because the idiom appears in sources linted without a platform selected.
 
 - The rule test suite had not been running. Thirteen call sites used

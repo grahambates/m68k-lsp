@@ -308,6 +308,12 @@ describe("suspicious rules", () => {
     expect(count("    nop\n    rts")).toBe(1);
     expect(count("    nop\n    move.l d0,d1\n    rte")).toBe(1);
     expect(count("    nop")).toBe(1);
+    // RTR is deliberately not covered.
+    expect(count("    nop\n    rtr")).toBe(1);
+    // A label between the two is unusual but harmless: the NOP still falls
+    // through to the RTE. An intervening instruction is what breaks it.
+    expect(count("    nop\nhandler:\n    rte")).toBe(0);
+    expect(count("    nop\n    nop\nhandler:\n    rte")).toBe(0);
   });
 });
 
