@@ -6,6 +6,7 @@ import { analyzeRegisters, type RegisterAnalysis } from "../analysis/registers.j
 import type { LintConfig } from "./config.js";
 import type { Diagnostic } from "./diagnostic.js";
 import { isMacroInvocation } from "../util/ast.js";
+import { computeSourceSpan } from "./span.js";
 
 export interface RuleContext {
   readonly file: ParsedFile;
@@ -162,7 +163,8 @@ export class DefaultRuleContext implements RuleContext {
   report(diagnostic: Diagnostic): void {
     const notes = withProvenance(diagnostic, this.symbols.externalUses());
     const suggestion = this.indentSuggestion(diagnostic);
-    this.diagnostics.push({ ...diagnostic, notes, ...(suggestion ? { suggestion } : {}) });
+    const span = computeSourceSpan(diagnostic, this.file);
+    this.diagnostics.push({ ...diagnostic, notes, span, ...(suggestion ? { suggestion } : {}) });
   }
 
   /**

@@ -7,6 +7,25 @@ previously lived in `README.md`.
 
 ### Changed
 
+- Diagnostics carry the run of source lines they cover, as `span`. A rule that
+  matches a sequence replaces all of it — BSR followed by RTS becomes one BRA —
+  and the extent was previously reconstructed inside the impact module by
+  reading `data` key names, so it existed only where measurement had run.
+  Anything applying a replacement needs it unconditionally.
+- The CLI shows every line of a match rather than only the first, and no longer
+  draws a caret under it. All but one rule points at a mnemonic, so the
+  underline never said more than "this instruction", and under a multi-line
+  match it marked one line as though the rest were context.
+- Syntax errors are no longer reported, counted, or treated as a failed run.
+  Syntax belongs to the assembler, which judges it against its own grammar;
+  this parser is deliberately more permissive, so a line it cannot read may be
+  valid to yours, and it is built to recover so that analysis can continue
+  while a file is mid-edit. A file that does not fully parse is noted once, so
+  an empty result is not mistaken for a verified one. The detail remains in
+  `--format json` for tooling that wants it.
+
+### Changed
+
 - Rules offer a rewrite wherever one exists. `manual` now means there is no
   single mechanical replacement to give, not that applying one needs thought.
   Several rules produced replacement text and then marked it `manual`, which

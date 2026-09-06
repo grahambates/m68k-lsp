@@ -3,7 +3,7 @@
 import { readFile, writeFile } from "node:fs/promises";
 import { statSync } from "node:fs";
 import { dirname, relative, resolve, sep } from "node:path";
-import { parseFile, type ParseError } from "m68k-parser";
+import { parseFile } from "m68k-parser";
 import { lintParsedFile } from "../core/lint.js";
 import { buildProjectSymbols, type ProjectSymbols } from "../analysis/project-symbols.js";
 import type { ExternalSymbols } from "../analysis/symbols.js";
@@ -33,6 +33,7 @@ import { asp68kCoverage, asp68kCoverageSummary } from "../coverage-asp68k.js";
 import { runRuleImpactAudit } from "../audit/rule-impact.js";
 import { defaultAssemblyExtensions, discoverFiles, normalizeExtensions } from "./file-discovery.js";
 import { findProjectConfig, loadProjectConfig, type ProjectConfig } from "./project-config.js";
+import type { SourceSpan } from "../core/span.js";
 
 const VERSION = "0.46.2";
 
@@ -278,18 +279,28 @@ function severityLabel(severity: Severity, color: boolean): string {
   return paint(color, code, severity);
 }
 
-function sourceContext(source: string, line?: number, start = 0, end = start + 1, color = false): string[] {
-  if (!line || line < 1) return [];
-  const text = source.replace(/\r\n/g, "\n").replace(/\r/g, "\n").split("\n")[line - 1];
-  if (text === undefined) return [];
-  const width = Math.max(1, end - start);
-  // Assembly is tab-indented, and a tab is one character but several columns.
-  // Reuse the source's own tabs in the pointer prefix so the caret lines up
-  // whatever tab width the terminal uses.
-  const prefix = text.slice(0, Math.max(0, start)).replace(/[^\t]/g, " ");
-  const pointer = `${prefix}${"^"}${"~".repeat(Math.max(0, width - 1))}`;
-  // The pointer is built from the uncoloured text above, so it stays aligned.
-  return [`  ${highlightAsm(text, color)}`, paint(color, 90, `  ${pointer}`)];
+/**
+ * The source a finding covers.
+ *
+ * Every line of the match is shown, because a match is a run of instructions:
+ * BSR followed by RTS is one finding about two lines, and drawing only the
+ * first hid what the suggestion was going to replace.
+ *
+ * There is no caret. Rules point at a mnemonic -- all but one of them -- so an
+ * underline never said more than "this instruction", which the line itself
+ * already says, and under a multi-line match it marked one line of several as
+ * though the others were context.
+ */
+function sourceContext(source: string, span: SourceSpan | undefined, color: boolean): string[] {
+  if (!span) return [];
+  const lines = source.replace(/\r\n/g, "\n").replace(/\r/g, "\n").split("\n");
+  const text: string[] = [];
+  for (let line = span.startLine; line <= span.endLine; line++) {
+    const content = lines[line - 1];
+    if (content === undefined) continue;
+    text.push(highlightAsm(content, color));
+  }
+  return text;
 }
 
 function formatApplicability(applicability: Applicability, color: boolean): string {
@@ -306,7 +317,7 @@ function formatDiagnostic(file: string, source: string, diagnostic: Diagnostic, 
   const col = diagnostic.loc.start + 1;
   const location = paint(color, 34, `${file}:${line}:${col}`);
   const header = `${severityLabel(diagnostic.severity, color)}  ${diagnostic.message}  ${paint(color, 90, `[${diagnostic.ruleId}]`)}`;
-  const lines = [location, header, ...sourceContext(source, line, diagnostic.loc.start, diagnostic.loc.end, color)];
+  const lines = [location, header, ...sourceContext(source, diagnostic.span, color)];
   if (diagnostic.suggestion) {
     const replacement = diagnostic.suggestion.replacement;
     const applicability = formatApplicability(diagnostic.suggestion.applicability, color);
@@ -324,17 +335,6 @@ function formatDiagnostic(file: string, source: string, diagnostic: Diagnostic, 
   if (notes.length) {
     lines.push(`${paint(color, 90, "notes:")}`, ...notes.map((n) => " - " + n.message));
   }
-  return lines.join("\n");
-}
-
-function formatParseError(file: string, source: string, error: ParseError, color: boolean): string {
-  const line = error.loc.line ?? 1;
-  const col = error.loc.start + 1;
-  const lines = [
-    `${file}:${line}:${col}  ${paint(color, 31, "error")}  ${error.message}  ${paint(color, 90, `[parser/${error.code}]`)}`,
-    ...sourceContext(source, line, error.loc.start, error.loc.end, color),
-  ];
-  if (error.hint) lines.push(`  ${paint(color, 90, "hint:")} ${error.hint}`);
   return lines.join("\n");
 }
 
@@ -668,14 +668,25 @@ async function main(): Promise<number> {
   } else {
     for (const result of results) {
       if (!("source" in result)) continue;
-      const entries = [
-        ...result.parseErrors.map((e) => formatParseError(result.path, result.source, e, options.color)),
-        ...result.diagnostics.map((d) => formatDiagnostic(result.path, result.source, d, options.color)),
-      ];
+      const entries = result.diagnostics.map((d) => formatDiagnostic(result.path, result.source, d, options.color));
       if (entries.length) console.log(entries.join("\n\n"));
     }
 
-    const parseErrorCount = results.reduce((n, r) => n + ("parseErrors" in r ? r.parseErrors.length : 0), 0);
+    // Syntax belongs to the assembler, which reports it against its own grammar
+    // rather than this parser's more permissive one. What is worth saying is
+    // that a file was not fully read, so an empty result is not mistaken for a
+    // verified one.
+    for (const result of results) {
+      if (!("parseErrors" in result) || result.parseErrors.length === 0) continue;
+      console.log(
+        paint(
+          options.color,
+          90,
+          `\n${result.path}: ${result.parseErrors.length} line${result.parseErrors.length === 1 ? "" : "s"} could not be parsed; findings for this file may be incomplete.`,
+        ),
+      );
+    }
+
     const diagnostics = results.flatMap((r) => ("diagnostics" in r ? r.diagnostics : []));
     if (options.impactSummary) {
       const summary = formatImpactSummary(diagnostics);
@@ -683,11 +694,11 @@ async function main(): Promise<number> {
     }
     const counts = { error: 0, warning: 0, suggestion: 0, info: 0 } satisfies Record<Severity, number>;
     for (const d of diagnostics) counts[d.severity]++;
-    const total = parseErrorCount + diagnostics.length;
+    const total = diagnostics.length;
     if (total) {
       const totalGroups = [];
       const color = options.color;
-      const errorCoount = parseErrorCount + counts.error;
+      const errorCoount = counts.error;
       if (errorCoount) {
         totalGroups.push(paint(color, 31, `${errorCoount} error${errorCoount > 1 ? "s" : ""}`));
       }
@@ -705,8 +716,9 @@ async function main(): Promise<number> {
   }
 
   const allDiagnostics = results.flatMap((r) => ("diagnostics" in r ? r.diagnostics : []));
-  const hasParseErrors = results.some((r) => "parseErrors" in r && r.parseErrors.length > 0);
-  return ioFailed || hasParseErrors || failsThreshold(allDiagnostics, options.failOn) ? 1 : 0;
+  // A file this parser cannot read is not a lint failure. The assembler decides
+  // what is valid syntax, and its grammar is the narrower one.
+  return ioFailed || failsThreshold(allDiagnostics, options.failOn) ? 1 : 0;
 }
 
 main()

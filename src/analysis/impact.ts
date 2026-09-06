@@ -8,6 +8,7 @@ import type {
   OptimizationMetric,
   OptimizationSourceClaim,
 } from "../core/diagnostic.js";
+import { computeSourceSpan } from "../core/span.js";
 
 interface ImpactRuleMeta {
   meta: { docs?: { source?: string } };
@@ -215,33 +216,6 @@ function metric(before: number | undefined, after: number | undefined): Optimiza
   return { before, after, delta: after - before, confidence: "exact" };
 }
 
-function sourceSpan(diagnostic: Diagnostic, file: ParsedFile): { start: number; end: number } | undefined {
-  const lineNumber = diagnostic.loc.line;
-  const locationStart = lineNumber ? lineNumber - 1 : undefined;
-  let start: number;
-
-  if (locationStart === undefined || locationStart < 0 || locationStart >= file.lines.length) {
-    const byIdentity = file.lines.findIndex((line) => line.mnemonic?.loc === diagnostic.loc);
-    if (byIdentity < 0) return undefined;
-    start = byIdentity;
-  } else {
-    start = locationStart;
-  }
-
-  let end = start;
-  for (const [key, value] of Object.entries(diagnostic.data ?? {})) {
-    if (
-      (key === "sourceStartIndex" || key === "sourceEndIndex" || key.endsWith("InstructionIndex")) &&
-      typeof value === "number" &&
-      Number.isInteger(value)
-    ) {
-      if (key === "sourceStartIndex") start = Math.min(start, value);
-      else end = Math.max(end, value);
-    }
-  }
-  return { start, end };
-}
-
 function preserveSourceClaim(
   existing: OptimizationImpact | undefined,
   rule: ImpactRuleMeta | undefined,
@@ -293,11 +267,13 @@ export function measureDiagnosticImpact(
 ): Diagnostic {
   const replacement = diagnostic.suggestion?.replacement;
   if (replacement === undefined) return diagnostic;
-  const span = sourceSpan(diagnostic, file);
+  // Normally set when the diagnostic was reported. Computed here when it is
+  // not, so measuring a diagnostic does not depend on where it came from.
+  const span = diagnostic.span ?? computeSourceSpan(diagnostic, file);
   if (!span) return diagnostic;
 
   const sourceLines = source.replace(/\r\n/g, "\n").replace(/\r/g, "\n").split("\n");
-  const original = sourceLines.slice(span.start, span.end + 1).join("\n");
+  const original = sourceLines.slice(span.startLine - 1, span.endLine).join("\n");
   // A rule that matched a shift by a register only fires once the count is
   // proven, and records it. Without it the original measures as a range and
   // only the size is comparable, which reported a cycle win as a regression.
@@ -335,8 +311,6 @@ export function measureDiagnosticImpact(
     suggestion: { ...diagnostic.suggestion!, impact },
     data: {
       ...(diagnostic.data ?? {}),
-      measuredSourceStartIndex: span.start,
-      measuredSourceEndIndex: span.end,
       impactAssessment: impact.assessment,
     },
   };

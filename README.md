@@ -222,6 +222,11 @@ The linter deliberately does not duplicate assembler validation. Illegal
 instruction, size and addressing-mode combinations belong to the assembler unless
 the linter can add materially better semantic or contextual information.
 
+Syntax errors are not reported for the same reason, and because this parser is
+deliberately more permissive than any one assembler: a line it cannot read may
+be perfectly valid to yours. A file that does not fully parse is noted once, so
+an empty result is not mistaken for a verified one, and does not fail the run.
+
 ### Presets
 
 `recommended` is the default baseline. `style` enables the subjective convention

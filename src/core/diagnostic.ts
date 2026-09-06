@@ -1,4 +1,5 @@
 import type { Location } from "m68k-parser";
+import type { SourceSpan } from "./span.js";
 
 export type RuleCategory = "correctness" | "suspicious" | "optimization" | "portability" | "style";
 
@@ -64,6 +65,11 @@ export interface Diagnostic {
   confidence: Confidence;
   message: string;
   loc: Location;
+  /**
+   * The source lines this finding covers, inclusive. A suggestion's replacement
+   * stands in for the whole run, so applying or measuring one needs this.
+   */
+  span?: SourceSpan;
   notes?: DiagnosticNote[];
   suggestion?: Suggestion;
   data?: Record<string, unknown>;

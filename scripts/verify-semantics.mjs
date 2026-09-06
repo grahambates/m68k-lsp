@@ -213,10 +213,13 @@ async function runShard(from, to) {
       continue;
     }
 
-    const start = diagnostic.data?.measuredSourceStartIndex;
-    const end = diagnostic.data?.measuredSourceEndIndex;
+    // The span is a property of the diagnostic now, not something measurement
+    // leaves behind in `data`.
+    const span = diagnostic.span;
+    const start = span ? span.startLine - 1 : undefined;
+    const end = span ? span.endLine - 1 : undefined;
     if (start === undefined || end === undefined) {
-      skip("no measured source span", testCase.ruleId);
+      skip("no source span", testCase.ruleId);
       continue;
     }
 
