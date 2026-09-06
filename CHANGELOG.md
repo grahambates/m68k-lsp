@@ -7,6 +7,14 @@ previously lived in `README.md`.
 
 ### Changed
 
+- Rule files are named after the rules they hold rather than where the rules
+  came from. `flamewing-shifts.ts` is now `known-register-shifts.ts`,
+  `vasm-logical-identities.ts` is `logical-identity-to-tst.ts`, and so on for
+  eleven source-named files. `tricks-and-traps.ts` held three unrelated rules
+  grouped only by provenance and is split into one file each. Ten more
+  single-rule files whose names had drifted now match their rule. Grouping
+  closely related rules in one file is unchanged.
+
 - Diagnostics no longer name their sources. Notes read as the linter's own
   findings and explain the mechanism rather than citing ASP68K, Flamewing or
   68kcounter: `MOVEQ encodes the value in the instruction word, so no extension

@@ -1,17 +1,11 @@
 import type { ParsedLine } from "m68k-parser";
 import type { Rule } from "../../core/rule.js";
-import type { RuleContext } from "../../core/context.js";
 import { immediateOperand, instructionSize, isInstruction, operand } from "../../util/ast.js";
-import { changedFlagsApplicability, sourceOperand } from "./helpers.js";
+import { changedFlagsApplicability, hasLabelBetween, sourceOperand } from "./helpers.js";
 
 function directRegisterName(line: ParsedLine): string | undefined {
   const op = operand(line, 1);
   return op?.type === "data-register" || op?.type === "address-register" ? op.register.toLowerCase() : undefined;
-}
-
-function hasLabelBetween(ctx: RuleContext, from: number, to: number): boolean {
-  for (let i = from + 1; i <= to; i++) if (ctx.line(i)?.label) return true;
-  return false;
 }
 
 export const combineConsecutiveAddq: Rule = {

@@ -6,16 +6,10 @@ import {
   instructionSize,
   isInstruction,
 } from "../../util/ast.js";
+import { hasLabelBetween } from "./helpers.js";
 
 function sameRegister(a: string, b: string): boolean {
   return a.toLowerCase() === b.toLowerCase();
-}
-
-function hasLabelBetween(ctx: Parameters<NonNullable<Rule["checkLine"]>>[0], from: number, to: number): boolean {
-  for (let i = from + 1; i <= to; i++) {
-    if (ctx.line(i)?.label) return true;
-  }
-  return false;
 }
 
 /**

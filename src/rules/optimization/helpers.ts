@@ -29,6 +29,15 @@ export function replaceOperandInLine(
   return `${source.slice(0, op.loc.start)}${text}${source.slice(op.loc.end)}`.trim();
 }
 
+/**
+ * Whether a label sits between two instructions. A label means control can
+ * arrive without passing the first, so a fold spanning the pair is unsafe.
+ */
+export function hasLabelBetween(ctx: RuleContext, from: number, to: number): boolean {
+  for (let i = from + 1; i <= to; i++) if (ctx.line(i)?.label) return true;
+  return false;
+}
+
 export function changedFlagsApplicability(ctx: RuleContext, index: number, flags: readonly Flag[]) {
   const states = flags.map((flag) => ctx.flags.isLiveAfter(index, flag));
   if (states.every((state) => state === "dead"))

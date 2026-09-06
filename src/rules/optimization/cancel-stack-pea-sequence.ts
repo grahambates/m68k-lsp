@@ -2,7 +2,7 @@ import type { OperandNode, ParsedLine } from "m68k-parser";
 import type { Rule } from "../../core/rule.js";
 import { addressRegisterOperand, immediateOperand, instructionSize, isInstruction, operand } from "../../util/ast.js";
 import { registersReadByOperand } from "../../semantics/registers.js";
-import { changedFlagsApplicability, sourceOperand } from "./helpers.js";
+import { changedFlagsApplicability, hasLabelBetween, sourceOperand } from "./helpers.js";
 
 function isSpRegisterName(name: string): boolean {
   return ["sp", "a7"].includes(name.toLowerCase());
@@ -43,11 +43,6 @@ function movePredecSp(line: ParsedLine): { size: "w" | "l"; source: OperandNode 
   // depending on SP are not equivalent.
   if (registersReadByOperand(source).has("a7")) return undefined;
   return { size, source };
-}
-
-function hasLabelBetween(ctx: Parameters<NonNullable<Rule["checkLine"]>>[0], from: number, to: number): boolean {
-  for (let i = from + 1; i <= to; i++) if (ctx.line(i)?.label) return true;
-  return false;
 }
 
 function quickAmount(ctx: Parameters<NonNullable<Rule["checkLine"]>>[0], line: ParsedLine): number | undefined {

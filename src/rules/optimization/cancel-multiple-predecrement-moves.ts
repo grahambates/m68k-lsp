@@ -7,12 +7,7 @@ import {
   isInstruction,
 } from "../../util/ast.js";
 import { normalizeRegister, registersReadByOperand } from "../../semantics/registers.js";
-import { sourceOperand } from "./helpers.js";
-
-function hasLabelBetween(ctx: Parameters<NonNullable<Rule["checkLine"]>>[0], from: number, to: number): boolean {
-  for (let i = from + 1; i <= to; i++) if (ctx.line(i)?.label) return true;
-  return false;
-}
+import { hasLabelBetween, sourceOperand } from "./helpers.js";
 
 function predecrementRegister(line: Parameters<NonNullable<Rule["checkLine"]>>[1]): string | undefined {
   const dst = predecrementAddressRegister(line, 1);

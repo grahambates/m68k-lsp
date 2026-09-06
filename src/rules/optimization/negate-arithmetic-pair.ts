@@ -1,12 +1,6 @@
-import type {} from "m68k-parser";
 import type { Rule } from "../../core/rule.js";
-import type { RuleContext } from "../../core/context.js";
 import { dataRegisterOperand, instructionSize, isInstruction } from "../../util/ast.js";
-
-function hasLabelBetween(ctx: RuleContext, from: number, to: number): boolean {
-  for (let i = from + 1; i <= to; i++) if (ctx.line(i)?.label) return true;
-  return false;
-}
+import { hasLabelBetween } from "./helpers.js";
 
 function makeRule(id: string, secondMnemonic: "add" | "sub", replacementMnemonic: "sub" | "add"): Rule {
   return {
