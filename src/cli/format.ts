@@ -64,7 +64,7 @@ export function formatImpact(impact: OptimizationImpact, color: boolean): string
  * sequences occupy no columns.
  */
 const COLORS = {
-  mnemonic: 36,
+  mnemonic: 34,
   size: 34,
   register: 33,
   literal: 35,

@@ -316,7 +316,7 @@ function formatDiagnostic(file: string, source: string, diagnostic: Diagnostic, 
   }
   const notes = diagnostic.notes ?? [];
   if (notes.length) {
-    lines.push(`${paint(color, 90, "notes:")}`, ...notes.map((n) => n.message));
+    lines.push(`${paint(color, 90, "notes:")}`, ...notes.map((n) => " - " + n.message));
   }
   return lines.join("\n");
 }
