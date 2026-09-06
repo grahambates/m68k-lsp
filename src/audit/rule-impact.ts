@@ -170,6 +170,8 @@ export const ruleImpactAuditCases: readonly RuleImpactAuditCase[] = [
   },
   { ruleId: "optimization/null-branch", source: "bra next\nnext:\nnop" },
   { ruleId: "optimization/mask-via-moveq", source: "move.l (a0),d0\nand.l #$3f,d0\nmoveq #0,d7" },
+  { ruleId: "optimization/carry-to-mask-via-subx", source: "sub.l d2,d3\nscs d0\next.w d0\next.l d0\nmoveq #0,d7" },
+  { ruleId: "optimization/arithmetic-immediate-via-scratch", source: "add.l #20,d1\nmoveq #0,d0\nmove.l d1,d2" },
   { ruleId: "optimization/data-register-sign-bit-to-tas", caseId: "bset", source: "bset #7,d0\nmoveq #0,d7" },
   { ruleId: "optimization/data-register-sign-bit-to-tas", caseId: "ori", source: "ori.b #$80,d0\nmoveq #0,d7" },
   {

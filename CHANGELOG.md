@@ -110,6 +110,15 @@ form`. A reader has no way to check what a source said, and a claim repeated
 
 ### Added
 
+- Three more rules from the saved sources: `optimization/carry-to-mask-via-subx`
+  (`scs`/`ext.w`/`ext.l` is a single `subx.l dn,dn`, but only where one
+  instruction defines both C and X, since CMP sets C and leaves X stale),
+  `optimization/arithmetic-immediate-via-scratch` (a long immediate in the
+  MOVEQ range is cheaper through a dead scratch register) and a target gate on
+  `optimization/fold-index-into-effective-address`, which is now offered only
+  for the 68000 family and 68060 because the 68020 and 68040 prefer the address
+  precomputed into the register.
+
 - Three rules mined from the saved EAB thread: `optimization/mask-via-moveq`
   (`move.l (a0),d0` / `and.l #$3f,d0` becomes a MOVEQ seed plus an AND of the
   source, since MOVEQ carries its value in the instruction word),

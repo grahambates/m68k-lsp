@@ -1,5 +1,6 @@
 import type { Rule } from "../../core/rule.js";
 import { addressRegisterOperand, dataRegisterOperand, instructionSize } from "../../util/ast.js";
+import type { RuleContext } from "../../core/context.js";
 import { hasLabelBetween, sourceOperand } from "./helpers.js";
 import { semanticMnemonic } from "../../semantics/mnemonics.js";
 
@@ -12,7 +13,17 @@ import { semanticMnemonic } from "../../semantics/mnemonics.js";
  *
  * Only valid when the adjusted address register is dead afterwards, since the
  * fold leaves it unchanged.
+ *
+ * Gated by target. The indexed mode is the cheaper form on the 68000 family and
+ * the 68060, and exact auditing measures that. On the 68020 and 68040 the
+ * preference reverses: precomputing the address into the register is faster
+ * there, so folding would be a pessimisation.
  */
+const INDEXED_IS_FASTER = ["mc68000", "mc68010", "mc68060"];
+
+function targetPrefersIndexed(ctx: RuleContext): boolean {
+  return ctx.config.processors.every((cpu) => INDEXED_IS_FASTER.includes(cpu));
+}
 export const foldIndexIntoEffectiveAddress: Rule = {
   meta: {
     id: "optimization/fold-index-into-effective-address",
@@ -24,6 +35,7 @@ export const foldIndexIntoEffectiveAddress: Rule = {
   },
 
   checkLine(ctx, line, index) {
+    if (!targetPrefersIndexed(ctx)) return;
     // ADD/ADDA with a data-register source and address-register destination.
     if (semanticMnemonic(line) !== "adda") return;
     const size = instructionSize(line);
@@ -84,6 +96,10 @@ export const foldIndexIntoEffectiveAddress: Rule = {
         },
         {
           message: `${base.register.toUpperCase()} keeps its original value afterwards, which is proven unused here. ADDA does not affect the condition codes, so none are lost.`,
+        },
+        {
+          message:
+            "Only offered for the 68000 family and 68060. On the 68020 and 68040 precomputing the address into the register is the faster form.",
         },
       ],
       data: { base: base.register, index: indexRegister.register, sourceEndIndex: next.index },

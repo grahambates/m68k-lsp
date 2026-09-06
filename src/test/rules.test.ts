@@ -1388,6 +1388,44 @@ describe("rules mined from the EAB thread", () => {
     });
   });
 
+  describe("carry to mask via SUBX", () => {
+    const ID = "optimization/carry-to-mask-via-subx";
+
+    test("collapses SCS plus two extensions", () => {
+      expect(rep("sub.l d2,d3\nscs d0\next.w d0\next.l d0\nmoveq #0,d7\nrts", ID)).toBe("subx.l d0,d0");
+    });
+
+    test("declines after CMP, which leaves X stale", () => {
+      // SCS reads C, SUBX reads X. CMP sets C without touching X, so the two
+      // disagree and the substitution would use whatever X held before.
+      expect(ids("cmp.l d2,d3\nscs d0\next.w d0\next.l d0\nrts", cfg)).not.toContain(ID);
+    });
+
+    test("needs the whole sequence on one register", () => {
+      expect(ids("sub.l d2,d3\nscs d0\next.w d0\nrts", cfg)).not.toContain(ID);
+      expect(ids("sub.l d2,d3\nscs d0\next.w d1\next.l d1\nrts", cfg)).not.toContain(ID);
+    });
+  });
+
+  describe("arithmetic immediate via a scratch register", () => {
+    const ID = "optimization/arithmetic-immediate-via-scratch";
+
+    test("routes a MOVEQ-sized immediate through a dead register", () => {
+      expect(rep("add.l #20,d1\nmoveq #0,d0\nmove.l d1,d2\nrts", ID)).toBe("moveq #20,d0\nadd.l d0,d1");
+      expect(rep("sub.l #-100,d1\nmoveq #0,d0\nmove.l d1,d2\nrts", ID)).toBe("moveq #-100,d0\nsub.l d0,d1");
+    });
+
+    test("leaves the quick range to ADDQ and SUBQ", () => {
+      expect(ids("add.l #4,d1\nmoveq #0,d0\nrts", cfg)).not.toContain(ID);
+      expect(ids("add.l #4,d1\nmoveq #0,d0\nrts", cfg)).toContain("optimization/prefer-addq");
+    });
+
+    test("needs a value MOVEQ can hold and a register to spare", () => {
+      expect(ids("add.l #1000,d1\nmoveq #0,d0\nrts", cfg)).not.toContain(ID);
+      expect(ids("add.l #20,d1\nrts", cfg)).not.toContain(ID);
+    });
+  });
+
   describe("fold an index into the effective address", () => {
     const ID = "optimization/fold-index-into-effective-address";
 
@@ -1398,6 +1436,17 @@ describe("rules mined from the EAB thread", () => {
 
     test("works for any instruction that dereferences the register", () => {
       expect(rep("adda.w d4,a0\ntst.w (a0)\nlea buf,a0\nrts\nbuf:", ID)).toBe("tst.w (a0,d4.w)");
+    });
+
+    test("is offered only where the indexed mode is the faster form", () => {
+      // The 68020 and 68040 prefer the address precomputed into the register.
+      const src = "adda.w d4,a0\nmove.l (a0),a1\nlea buf,a0\nrts\nbuf:";
+      for (const cpu of ["mc68020", "mc68040"] as const) {
+        expect([cpu, ids(src, { processors: [cpu], measureImpact: false }).includes(ID)]).toEqual([cpu, false]);
+      }
+      for (const cpu of ["mc68000", "mc68010", "mc68060"] as const) {
+        expect([cpu, ids(src, { processors: [cpu], measureImpact: false }).includes(ID)]).toEqual([cpu, true]);
+      }
     });
 
     test("declines when the adjusted register is still needed", () => {

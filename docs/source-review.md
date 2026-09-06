@@ -69,8 +69,39 @@ two or more loads from consecutive addresses into consecutive registers,
 followed by their extensions. That is a narrow pattern needing a sequence
 matcher, and is not implemented.
 
+The `subx.l dn,dn` carry-to-mask idiom became
+`optimization/carry-to-mask-via-subx`. It carries a trap worth recording: SCS
+reads C while SUBX reads X, and CMP sets C without touching X, so after a
+comparison the substitution would use a stale flag. The rule fires only when one
+instruction is the reaching definition of both, which is exactly when they
+agree.
+
 Still unmined from the thread: `and.w #2^n-1` for the remainder of a
-power-of-two division, and the `subx.l dn,dn` carry-to-mask idiom.
+power-of-two division. `divu.w #2^n` followed by `swap` to bring the remainder
+down could become a single AND, but the two differ on DIVU overflow, where DIVU
+leaves the destination untouched and AND does not.
+
+## Optimizing 680x0 Applications, and the 680x0 performance guide
+
+Both are CPU-comparison documents rather than transform tables, and their value
+was in qualifying rules rather than adding them.
+
+`optimization/arithmetic-immediate-via-scratch` comes from the first: a long
+immediate in the MOVEQ range is cheaper routed through a dead scratch register,
+on every target except the 68040.
+
+The same document reverses the preference for indexed addressing by target: the
+68000 family and 68060 favour the indexed mode, while the 68020 and 68040
+favour precomputing the address into the register.
+`optimization/fold-index-into-effective-address` is gated accordingly.
+
+One conflict was settled by measurement rather than accepted. The performance
+guide states that "and's and or's (even immediate versions) are very often
+faster than bit sets/clears", which would contradict `prefer-bset` and
+`prefer-bclr`. For the long-immediate forms those rules actually match, exact
+auditing measures the bit instructions as the cheaper ones, so the rules stand.
+The guide hedges with "very often", and the claim likely holds for other operand
+sizes.
 
 ## Flamewing rotate/shift audit (v0.26)
 
