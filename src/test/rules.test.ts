@@ -1289,6 +1289,19 @@ describe("platform modes", () => {
     expect(result.map((d) => d.ruleId)).toContain("optimization/bset-to-tas");
   });
 
+  test("Amiga mode accepts TAS on a data register", () => {
+    // The problem is the locked read-modify-write cycle used to reach memory.
+    // TAS Dn performs no memory access, so it is safe.
+    expect(
+      lint("tas d0", {
+        processors: ["mc68000"],
+        platform: "amiga",
+        goal: "balanced",
+        measureImpact: false,
+      }).map((d) => d.ruleId),
+    ).not.toContain("correctness/amiga-tas-unsupported");
+  });
+
   test("Amiga mode rejects TAS instructions", () => {
     expect(
       lint("tas (a0)", {
@@ -1574,6 +1587,16 @@ describe("Atari TOS trap stack cleanup", () => {
     expect(flags([...pushes, "trap #14", "rts"].join("\n"))).toBe(true);
     // GEM passes a parameter block in registers, so there is nothing to clean up.
     expect(flags([...pushes, "trap #2", "rts"].join("\n"))).toBe(false);
+  });
+
+  test("accepts cleanup deferred and batched across calls", () => {
+    // A documented idiom: make several calls, then remove all their parameters
+    // with one adjustment. Checking each call against the next instruction
+    // would report every call but the last.
+    const two = ["move.w #1,-(sp)", "trap #1", "move.w #2,-(sp)", "trap #1"];
+    expect(flags([...two, "addq.l #4,sp", "rts"].join("\n"))).toBe(false);
+    // The total still has to be right.
+    expect(flags([...two, "addq.l #2,sp", "rts"].join("\n"))).toBe(true);
   });
 
   test("does not run on other platforms", () => {

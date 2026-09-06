@@ -36,6 +36,17 @@ form`. A reader has no way to check what a source said, and a claim repeated
 
 ### Fixed
 
+- `correctness/amiga-tas-unsupported` no longer flags `TAS Dn`. What the Amiga
+  cannot arbitrate is the locked read-modify-write bus cycle TAS uses to reach
+  memory; a data-register operand performs no memory access and is safe. This
+  was reported at `error` severity on correct code.
+- `suspicious/atari-trap-stack-cleanup` no longer flags calls whose parameters
+  are removed by a later batched adjustment. Making several calls and then
+  clearing all their parameters at once is a documented idiom, and comparing
+  each call against the next instruction reported every call but the last.
+  Pushes are now accumulated across calls and checked against the adjustment
+  that eventually follows.
+
 - `suspicious/nop` no longer flags a NOP immediately before `RTE`. That is the
   standard interrupt-exit delay: on Amiga the interrupt-request clear has to
   reach the chipset before the return, or a fast CPU returns while the level is

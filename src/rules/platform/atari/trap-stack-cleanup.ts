@@ -30,6 +30,8 @@ const NON_RETURNING_GEMDOS = new Map<number, string>([
   [0x4c, "Pterm"],
 ]);
 
+const RETURNS = new Set(["rts", "rte", "rtr", "rtd"]);
+
 function isStackPointer(line: ParsedLine, index: number): boolean {
   const register = predecrementAddressRegister(line, index);
   const name = register?.register.toLowerCase();
@@ -111,72 +113,108 @@ export const atariTrapStackCleanup: Rule = {
     description: "Check that TOS trap parameters are removed from the stack by the caller",
     tags: ["atari", "tos", "stack", "calling-convention"],
     docs: {
-      note: "GEMDOS/BIOS/XBIOS are caller-cleans-stack. This checks the pushes immediately before a trap against the adjustment immediately after, so it needs no table of TOS function signatures and does not depend on the TOS version.",
+      note: "GEMDOS/BIOS/XBIOS are caller-cleans-stack. Pushes are accumulated across calls and compared against the stack adjustment that follows, because cleanup is often deferred so that one adjustment covers several calls. Needs no table of TOS function signatures, so it does not depend on the TOS version.",
     },
   },
 
-  checkLine(ctx, line, index) {
-    const vector = trapVector(ctx, line);
-    if (vector === undefined) return;
-    const api = STACK_TRAPS.get(vector);
-    if (!api) return;
+  checkFile(ctx) {
+    // Cleanup is commonly deferred: several calls are made and one adjustment
+    // removes all of their parameters at once. Tracking a running total handles
+    // that, where comparing each call against the next instruction would report
+    // every call but the last.
+    let outstanding = 0;
+    let pushedRun = 0;
+    let opcodeWord: number | undefined;
+    let lastTrap: { index: number; api: string } | undefined;
 
-    // Walk back over the contiguous run of pushes feeding this call. Any other
-    // instruction, or a label that lets control arrive from elsewhere, ends it.
-    let pushed = 0;
-    let lastOpcodeWord: number | undefined;
-    for (let i = index - 1; i >= 0; i--) {
-      const previous = ctx.line(i);
-      if (!previous) break;
-      if (previous.mnemonic?.type !== "instruction") {
-        if (previous.label) break;
-        continue;
-      }
-      if (previous.label) break;
-      const bytes = pushedBytes(previous);
-      if (bytes === undefined) break;
-      // The word pushed last is the function opcode.
-      if (lastOpcodeWord === undefined && bytes === 2) {
-        const immediate = immediateExpressionOperand(previous, 0);
-        const value = immediate ? ctx.evaluate(immediate) : undefined;
-        lastOpcodeWord = value?.known ? value.value : undefined;
-      }
-      pushed += bytes;
-    }
-    if (pushed === 0) return;
+    const report = (released: number | undefined) => {
+      if (!lastTrap || outstanding === 0) return;
+      const trapLine = ctx.line(lastTrap.index);
+      if (!trapLine?.mnemonic) return;
+      const detail =
+        released === undefined
+          ? "nothing is removed afterwards"
+          : `${released} ${released === 1 ? "byte is" : "bytes are"} removed afterwards`;
 
-    if (vector === 1 && lastOpcodeWord !== undefined && NON_RETURNING_GEMDOS.has(lastOpcodeWord)) return;
-
-    const next = ctx.nextInstruction(index);
-    const released = next ? releasedBytes(ctx, next.line) : undefined;
-    if (released === pushed) return;
-
-    // No adjustment at all is reported separately from a wrong one: the first is
-    // usually a forgotten cleanup, the second an arithmetic slip.
-    const detail =
-      released === undefined
-        ? `nothing is removed afterwards`
-        : `${released} ${released === 1 ? "byte is" : "bytes are"} removed afterwards`;
-
-    ctx.report({
-      ruleId: this.meta.id,
-      category: this.meta.category,
-      severity: this.meta.defaultSeverity,
-      confidence: released === undefined ? "medium" : "high",
-      message: `${pushed} bytes are pushed for this ${api} call but ${detail}`,
-      loc: line.mnemonic!.loc,
-      notes: [
-        { message: `${api} takes its parameters on the stack and the caller removes them.` },
-        {
-          message:
-            "Suppress this inline if the call does not return, or if the stack is unwound elsewhere, for example by restoring a saved stack pointer.",
+      ctx.report({
+        ruleId: "suspicious/atari-trap-stack-cleanup",
+        category: "suspicious",
+        severity: "warning",
+        confidence: released === undefined ? "medium" : "high",
+        message: `${outstanding} bytes are pushed for this ${lastTrap.api} call but ${detail}`,
+        loc: trapLine.mnemonic.loc,
+        notes: [
+          { message: `${lastTrap.api} takes its parameters on the stack and the caller removes them.` },
+          {
+            message:
+              "Suppress this inline if the call does not return, or if the stack is unwound elsewhere, for example by restoring a saved stack pointer.",
+          },
+        ],
+        suggestion: {
+          description: `Remove ${outstanding} bytes, e.g. ${outstanding <= 8 ? `addq.l #${outstanding},sp` : `lea ${outstanding}(sp),sp`}`,
+          applicability: "manual",
         },
-      ],
-      suggestion: {
-        description: `Remove ${pushed} bytes after the trap, e.g. ${pushed <= 8 ? `addq.l #${pushed},sp` : `lea ${pushed}(sp),sp`}`,
-        applicability: "manual",
-      },
-      data: { pushedBytes: pushed, releasedBytes: released, trapVector: vector },
+        data: { pushedBytes: outstanding, releasedBytes: released, trapIndex: lastTrap.index },
+      });
+    };
+
+    const reset = () => {
+      outstanding = 0;
+      pushedRun = 0;
+      opcodeWord = undefined;
+      lastTrap = undefined;
+    };
+
+    ctx.file.lines.forEach((line, index) => {
+      if (line.mnemonic?.type !== "instruction") return;
+      const mnemonic = semanticMnemonic(line);
+      if (!mnemonic) return;
+
+      if (RETURNS.has(mnemonic)) {
+        report(undefined);
+        reset();
+        return;
+      }
+      // A label means control can arrive without passing the calls seen so far,
+      // so start again rather than blame whichever call happened to come first.
+      if (line.label) reset();
+
+      const pushes = pushedBytes(line);
+      if (pushes !== undefined) {
+        pushedRun += pushes;
+        // The word pushed last before a trap is the function opcode.
+        if (pushes === 2) {
+          const immediate = immediateExpressionOperand(line, 0);
+          const value = immediate ? ctx.evaluate(immediate) : undefined;
+          opcodeWord = value?.known ? value.value : undefined;
+        }
+        return;
+      }
+
+      const released = releasedBytes(ctx, line);
+      if (released !== undefined) {
+        if (outstanding !== 0 && released !== outstanding) report(released);
+        reset();
+        return;
+      }
+
+      const vector = trapVector(ctx, line);
+      const api = vector === undefined ? undefined : STACK_TRAPS.get(vector);
+      if (api) {
+        const nonReturning = vector === 1 && opcodeWord !== undefined && NON_RETURNING_GEMDOS.has(opcodeWord);
+        if (!nonReturning && pushedRun > 0) {
+          outstanding += pushedRun;
+          lastTrap = { index, api };
+        }
+        pushedRun = 0;
+        opcodeWord = undefined;
+        return;
+      }
+
+      pushedRun = 0;
+      opcodeWord = undefined;
     });
+
+    report(undefined);
   },
 };

@@ -2,3 +2,7 @@ node_modules
 dist
 .DS_Store
 coverage
+
+# Third-party reference material: forum dumps and copyrighted documents.
+# Kept locally for mining, not redistributed.
+sources

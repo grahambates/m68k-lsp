@@ -1,7 +1,11 @@
 import type { Rule } from "../../../core/rule.js";
-import { isInstruction } from "../../../util/ast.js";
+import { isInstruction, operand } from "../../../util/ast.js";
 
-/** The Amiga architecture does not support the 68000 TAS bus-locking protocol. */
+/**
+ * The problem is the locked read-modify-write bus cycle TAS uses to reach
+ * memory, which the custom-chip DMA architecture cannot arbitrate. `TAS Dn`
+ * performs no memory access at all, so it is safe and is not flagged.
+ */
 export const amigaTasUnsupported: Rule = {
   meta: {
     id: "correctness/amiga-tas-unsupported",
@@ -17,17 +21,19 @@ export const amigaTasUnsupported: Rule = {
   },
   checkLine(ctx, line) {
     if (!isInstruction(line, "tas")) return;
+    // A data-register operand never touches the bus.
+    if (operand(line, 0)?.type === "data-register") return;
     ctx.report({
       ruleId: this.meta.id,
       category: this.meta.category,
       severity: this.meta.defaultSeverity,
       confidence: "certain",
-      message: "TAS is not supported on Amiga hardware",
+      message: "TAS on memory is not supported on Amiga hardware",
       loc: line.mnemonic!.loc,
       notes: [
         {
           message:
-            "The Amiga custom-chip DMA architecture does not support the 68000 TAS bus-locking protocol; replace TAS with an Amiga-safe synchronization/design pattern.",
+            "The locked read-modify-write cycle TAS uses to reach memory cannot be arbitrated against custom-chip DMA. TAS on a data register is unaffected, since it performs no memory access.",
         },
       ],
     });
