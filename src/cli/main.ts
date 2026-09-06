@@ -5,6 +5,8 @@ import { statSync } from "node:fs";
 import { dirname, relative, resolve, sep } from "node:path";
 import { parseFile } from "m68k-parser";
 import { lintParsedFile } from "../core/lint.js";
+import { applyFixes, type FixResult } from "../core/fix.js";
+import type { Applicability, Diagnostic, RuleCategory, Severity } from "../core/diagnostic.js";
 import { buildProjectSymbols, type ProjectSymbols } from "../analysis/project-symbols.js";
 import type { ExternalSymbols } from "../analysis/symbols.js";
 import {
@@ -16,7 +18,6 @@ import {
   type RulePreset,
   type RuleSetting,
 } from "../core/config.js";
-import type { Applicability, Diagnostic, RuleCategory, Severity } from "../core/diagnostic.js";
 import { formatImpact, paint, highlightAsm } from "./format.js";
 import {
   collectInitAnswers,
@@ -70,10 +71,15 @@ interface CliOptions {
   impactSummary: boolean;
   auditRuleImpact: boolean;
   init: boolean;
+  /** Rewrite files in place. Applies safe suggestions, plus conditional ones when asked. */
+  fix: boolean;
+  fixConditional: boolean;
+  /** Report what would be rewritten without touching anything. */
+  fixDryRun: boolean;
 }
 
 function usage(): string {
-  return `m68k-lint ${VERSION}\n\nUsage:\n  m68k-lint [options] <file|directory|glob ...>\n\nOptions:\n  --config <path>               Use a specific JSON config file\n  --no-config                   Disable config-file discovery\n  --ext <ext[,ext...]>          Extensions for directory/glob discovery; default: .s,.asm,.i\n  --ignore-pattern <glob>       Ignore matching files (repeatable)\n  --cpu <cpu[,cpu...]>          Target processor(s), default: mc68000\n  --platform <name>             generic, amiga, atari; default: generic\n  --preset <name[,name...]>     Enable rule preset(s): recommended, style\n  --goal <balanced|speed|size>  Filter known optimization trade-offs, default: balanced\n  --impact                      Enable exact 68000 impact measurement\n  --no-impact                   Disable exact 68000 impact measurement\n  --inline-config               Honor m68k-lint comment directives (default)\n  --no-inline-config            Ignore m68k-lint comment directives\n  --impact-summary              Summarize measured outcomes by rule\n  --audit-rule-impact           Run representative 68000 timing audit for every optimization rule\n  --only <category[,category]>  Run only selected rule categories\n  --disable-category <category> Disable a rule category (repeatable)\n  --rule <id>=<setting>         Override a rule: off|error|warning|suggestion|info\n  --format <pretty|json>        Output format, default: pretty\n  --fail-on <severity>          Exit 1 at this severity or higher, default: error\n  --init                        Create a project config file interactively\n  --list-rules                  List built-in rules and exit\n  --asp68k-coverage             Show tracked ASP68K table coverage and exit\n  --color / --no-color          Force or disable ANSI colours; default: TTY only\n  -h, --help                    Show this help\n  -v, --version                 Show version\n\nExamples:\n  m68k-lint game.s\n  m68k-lint src/\n  m68k-lint "src/**/*.asm"\n  m68k-lint --ext .s,.asm,.i,.inc src/\n  m68k-lint --platform amiga --cpu mc68000 src/\n  m68k-lint --rule suspicious/nop=warning --fail-on warning game.s\n`;
+  return `m68k-lint ${VERSION}\n\nUsage:\n  m68k-lint [options] <file|directory|glob ...>\n\nOptions:\n  --config <path>               Use a specific JSON config file\n  --no-config                   Disable config-file discovery\n  --ext <ext[,ext...]>          Extensions for directory/glob discovery; default: .s,.asm,.i\n  --ignore-pattern <glob>       Ignore matching files (repeatable)\n  --cpu <cpu[,cpu...]>          Target processor(s), default: mc68000\n  --platform <name>             generic, amiga, atari; default: generic\n  --preset <name[,name...]>     Enable rule preset(s): recommended, style\n  --goal <balanced|speed|size>  Filter known optimization trade-offs, default: balanced\n  --impact                      Enable exact 68000 impact measurement\n  --no-impact                   Disable exact 68000 impact measurement\n  --inline-config               Honor m68k-lint comment directives (default)\n  --no-inline-config            Ignore m68k-lint comment directives\n  --impact-summary              Summarize measured outcomes by rule\n  --audit-rule-impact           Run representative 68000 timing audit for every optimization rule\n  --only <category[,category]>  Run only selected rule categories\n  --disable-category <category> Disable a rule category (repeatable)\n  --rule <id>=<setting>         Override a rule: off|error|warning|suggestion|info\n  --fix                         Apply safe suggestions and rewrite the files\n  --fix-conditional             Also apply conditional ones; read their notes first\n  --fix-dry-run                 Report what --fix would change, writing nothing\n  --format <pretty|json>        Output format, default: pretty\n  --fail-on <severity>          Exit 1 at this severity or higher, default: error\n  --init                        Create a project config file interactively\n  --list-rules                  List built-in rules and exit\n  --asp68k-coverage             Show tracked ASP68K table coverage and exit\n  --color / --no-color          Force or disable ANSI colours; default: TTY only\n  -h, --help                    Show this help\n  -v, --version                 Show version\n\nExamples:\n  m68k-lint game.s\n  m68k-lint src/\n  m68k-lint "src/**/*.asm"\n  m68k-lint --ext .s,.asm,.i,.inc src/\n  m68k-lint --platform amiga --cpu mc68000 src/\n  m68k-lint --rule suspicious/nop=warning --fail-on warning game.s\n  m68k-lint --fix src/\n`;
 }
 
 function requireValue(argv: string[], index: number, option: string): string {
@@ -111,6 +117,9 @@ function parseArgs(argv: string[]): CliOptions | "help" | "version" {
     impactSummary: false,
     auditRuleImpact: false,
     init: false,
+    fix: false,
+    fixConditional: false,
+    fixDryRun: false,
   };
 
   for (let i = 0; i < argv.length; i++) {
@@ -139,6 +148,20 @@ function parseArgs(argv: string[]): CliOptions | "help" | "version" {
     }
     if (arg === "--inline-config") {
       options.inlineConfig = true;
+      continue;
+    }
+    if (arg === "--fix") {
+      options.fix = true;
+      continue;
+    }
+    if (arg === "--fix-conditional") {
+      options.fix = true;
+      options.fixConditional = true;
+      continue;
+    }
+    if (arg === "--fix-dry-run") {
+      options.fix = true;
+      options.fixDryRun = true;
       continue;
     }
     if (arg === "--no-inline-config") {
@@ -367,10 +390,29 @@ function formatImpactSummary(diagnostics: Diagnostic[]): string | undefined {
 }
 
 async function lintOne(path: string, options: CliOptions, config: LintConfig, external?: ExternalSymbols) {
-  const source = await readFile(path, "utf8");
+  let source = await readFile(path, "utf8");
+  let fixed: FixResult | undefined;
+
+  if (options.fix) {
+    const accept: Applicability[] = options.fixConditional ? ["safe", "conditional"] : ["safe"];
+    // A rewrite that will not parse is worse than no rewrite, so a round whose
+    // result reads worse than what went in is rolled back rather than written.
+    const errorCount = parseFile(source).errors.length;
+    fixed = applyFixes(source, (text) => lintParsedFile(parseFile(text), text, config, undefined, external), {
+      accept,
+      verify: (candidate) => parseFile(candidate).errors.length <= errorCount,
+    });
+    if (fixed.applied.length && !options.fixDryRun) {
+      await writeFile(path, fixed.output, "utf8");
+      source = fixed.output;
+    } else if (fixed.applied.length) {
+      source = fixed.output;
+    }
+  }
+
   const parsed = parseFile(source);
   const diagnostics = lintParsedFile(parsed, source, config, undefined, external);
-  return { path, source, parseErrors: parsed.errors, diagnostics };
+  return { path, source, parseErrors: parsed.errors, diagnostics, fixed };
 }
 
 /**
@@ -676,6 +718,33 @@ async function main(): Promise<number> {
     // rather than this parser's more permissive one. What is worth saying is
     // that a file was not fully read, so an empty result is not mistaken for a
     // verified one.
+    // What changed on disk is the first thing to say, before what remains.
+    for (const result of results) {
+      const fixed = "fixed" in result ? result.fixed : undefined;
+      if (!fixed || fixed.applied.length === 0) continue;
+      const path = "path" in result ? result.path : "";
+      const verb = options.fixDryRun ? "would fix" : "fixed";
+      const counts = new Map<string, number>();
+      for (const one of fixed.applied) counts.set(one.ruleId, (counts.get(one.ruleId) ?? 0) + 1);
+      const detail = [...counts]
+        .sort()
+        .map(([ruleId, n]) => `${ruleId}${n > 1 ? ` x${n}` : ""}`)
+        .join(", ");
+      console.log(
+        `\n${path}: ${verb} ${fixed.applied.length} ${fixed.applied.length === 1 ? "issue" : "issues"} ` +
+          `${paint(options.color, 90, `(${detail})`)}`,
+      );
+    }
+    for (const result of results) {
+      const outcome = "fixed" in result ? result.fixed : undefined;
+      if (outcome?.rejected) {
+        const path = "path" in result ? result.path : "";
+        console.log(
+          paint(options.color, 33, `\n${path}: a rewrite was rolled back because the result would not have parsed.`),
+        );
+      }
+    }
+
     for (const result of results) {
       if (!("parseErrors" in result) || result.parseErrors.length === 0) continue;
       console.log(

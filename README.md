@@ -228,6 +228,24 @@ must not read arguments relative to SP, a device that must tolerate a wider
 access — that is `conditional`, and the replacement is given along with the
 condition.
 
+## Applying fixes
+
+`--fix` rewrites files in place, applying `safe` suggestions until nothing more
+changes. `--fix-conditional` also applies `conditional` ones — read their notes
+first, since each rests on an assumption the linter has stated but cannot prove.
+`--fix-dry-run` reports what would change and writes nothing.
+
+Only suggestions carrying replacement text are applied, and a rule declines to
+offer one wherever a faithful rewrite is impossible: a label in the middle of a
+matched run, or a directive inside it. The replacement already carries the
+indentation, operand column, label and comments of the lines it replaces.
+
+Fixes are applied from the bottom of the file up so earlier line numbers stay
+valid, and overlapping ones are left for the next round rather than dropped.
+Rounds repeat because one rewrite exposes another, up to a limit. If a round
+produced source that no longer parsed it is rolled back and the run stops,
+which should never happen and is cheap insurance if it does.
+
 ## Goals
 
 `--goal speed` and `--goal size` filter optimization suggestions on measured

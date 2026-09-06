@@ -5,6 +5,16 @@ previously lived in `README.md`.
 
 ## Unreleased
 
+### Added
+
+- `--fix` rewrites files in place, applying `safe` suggestions until nothing
+  more changes. `--fix-conditional` also applies `conditional` ones, whose notes
+  state the assumption each rests on, and `--fix-dry-run` reports what would
+  change without writing. Fixes apply from the bottom up so earlier line numbers
+  stay valid, overlapping ones are left for the next round, and rounds repeat
+  because one rewrite exposes another. A round whose result no longer parses is
+  rolled back and the run stops.
+
 ### Changed
 
 - Bit masks are written as a shift of the bit number: `bset #2,d3` suggests
