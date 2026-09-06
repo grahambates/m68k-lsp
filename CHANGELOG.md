@@ -7,6 +7,15 @@ previously lived in `README.md`.
 
 ### Added
 
+- A diagnostic says when its replacement works out a value rather than carrying
+  it. Rules that copy a value through keep the symbol, so the code still tracks
+  the constant; rules that derive one write the arithmetic result and the name
+  disappears. `muls.w #SCALE,d0` becomes `asl.l #3,d0`, which is silently wrong
+  the moment SCALE changes, and nothing in the code says so. Deleting code is
+  not reported, since it drops every name in it by design.
+
+### Added
+
 - `optimization/adds-to-shift`, the inverse of `optimization/shift-two-adds`:
   a register doubled twice is a two-bit left shift, two bytes smaller and two
   cycles slower. It runs only in size-focused runs.

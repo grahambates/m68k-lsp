@@ -1,3 +1,4 @@
+import { parseFile } from "m68k-parser";
 import type { ExpressionNode, ParsedFile, ParsedLine } from "m68k-parser";
 import { evaluateConstant, type ConstantResult } from "../analysis/constants.js";
 import { DefaultSymbolTable, type ExternalSymbols, type ExternalUse, type SymbolTable } from "../analysis/symbols.js";
@@ -138,6 +139,53 @@ function alignOperands(text: string, alignment: OperandAlignment): string {
     .join("\n");
 }
 
+/**
+ * Symbol names appearing in a line's operands.
+ *
+ * Registers and mnemonics are not symbols to the parser, so this sees only the
+ * names a person chose: constants, labels, equates.
+ */
+function collectSymbols(lines: readonly ParsedLine[], into: Set<string>): void {
+  const walk = (node: unknown): void => {
+    if (!node || typeof node !== "object") return;
+    const candidate = node as { type?: string; name?: string };
+    if (candidate.type === "symbol" && typeof candidate.name === "string") into.add(candidate.name.toLowerCase());
+    for (const value of Object.values(node)) {
+      if (Array.isArray(value)) value.forEach(walk);
+      else if (value && typeof value === "object") walk(value);
+    }
+  };
+  for (const line of lines) for (const operand of line.operands ?? []) walk(operand);
+}
+
+/**
+ * Names the replacement works out rather than carries.
+ *
+ * Where a rule copies a value through, the symbol survives and the code still
+ * tracks the constant. Where it derives one -- a shift count from a multiplier,
+ * the sum of two ADDQs -- the name disappears and only the arithmetic remains:
+ * `muls.w #SCALE,d0` becomes `asl.l #3,d0`, which is silently wrong if SCALE
+ * ever changes. That is invisible in a way a longer replacement is not, so it
+ * is worth saying out loud.
+ *
+ * A replacement that deletes the code drops every name by design and is not
+ * reported.
+ */
+function symbolsLostBy(original: readonly ParsedLine[], replacement: string): string[] {
+  if (!replacement.trim()) return [];
+  const before = new Set<string>();
+  collectSymbols(original, before);
+  if (before.size === 0) return [];
+
+  const after = new Set<string>();
+  try {
+    collectSymbols(parseFile(replacement).lines, after);
+  } catch {
+    return [];
+  }
+  return [...before].filter((name) => !after.has(name));
+}
+
 export class DefaultRuleContext implements RuleContext {
   private readonly diagnostics: Diagnostic[] = [];
   private readonly sourceLines: string[];
@@ -161,9 +209,24 @@ export class DefaultRuleContext implements RuleContext {
   }
 
   report(diagnostic: Diagnostic): void {
-    const notes = withProvenance(diagnostic, this.symbols.externalUses());
-    const suggestion = this.indentSuggestion(diagnostic);
     const span = computeSourceSpan(diagnostic, this.file);
+    const suggestion = this.indentSuggestion(diagnostic);
+    const replacement = suggestion?.replacement ?? diagnostic.suggestion?.replacement;
+    const lost =
+      span && replacement !== undefined
+        ? symbolsLostBy(this.file.lines.slice(span.startLine - 1, span.endLine), replacement)
+        : [];
+
+    let notes = withProvenance(diagnostic, this.symbols.externalUses());
+    if (lost.length) {
+      const names = lost.map((name) => name.toUpperCase()).join(", ");
+      notes = [
+        ...(notes ?? []),
+        {
+          message: `${names} ${lost.length === 1 ? "does" : "do"} not appear in the replacement: its value has been worked out here, so the code will no longer follow a change to ${lost.length === 1 ? "it" : "them"}.`,
+        },
+      ];
+    }
     this.diagnostics.push({ ...diagnostic, notes, span, ...(suggestion ? { suggestion } : {}) });
   }
 

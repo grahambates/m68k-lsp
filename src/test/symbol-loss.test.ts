@@ -1,0 +1,63 @@
+import { lintSource } from "../core/lint.js";
+
+/**
+ * A rule that copies a value through keeps the symbol, so the code still tracks
+ * the constant. A rule that *derives* one — a shift count from a multiplier,
+ * the sum of two ADDQs — writes the arithmetic result and the name disappears:
+ * `muls.w #SCALE,d0` becomes `asl.l #3,d0`, which is silently wrong the moment
+ * SCALE changes.
+ *
+ * That is invisible in a way a longer replacement is not, so it is said out
+ * loud rather than left for the reader to notice.
+ */
+const DEFS = "SCALE equ 8\nSMALL equ 3\nBIG equ 100\n";
+
+const lossNote = (lines: string[], ruleId: string) => {
+  const source = DEFS + lines.map((l) => `\t${l}`).join("\n") + "\n\tmoveq #0,d7\n\trts";
+  const found = lintSource(source, { processors: ["mc68000"] }).find((d) => d.ruleId === ruleId);
+  return (found?.notes ?? []).map((n) => n.message).find((m) => /does not appear|do not appear/.test(m));
+};
+
+describe("a derived value loses the name behind it", () => {
+  test("a multiplier becomes a shift count", () => {
+    expect(lossNote(["muls.w #SCALE,d0"], "optimization/muls-word-power-of-two")).toContain("SCALE");
+  });
+
+  test("a divisor becomes a shift count", () => {
+    expect(lossNote(["divu.w #SCALE,d0"], "optimization/divu-word-power-of-two")).toContain("SCALE");
+  });
+
+  test("two quick adds are folded into their sum", () => {
+    expect(lossNote(["addq.l #SMALL,d0", "addq.l #2,d0"], "optimization/combine-consecutive-addq")).toContain("SMALL");
+  });
+});
+
+describe("a value carried through keeps its name, and says nothing", () => {
+  test("an immediate passed straight to MOVEQ", () => {
+    expect(lossNote(["move.l #BIG,d0"], "optimization/prefer-moveq")).toBeUndefined();
+  });
+
+  test("a branch target carried into the tail call", () => {
+    expect(lossNote(["bsr .sub", "rts"], "optimization/bsr-rts-tail-call")).toBeUndefined();
+  });
+
+  test("a compound displacement kept whole", () => {
+    const source = "SCREEN_BW equ 320\n\tadda.w #SCREEN_BW/2,a3\n\trts";
+    const found = lintSource(source, { processors: ["mc68000"] }).find(
+      (d) => d.ruleId === "optimization/address-add-to-lea",
+    );
+    expect((found?.notes ?? []).map((n) => n.message).some((m) => /does not appear/.test(m))).toBe(false);
+  });
+});
+
+describe("removal is not loss", () => {
+  // Deleting dead code drops every name in it by design.
+  test("a deletion says nothing about the names it removes", () => {
+    const source = "COUNT equ 4\n\tmove.w #COUNT,d0\n\tmove.w #200,d0\n\tmove.l d0,(a0)\n\trts";
+    const found = lintSource(source, { processors: ["mc68000"] }).find(
+      (d) => d.ruleId === "suspicious/dead-register-write",
+    );
+    expect(found?.suggestion?.replacement).toBe("");
+    expect((found?.notes ?? []).map((n) => n.message).some((m) => /does not appear/.test(m))).toBe(false);
+  });
+});
