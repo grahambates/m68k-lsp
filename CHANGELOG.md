@@ -5,6 +5,27 @@ previously lived in `README.md`.
 
 ## Unreleased
 
+### Fixed
+
+- Macro invocations are no longer invisible to the analysis. The parser types a
+  macro call `mnemonic.type === "macro"`, which fell through every
+  `type === "instruction"` filter, so a call was modelled as a no-op that reads
+  no registers. `suspicious/dead-register-write` therefore reported writes the
+  macro went on to read, and sequence rules fused instructions across a call —
+  `optimization/prefer-link-sequence` would collapse a frame setup around an
+  intervening macro and offer a replacement that deleted it. A call is now an
+  opaque node: its operands count as reads, everything else is unknown, and the
+  adjacent-instruction search stops at one.
+- Macro definition bodies no longer join the flow of the code around them. The
+  instructions between MACRO and ENDM run where the macro is invoked, not where
+  it is written, so each definition is its own region that flow neither enters
+  nor leaves. The body is still analysed — a write it overwrites before reading
+  is dead in every expansion — but its last line escapes rather than being
+  treated as the end of the program.
+- REPT bodies are analysed as loops. Without a back edge from the last line of
+  the body to the first, a value written late in an iteration and read early in
+  the next looked dead, where the equivalent DBF loop was correctly quiet.
+
 ### Added
 
 - `npm run verify:semantics`, a differential checker that runs each audit case

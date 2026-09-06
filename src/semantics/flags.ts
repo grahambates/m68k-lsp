@@ -1,5 +1,6 @@
 import type { ParsedLine } from "m68k-parser";
 import { semanticMnemonic, canonicalMnemonicName } from "./mnemonics.js";
+import { isMacroInvocation } from "../util/ast.js";
 
 export const FLAGS = ["X", "N", "Z", "V", "C"] as const;
 export type Flag = (typeof FLAGS)[number];
@@ -86,6 +87,14 @@ export function isAddressRegisterWriteWithoutCCR(line: ParsedLine): boolean {
  * more precise answers without rule changes.
  */
 export function getFlagSemantics(line: ParsedLine): FlagSemantics {
+  // A macro's body is invisible here, so treat the condition codes the way a
+  // JSR is treated: not written to anything knowable, and no longer trustworthy.
+  // Execution continues to the next line, since a macro that branches away is
+  // rarer than one that does not, and assuming otherwise would sever the flow
+  // of every file that uses macros for anything ordinary.
+  if (isMacroInvocation(line)) {
+    return { reads: none(), writes: none(), undefined: XNZVC, controlFlow: "fallthrough" };
+  }
   const mnemonic = instructionName(line);
   if (!mnemonic) return { reads: none(), writes: none(), undefined: none(), controlFlow: "fallthrough" };
 

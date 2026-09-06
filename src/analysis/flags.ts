@@ -1,6 +1,7 @@
 import type { ParsedFile } from "m68k-parser";
 import { buildControlFlowGraph, type ControlFlowGraph } from "./cfg.js";
 import { FLAGS, getFlagSemantics, type Flag } from "../semantics/flags.js";
+import { isExecutableLine } from "../util/ast.js";
 
 export type FlagLiveness = "dead" | "live" | "unknown";
 
@@ -45,7 +46,7 @@ export function analyzeFlags(file: ParsedFile): FlagAnalysis {
     changed = false;
     for (let i = file.lines.length - 1; i >= 0; i--) {
       const line = file.lines[i];
-      if (line?.mnemonic?.type !== "instruction") continue;
+      if (!isExecutableLine(line)) continue;
       const semantics = getFlagSemantics(line);
 
       for (const flag of FLAGS) {
@@ -88,7 +89,7 @@ export function analyzeFlags(file: ParsedFile): FlagAnalysis {
     changed = false;
     for (let i = 0; i < file.lines.length; i++) {
       const line = file.lines[i];
-      if (line?.mnemonic?.type !== "instruction") continue;
+      if (!isExecutableLine(line)) continue;
       const semantics = getFlagSemantics(line);
 
       for (const flag of FLAGS) {

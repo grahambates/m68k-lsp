@@ -5,6 +5,7 @@ import { analyzeFlags, type FlagAnalysis } from "../analysis/flags.js";
 import { analyzeRegisters, type RegisterAnalysis } from "../analysis/registers.js";
 import type { LintConfig } from "./config.js";
 import type { Diagnostic } from "./diagnostic.js";
+import { isMacroInvocation } from "../util/ast.js";
 
 export interface RuleContext {
   readonly file: ParsedFile;
@@ -62,9 +63,19 @@ export class DefaultRuleContext implements RuleContext {
     return this.sourceLines[index];
   }
 
+  /**
+   * The adjacent instruction, or nothing if a macro invocation comes first.
+   *
+   * Sequence rules use these to match a run of instructions and then offer a
+   * replacement spanning it. A macro invocation between two of them is code
+   * that would be deleted by such a replacement, so it has to end the search
+   * rather than be stepped over: `prefer-link-sequence` was collapsing a frame
+   * setup around an intervening macro call and dropping it.
+   */
   previousInstruction(index: number): { line: ParsedLine; index: number } | undefined {
     for (let i = index - 1; i >= 0; i--) {
       const line = this.file.lines[i];
+      if (isMacroInvocation(line)) return undefined;
       if (line?.mnemonic?.type === "instruction") return { line, index: i };
     }
     return undefined;
@@ -73,6 +84,7 @@ export class DefaultRuleContext implements RuleContext {
   nextInstruction(index: number): { line: ParsedLine; index: number } | undefined {
     for (let i = index + 1; i < this.file.lines.length; i++) {
       const line = this.file.lines[i];
+      if (isMacroInvocation(line)) return undefined;
       if (line?.mnemonic?.type === "instruction") return { line, index: i };
     }
     return undefined;

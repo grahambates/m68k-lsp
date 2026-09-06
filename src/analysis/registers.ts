@@ -8,7 +8,7 @@ import {
   normalizeRegister,
   type Register,
 } from "../semantics/registers.js";
-import { instructionSize } from "../util/ast.js";
+import { instructionSize, isExecutableLine } from "../util/ast.js";
 import { semanticMnemonic } from "../semantics/mnemonics.js";
 
 export type RegisterLiveness = "dead" | "live" | "unknown";
@@ -104,7 +104,7 @@ export function analyzeRegisters(
     changed = false;
     for (let i = file.lines.length - 1; i >= 0; i--) {
       const line = file.lines[i];
-      if (line?.mnemonic?.type !== "instruction") continue;
+      if (!isExecutableLine(line)) continue;
       const sem = getRegisterSemantics(line);
       for (const r of REGISTERS) {
         let out: RegisterLiveness = cfg.escapes[i] ? "unknown" : "dead";
@@ -141,7 +141,7 @@ export function analyzeRegisters(
     changed = false;
     for (let i = 0; i < file.lines.length; i++) {
       const line = file.lines[i];
-      if (line?.mnemonic?.type !== "instruction") continue;
+      if (!isExecutableLine(line)) continue;
       const sem = getRegisterSemantics(line);
 
       for (const r of REGISTERS) {

@@ -1,6 +1,7 @@
 import type { OperandNode, ParsedLine } from "m68k-parser";
 import { getFlagSemantics } from "./flags.js";
 import { semanticMnemonic } from "./mnemonics.js";
+import { isMacroInvocation } from "../util/ast.js";
 
 export const DATA_REGISTERS = ["d0", "d1", "d2", "d3", "d4", "d5", "d6", "d7"] as const;
 export const ADDRESS_REGISTERS = ["a0", "a1", "a2", "a3", "a4", "a5", "a6", "a7"] as const;
@@ -96,6 +97,14 @@ function computeRegisterSemantics(line: ParsedLine): RegisterSemantics {
   const mnemonic = semanticMnemonic(line);
   const reads = none();
   const writes = none();
+  // A macro expands into instructions we cannot see, so nothing about its
+  // register use is knowable here. The operands it is passed are recorded as
+  // reads because that is the conservative reading of a register handed to
+  // code we cannot inspect; `unknownEffects` covers everything else.
+  if (isMacroInvocation(line)) {
+    for (const op of line.operands ?? []) addAll(reads, registersReadByOperand(op));
+    return { reads, writes, unknownEffects: true, call: false };
+  }
   if (!mnemonic) return { reads, writes, unknownEffects: false, call: false };
   const ops = line.operands ?? [];
   const controlFlow = getFlagSemantics(line).controlFlow;
