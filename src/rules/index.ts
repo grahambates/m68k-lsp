@@ -81,6 +81,7 @@ import { moveImmediateWordComplement, moveImmediateSwap } from "./optimization/m
 import { longShiftSequence } from "./optimization/long-shift-sequences.js";
 import { moveImmediateAddressToLea, moveAddressThenAddToLea } from "./optimization/movea-lea.js";
 import { preferLeaForAddressSymbol } from "./optimization/lea-address-symbol.js";
+import { atariTrapStackCleanup } from "./platform/atari/trap-stack-cleanup.js";
 import { cancelMultiplePredecrementMoves } from "./optimization/cancel-multiple-predecrement.js";
 import { cancelStackPeaSequence } from "./optimization/stack-pea-cancellation.js";
 import { multiplyLongByOne } from "./optimization/multiply-long-by-one.js";
@@ -158,6 +159,7 @@ export {
   bitNumberWraparound,
   partialRegisterWrite,
   unexpectedAbsoluteAddress,
+  atariTrapStackCleanup,
   requireInstructionSize,
   omitRedundantInstructionSize,
   preferAddressRegisterMnemonics,
@@ -378,6 +380,7 @@ export const defaultRules: readonly Rule[] = [
   bitNumberWraparound,
   partialRegisterWrite,
   unexpectedAbsoluteAddress,
+  atariTrapStackCleanup,
   selfMove,
   suspiciousNop,
   staleConditionCode,

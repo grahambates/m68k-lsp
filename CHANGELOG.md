@@ -52,6 +52,13 @@ previously lived in `README.md`.
 
 ### Added
 
+- `suspicious/atari-trap-stack-cleanup` — GEMDOS, BIOS and XBIOS take their
+  parameters on the stack and the caller removes them. This compares the pushes
+  immediately before a trap against the adjustment immediately after, so it
+  needs no table of TOS function signatures and does not depend on the TOS
+  version. A byte push counts as two, since A7 stays word-aligned. TRAP #2 is
+  excluded because GEM passes a parameter block in registers, and the
+  non-returning GEMDOS calls (Pterm0, Pterm, Ptermres) are exempt.
 - `--platform atari`, applying
   `suspicious/unexpected-absolute-address` to the Atari map. Atari hardware
   registers are conventionally written as a sign-extended absolute short, so

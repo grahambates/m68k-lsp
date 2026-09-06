@@ -1373,6 +1373,60 @@ describe("Amiga custom-register direction table", () => {
   });
 });
 
+describe("Atari TOS trap stack cleanup", () => {
+  const atari = { processors: ["mc68000"], platform: "atari", measureImpact: false } as LintConfig;
+  const ID = "suspicious/atari-trap-stack-cleanup";
+  const flags = (source: string) => ids(source, atari).includes(ID);
+
+  // Cconws: pea (4) plus the opcode word (2).
+  const cconws = ["pea msg", "move.w #9,-(sp)", "trap #1"];
+  const tail = ["rts", "msg:", "dc.b 0"];
+  const call = (...cleanup: string[]) => [...cconws, ...cleanup, ...tail].join("\n");
+
+  test("accepts a matching cleanup", () => {
+    expect(flags(call("addq.l #6,sp"))).toBe(false);
+    expect(flags(call("add.l #6,sp"))).toBe(false);
+    expect(flags(call("lea 6(sp),sp"))).toBe(false);
+  });
+
+  test("flags a missing cleanup", () => {
+    expect(flags(call())).toBe(true);
+  });
+
+  test("flags a cleanup of the wrong size, and says both numbers", () => {
+    const diagnostic = lint(call("addq.l #4,sp"), atari).find((d) => d.ruleId === ID);
+    expect(diagnostic?.message).toContain("6 bytes are pushed");
+    expect(diagnostic?.message).toContain("4 bytes are removed");
+    expect(diagnostic?.data?.pushedBytes).toBe(6);
+    expect(diagnostic?.data?.releasedBytes).toBe(4);
+  });
+
+  test("counts a byte push as two, because A7 stays word-aligned", () => {
+    // move.b to -(sp) moves the stack pointer by 2, not 1.
+    expect(flags(["move.b d0,-(sp)", "move.w #9,-(sp)", "trap #1", "addq.l #4,sp", "rts"].join("\n"))).toBe(false);
+    expect(flags(["move.b d0,-(sp)", "move.w #9,-(sp)", "trap #1", "addq.l #3,sp", "rts"].join("\n"))).toBe(true);
+  });
+
+  test("stays quiet for GEMDOS calls that never return", () => {
+    for (const opcode of ["#0", "#$4c", "#$31"]) {
+      expect([opcode, flags([`move.w ${opcode},-(sp)`, "trap #1"].join("\n"))]).toEqual([opcode, false]);
+    }
+  });
+
+  test("covers BIOS and XBIOS but not GEM", () => {
+    const pushes = ["move.w #2,-(sp)", "move.w #5,-(sp)"];
+    expect(flags([...pushes, "trap #13", "rts"].join("\n"))).toBe(true);
+    expect(flags([...pushes, "trap #14", "rts"].join("\n"))).toBe(true);
+    // GEM passes a parameter block in registers, so there is nothing to clean up.
+    expect(flags([...pushes, "trap #2", "rts"].join("\n"))).toBe(false);
+  });
+
+  test("does not run on other platforms", () => {
+    expect(ids(call(), { processors: ["mc68000"], platform: "amiga", measureImpact: false })).not.toContain(ID);
+    expect(ids(call(), { processors: ["mc68000"], measureImpact: false })).not.toContain(ID);
+  });
+});
+
 describe("Atari absolute-address footguns", () => {
   const st = {
     processors: ["mc68000"],
