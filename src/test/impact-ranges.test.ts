@@ -52,3 +52,35 @@ describe("timing that depends on a proven shift count", () => {
     expect(impact?.execution?.cpuCycles).toBeUndefined();
   });
 });
+
+describe("counts recorded under other names", () => {
+  // Rotates prove their count exactly as shifts do, but recorded it as
+  // `rotateCount`, so the resolver never saw it and the saving never appeared.
+  test("a proven rotate count resolves the range", () => {
+    const impact = lintSource(["\tmoveq #12,d1", "\trol.w d1,d0", "\tmoveq #0,d1", "\trts"].join("\n"), {
+      processors: ["mc68000"],
+    }).find((d) => d.ruleId === "optimization/known-register-rotate")?.suggestion?.impact;
+    expect(impact?.execution?.cpuCycles?.confidence).toBe("exact");
+    expect(impact?.execution?.cpuCycles?.delta).toBeLessThan(0);
+  });
+});
+
+describe("a redundant size on a bit instruction", () => {
+  // BSET on a data register is always long, so `.l` adds nothing the encoding
+  // does not fix. yacht.txt gives `#<data>,Dn .L` as 10(2/0): two word fetches,
+  // four bytes. 68kcounter bills the spelled-out form an extra extension word.
+  test("does not cost the measurement two bytes", () => {
+    const impact = lintSource(["\tor.l #8,d0", "\tmoveq #0,d7", "\trts"].join("\n"), { processors: ["mc68000"] }).find(
+      (d) => d.ruleId === "optimization/prefer-bset",
+    )?.suggestion?.impact;
+    expect(impact?.sizeBytes?.after).toBe(4);
+    expect(impact?.sizeBytes?.delta).toBe(-2);
+  });
+
+  test("the suggestion keeps the spelling the rule chose", () => {
+    const suggestion = lintSource(["\tor.l #8,d0", "\tmoveq #0,d7", "\trts"].join("\n"), {
+      processors: ["mc68000"],
+    }).find((d) => d.ruleId === "optimization/prefer-bset")?.suggestion;
+    expect(suggestion?.replacement).toContain("bset.l");
+  });
+});

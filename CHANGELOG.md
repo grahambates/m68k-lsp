@@ -5,6 +5,21 @@ previously lived in `README.md`.
 
 ## Unreleased
 
+### Fixed
+
+- Rotate rules have their cycle saving measured. A rotate by a register has the
+  same `base + multiplier * n` timing as a shift and fires only once the count
+  is proven, but recorded it as `rotateCount` where the resolver looked only for
+  `shiftCount`, so `optimization/known-register-rotate` measured as an
+  unresolved range. It saves 20 cycles.
+- `optimization/prefer-bset` reports the 2 bytes it saves. BSET on a data
+  register is always long, so the `.l` the rule writes adds nothing the encoding
+  does not already fix — yacht.txt gives `#<data>,Dn .L` as `10(2/0)`, two word
+  fetches — but 68kcounter bills the spelled-out form an extra extension word,
+  inconsistently, since it sizes `bclr.l` correctly. The measurement copy now
+  drops a redundant size on a bit instruction; the suggestion keeps its
+  spelling.
+
 ### Changed
 
 - Diagnostics carry the run of source lines they cover, as `span`. A rule that

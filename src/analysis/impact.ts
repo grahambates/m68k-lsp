@@ -65,7 +65,22 @@ export function normalizeCounterSnippet(source: string): string {
     .replace(/\r/g, "\n")
     .split("\n")
     .map((line) => (line.trim().length === 0 || /^[ \t]/.test(line) ? line : `\t${line}`))
+    .map(dropRedundantBitSize)
     .join("\n");
+}
+
+/**
+ * Drop the size from a bit instruction on a data register.
+ *
+ * The operation is always on all 32 bits there, so `.l` says nothing the
+ * encoding does not already fix, and `BSET #3,D0` occupies two words either way
+ * (yacht.txt: `#<data>,Dn .L` is `10(2/0)`). 68kcounter nevertheless bills the
+ * spelled-out form an extra extension word -- inconsistently, since it sizes
+ * `bclr.l` correctly -- which hid the 2 bytes `prefer-bset` actually saves.
+ * Only the measurement copy is rewritten; the suggestion keeps its spelling.
+ */
+function dropRedundantBitSize(line: string): string {
+  return line.replace(/\b(bset|bclr|bchg|btst)\.[bwl]\b(?=\s+[^,]*,\s*d[0-7]\s*$)/i, "$1");
 }
 
 /**
@@ -175,6 +190,22 @@ function collapseConstantExpressions(snippet: string, evaluate: ConstantEvaluato
     .join("\n");
 }
 
+/**
+ * The count a rule proved before matching, whatever it called it.
+ *
+ * Shifts and rotates both have timing of the form `base + multiplier * n`, and
+ * both only fire once constant propagation has pinned n. Reading only
+ * `shiftCount` left the rotate rules measuring as an unresolved range, so their
+ * cycle saving never appeared.
+ */
+function provenCount(diagnostic: Diagnostic): number | undefined {
+  for (const key of ["shiftCount", "rotateCount"]) {
+    const value = diagnostic.data?.[key];
+    if (typeof value === "number") return value;
+  }
+  return undefined;
+}
+
 function measureSnippet(source: string, knownShiftCount?: number): Measurement | undefined {
   try {
     if (!parse68kCounter || !calculateCounterTotals) return undefined;
@@ -277,7 +308,7 @@ export function measureDiagnosticImpact(
   // A rule that matched a shift by a register only fires once the count is
   // proven, and records it. Without it the original measures as a range and
   // only the size is comparable, which reported a cycle win as a regression.
-  const shiftCount = typeof diagnostic.data?.shiftCount === "number" ? diagnostic.data.shiftCount : undefined;
+  const shiftCount = provenCount(diagnostic);
   const before = measureSnippet(collapseConstantExpressions(original, evaluate), shiftCount);
   const after = measureSnippet(collapseConstantExpressions(replacement, evaluate), shiftCount);
   if (!before || !after) return diagnostic;
