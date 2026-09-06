@@ -5,6 +5,26 @@ previously lived in `README.md`.
 
 ## Unreleased
 
+### Fixed
+
+- `suspicious/dead-register-write` no longer reports instructions whose result
+  survives in bits a later narrow write leaves alone. Liveness treated every
+  write as ending a register's life, but a byte or word operation on a data
+  register preserves the bits above it, so `swap d7` / `move.w d4,d7` /
+  `swap d7` looked like the first SWAP did nothing. Narrow writes are now
+  tracked as partial; MOVEA, MOVEM.W and the word multiplies and divides are
+  excluded, since they write the whole register despite a narrow size.
+- EXT and EXTB are recorded as reading the value they extend. They were grouped
+  with CLR, which does overwrite without reading, so whatever fed an EXT looked
+  dead.
+- Rules matching a shift by a register now have their cycle cost measured. The
+  timing is a range only because the count is unknown in general, and these
+  rules fire only once the count is proven, so it is substituted into the
+  calculation 68kcounter already supplies. Four rules that save cycles at a cost
+  in bytes were reported as outright regressions with no timing at all; they now
+  measure between 2 and 36 cycles saved and read as trade-offs. A range with no
+  count behind it, such as a conditional branch, stays unmeasured.
+
 ### Added
 
 - Syntax highlighting for the assembly in terminal output, covering both the

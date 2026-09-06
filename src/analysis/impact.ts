@@ -96,6 +96,12 @@ function resolveRangeWithCount(lines: unknown[], count: number): Triple | undefi
       const multiplier = calculation.multiplier;
       if (!base || !multiplier || count < low || count > high) return undefined;
       value = [0, 1, 2].map((i) => base[i] + multiplier[i] * count) as Triple;
+    } else if (timing.values.length > 1) {
+      // A range with no count behind it: a conditional branch, whose timing
+      // depends on whether it is taken. No count makes that determinate, and
+      // taking the first value would report one path as though it were the
+      // measurement.
+      return undefined;
     } else {
       value = timing.values[0];
     }
