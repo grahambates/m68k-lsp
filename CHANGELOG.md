@@ -99,6 +99,26 @@ previously lived in `README.md`.
   covers the family: model-specific hardware sits inside the same blocks, so
   splitting per model would only narrow the map, and the 68030 in the TT and
   Falcon is already expressible as `--cpu mc68030`.
+- `optimization/movea-immediate-to-lea` now covers symbolic address loads, not
+  just immediates that fold to a constant: `move.l #label,a0` becomes
+  `lea label,a0`. Anything loaded into an address register is an address either
+  way. The suggestion carries no size suffix for `.L`, since an explicit `.L`
+  would pin the operand to absolute long and stop the assembler relaxing it to
+  PC-relative; `.W` keeps its suffix because MOVEA.W sign-extends. The rule is
+  no longer gated to 68000/68010: that gate served an ASP68K speed claim which
+  exact auditing does not bear out, as the two forms measure identically.
+- `--platform atari`, applying
+  `suspicious/unexpected-absolute-address` to the Atari map. Atari hardware
+  registers are conventionally written as a sign-extended absolute short, so
+  `$FFFF8240.W`, `$FF8240` and the negative word `-32192` all name the same
+  register; all three are recognised, since the 68000 address bus is 24 bits and
+  ignores A24-A31. Expected regions are `$000000-$0005FF` (exception vectors and
+  system variables), `$FF8000-$FFFA3F` (memory controller, video, DMA, PSG,
+  blitter and the MFP register file), `$FFFA80-$FFFABF` (the second MFP on Mega
+  STE and TT) and `$FFFC00-$FFFC07` (keyboard and MIDI ACIAs). One identifier
+  covers the family: model-specific hardware sits inside the same blocks, so
+  splitting per model would only narrow the map, and the 68030 in the TT and
+  Falcon is already expressible as `--cpu mc68030`.
 - `optimization/prefer-lea-for-address-symbol` — `move.l #label,a0` becomes
   `lea label,a0`. The two are identical in size and cycles as written, and the
   audit measures exactly that (neutral, all deltas zero). The gain is at

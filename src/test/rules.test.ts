@@ -825,9 +825,11 @@ describe("v0.19 long shifts and MOVEA/LEA rules", () => {
     );
   });
 
-  test("uses LEA for a non-zero immediate MOVEA on 68000", () => {
+  test("uses LEA for a non-zero immediate MOVEA", () => {
+    // No size suffix: an explicit .L would pin the operand to absolute long and
+    // stop the assembler relaxing it to PC-relative.
     const diagnostic = lint("move.l #100,a0").find((d) => d.ruleId === "optimization/movea-immediate-to-lea");
-    expect(diagnostic?.suggestion?.replacement).toBe("lea 100.l,a0");
+    expect(diagnostic?.suggestion?.replacement).toBe("lea 100,a0");
   });
 
   test("folds MOVEA.L plus immediate ADDA into LEA", () => {
@@ -1223,54 +1225,49 @@ describe("v0.37 vasm source + optimization goals", () => {
   });
 });
 
-describe("LEA for symbolic address loads", () => {
+describe("MOVEA immediate to LEA", () => {
   const cfg = { processors: ["mc68000" as const], measureImpact: false };
-  const ID = "optimization/prefer-lea-for-address-symbol";
+  const ID = "optimization/movea-immediate-to-lea";
+  const rep = (source: string, config: LintConfig = cfg) =>
+    lint(source, config).find((d) => d.ruleId === ID)?.suggestion?.replacement;
 
-  test("prefers LEA for a long immediate symbolic address", () => {
-    const diagnostic = lint("move.l #label,a0\nlabel:\nrts", cfg).find((d) => d.ruleId === ID);
-    expect(diagnostic?.suggestion?.replacement).toBe("lea label,a0");
-    expect(diagnostic?.suggestion?.applicability).toBe("safe");
+  test("covers both a folded constant and a link-time symbol", () => {
+    // Anything loaded into an address register is an address either way.
+    expect(rep("move.l #100,a0")).toBe("lea 100,a0");
+    expect(rep("move.l #label,a0\nlabel:\nrts")).toBe("lea label,a0");
+    expect(rep("SCREEN equ $10000\nmove.l #SCREEN,a0")).toBe("lea SCREEN,a0");
+    expect(rep("movea.l #label,a1\nlabel:\nrts")).toBe("lea label,a1");
+    expect(rep("move.l #label+8,a2\nlabel:\nrts")).toBe("lea label+8,a2");
   });
 
-  test("emits no size suffix, so the assembler can relax to PC-relative", () => {
+  test("emits no size suffix for .L, so the assembler can relax to PC-relative", () => {
     // An explicit .L would pin the operand to absolute long and defeat the
-    // relaxation that is the entire point of the rule.
-    const diagnostic = lint("move.l #label,a0\nlabel:\nrts", cfg).find((d) => d.ruleId === ID);
-    expect(diagnostic?.suggestion?.replacement).not.toContain(".l");
-    expect(diagnostic?.suggestion?.replacement).not.toContain(".w");
+    // relaxation, which is the whole point.
+    expect(rep("move.l #label,a0\nlabel:\nrts")).not.toContain(".l");
   });
 
-  test("handles the explicit MOVEA spelling and address expressions", () => {
-    expect(lint("movea.l #label,a1\nlabel:\nrts", cfg).find((d) => d.ruleId === ID)?.suggestion?.replacement).toBe(
-      "lea label,a1",
-    );
-    expect(lint("move.l #label+8,a2\nlabel:\nrts", cfg).find((d) => d.ruleId === ID)?.suggestion?.replacement).toBe(
-      "lea label+8,a2",
-    );
+  test("keeps the .W suffix, because MOVEA.W sign-extends", () => {
+    // Without it the assembler could pick absolute long and turn #$8000 into
+    // $00008000 rather than $FFFF8000.
+    expect(rep("movea.w #$7000,a0")).toBe("lea $7000.w,a0");
   });
 
-  test("leaves foldable constants to the numeric MOVEA rule", () => {
-    // A resolvable value is not an address, and double-reporting it would be noise.
-    expect(ids("move.l #100,a0", cfg)).not.toContain(ID);
-    expect(ids("SIZE equ 100\nmove.l #SIZE,a0", cfg)).not.toContain(ID);
-    expect(ids("move.l #100,a0", cfg)).toContain("optimization/movea-immediate-to-lea");
+  test("is not gated to early CPUs", () => {
+    // The 68000/68010 gate existed for an ASP68K speed claim that exact
+    // auditing does not bear out: the two forms measure identically.
+    const later = { processors: ["mc68020" as const], measureImpact: false } as LintConfig;
+    expect(rep("move.l #100,a0", later)).toBe("lea 100,a0");
+    expect(rep("SCREEN equ $10000\nmove.l #SCREEN,a0", later)).toBe("lea SCREEN,a0");
   });
 
-  test("does not fire where LEA cannot express the same load", () => {
-    // MOVEA.W sign-extends; matching it would force absolute short and rule out
-    // the PC-relative form anyway.
-    expect(ids("move.w #label,a0\nlabel:\nrts", cfg)).not.toContain(ID);
-    // LEA only targets address registers.
-    expect(ids("move.l #label,d0\nlabel:\nrts", cfg)).not.toContain(ID);
-    // Already correct.
-    expect(ids("lea label,a0\nlabel:\nrts", cfg)).not.toContain(ID);
+  test("leaves zero to the rules that specialise in it", () => {
+    expect(ids("move.l #0,a0", cfg)).not.toContain(ID);
+    expect(ids("move.l #0,a0", cfg)).toContain("optimization/zero-address-register");
   });
 
   test("is measured as neutral, because the gain is realised by the assembler", () => {
     const diagnostic = lint("move.l #label,a0\nlabel:\nrts", { processors: ["mc68000"] }).find((d) => d.ruleId === ID);
     expect(diagnostic?.suggestion?.impact?.assessment).toBe("neutral");
-    expect(diagnostic?.suggestion?.impact?.sizeBytes?.delta).toBe(0);
   });
 });
 

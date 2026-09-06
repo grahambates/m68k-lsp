@@ -2,10 +2,6 @@ import type { Rule } from "../../core/rule.js";
 import { addressRegisterOperand, immediateOperand, instructionSize, isInstruction } from "../../util/ast.js";
 import { sourceOperand } from "./helpers.js";
 
-function earlyTargetsOnly(ctx: Parameters<NonNullable<Rule["checkLine"]>>[0]): boolean {
-  return ctx.config.processors.every((cpu) => cpu === "mc68000" || cpu === "mc68010");
-}
-
 function stripImmediate(text: string): string {
   return text.trim().replace(/^#\s*/, "");
 }
@@ -15,35 +11,48 @@ export const moveImmediateAddressToLea: Rule = {
     id: "optimization/movea-immediate-to-lea",
     category: "optimization",
     defaultSeverity: "suggestion",
-    description: "Use LEA for a non-zero immediate address-register load on early targets",
-    tags: ["asp68k", "address-register", "68000", "68010"],
-    docs: { source: "ASP68K" },
+    description: "Use LEA for a non-zero immediate address-register load",
+    tags: ["asp68k", "address-register", "addressing", "assembler-relaxation", "clarity"],
+    docs: {
+      source: "ASP68K",
+      note: "ASP68K claims a 68000/68010 speed win, which exact auditing does not bear out: the two forms measure identically. The real gain is clarity, and that LEA lets the assembler relax the operand to PC-relative, which a long immediate MOVEA can never be.",
+    },
   },
   checkLine(ctx, line) {
-    if (!isInstruction(line, "movea") || !earlyTargetsOnly(ctx)) return;
+    if (!isInstruction(line, "movea")) return;
     const size = instructionSize(line);
     if (size !== "w" && size !== "l") return;
     const imm = immediateOperand(line, 0);
     const dest = addressRegisterOperand(line, 1);
     if (!imm || !dest || imm.value.type === "string-literal") return;
+    // Anything loaded into an address register is an address, whether it folds
+    // to a constant or stays a link-time symbol. Zero has its own rules.
     const value = ctx.evaluate(imm.value);
-    if (!value.known || value.value === 0) return;
+    if (value.known && value.value === 0) return;
     const text = sourceOperand(ctx, line, 0);
     if (!text) return;
 
-    const replacement = `lea ${stripImmediate(text)}.${size},${dest.register}`;
+    // MOVEA.W sign-extends its 16-bit source, so the absolute-short form has to
+    // be pinned: without the suffix the assembler could pick absolute long and
+    // turn #$8000 into $00008000 rather than $FFFF8000. MOVEA.L has no such
+    // constraint, so it is left bare for the assembler to relax.
+    const replacement =
+      size === "w" ? `lea ${stripImmediate(text)}.w,${dest.register}` : `lea ${stripImmediate(text)},${dest.register}`;
     ctx.report({
       ruleId: this.meta.id,
       category: this.meta.category,
       severity: this.meta.defaultSeverity,
       confidence: "certain",
-      message: `This MOVEA.${size} immediate can be expressed as an absolute LEA on 68000/68010`,
+      message: `This MOVEA.${size} immediate is an address load and is clearer as LEA`,
       loc: line.mnemonic!.loc,
       suggestion: { description: "Use LEA", replacement, applicability: "safe" },
       notes: [
+        { message: "Both forms load the same address-register value and preserve CCR." },
         {
           message:
-            "Both forms load the same address-register value and preserve CCR; ASP68K records a speed win on 68000/68010 with no size change.",
+            size === "l"
+              ? "The suggestion carries no size suffix on purpose: LEA lets the assembler relax the operand to PC-relative where the target is in range, which is 2 bytes shorter and faster. A long immediate MOVEA can never be relaxed."
+              : "The .W suffix is kept because MOVEA.W sign-extends its source, and absolute short is the form that matches.",
         },
       ],
     });
