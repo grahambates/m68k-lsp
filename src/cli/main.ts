@@ -16,7 +16,7 @@ import {
   type RulePreset,
   type RuleSetting,
 } from "../core/config.js";
-import type { Diagnostic, RuleCategory, Severity } from "../core/diagnostic.js";
+import type { Applicability, Diagnostic, RuleCategory, Severity } from "../core/diagnostic.js";
 import { formatImpact, paint, highlightAsm } from "./format.js";
 import {
   collectInitAnswers,
@@ -292,19 +292,25 @@ function sourceContext(source: string, line?: number, start = 0, end = start + 1
   return [`  ${highlightAsm(text, color)}`, paint(color, 90, `  ${pointer}`)];
 }
 
+function formatApplicability(applicability: Applicability, color: boolean): string {
+  const colors = {
+    safe: 32,
+    conditional: 33,
+    manual: 34,
+  };
+  return paint(color, colors[applicability], applicability);
+}
+
 function formatDiagnostic(file: string, source: string, diagnostic: Diagnostic, color: boolean): string {
   const line = diagnostic.loc.line ?? 1;
   const col = diagnostic.loc.start + 1;
-  const location = `${file}:${line}:${col}`;
+  const location = paint(color, 34, `${file}:${line}:${col}`);
   const header = `${severityLabel(diagnostic.severity, color)}  ${diagnostic.message}  ${paint(color, 90, `[${diagnostic.ruleId}]`)}`;
   const lines = [location, header, ...sourceContext(source, line, diagnostic.loc.start, diagnostic.loc.end, color)];
   if (diagnostic.suggestion) {
-    // "fix" rather than "suggestion": the severity column already says
-    // suggestion, and the same word twice reads as a mistake.
     const replacement = diagnostic.suggestion.replacement;
-    lines.push(
-      `${paint(color, 90, "fix:")} ${diagnostic.suggestion.description} (${diagnostic.suggestion.applicability})`,
-    );
+    const applicability = formatApplicability(diagnostic.suggestion.applicability, color);
+    lines.push(`${paint(color, 90, "action:")} ${diagnostic.suggestion.description} (${applicability})`);
     if (replacement) {
       lines.push(...replacement.split("\n").map((text) => highlightAsm(text, color)));
     }

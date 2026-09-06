@@ -33,6 +33,13 @@ export function formatImpact(impact: OptimizationImpact, color: boolean): string
   }
   if (!parts.length) return undefined;
 
+  if (impact.assessment) {
+    if (impact.assessment === "regression") parts.push(paint(color, 31, `(regression)`));
+    if (impact.assessment === "neutral") parts.push(paint(color, 90, `(neutral)`));
+    if (impact.assessment === "improvement") parts.push(paint(color, 32, `(overall improvement)`));
+    if (impact.assessment === "tradeoff") parts.push(paint(color, 33, `(tradeoff)`));
+  }
+
   const confidences = [
     impact.sizeBytes?.confidence,
     execution?.cpuCycles?.confidence,

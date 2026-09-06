@@ -22,6 +22,20 @@ type CounterApi = {
   calculateTotals?: (lines: unknown[]) => CounterTotals;
 };
 
+/** One resource triple: cycles, read cycles, write cycles. */
+type Triple = [number, number, number];
+
+/**
+ * What 68kcounter records behind a timing. A shift by a register holds
+ * `base + multiplier * n`, with `n` a range when the count is not a literal.
+ */
+type CounterLine = {
+  timing?: {
+    values: Triple[];
+    calculation?: { base?: Triple[]; multiplier?: Triple; n?: number | [number, number] };
+  };
+};
+
 // 68kcounter is CommonJS today. Node's ESM bridge may expose its TS default
 // export either directly or under the CommonJS module object's `.default`.
 const outerCounter = counterNamespace as unknown as CounterApi;
@@ -52,7 +66,46 @@ export function normalizeCounterSnippet(source: string): string {
     .join("\n");
 }
 
-function measureSnippet(source: string): Measurement | undefined {
+/**
+ * Total a snippet whose timing depends on a shift count we have proven.
+ *
+ * A shift by a register is a range only because the count is unknown in
+ * general: 68kcounter records it as `base + multiplier * n` over n in 0..63.
+ * The rules that reach here fire only when constant propagation has proven the
+ * count, so substituting it is the same arithmetic 68kcounter itself does for a
+ * literal count, not an estimate.
+ *
+ * Only a single count-dependent line is resolved. Two would need to be shown to
+ * share the one count, and a range with no such calculation behind it -- a
+ * conditional branch, whose timing depends on whether it is taken -- is left
+ * alone, since no count makes that determinate.
+ */
+function resolveRangeWithCount(lines: unknown[], count: number): Triple | undefined {
+  const timed = (lines as CounterLine[]).filter((line) => line.timing);
+  const ranged = timed.filter((line) => Array.isArray(line.timing?.calculation?.n));
+  if (ranged.length !== 1) return undefined;
+
+  const total: Triple = [0, 0, 0];
+  for (const line of timed) {
+    const timing = line.timing!;
+    const calculation = timing.calculation;
+    let value: Triple | undefined;
+    if (Array.isArray(calculation?.n)) {
+      const [low, high] = calculation.n;
+      const base = calculation.base?.[0];
+      const multiplier = calculation.multiplier;
+      if (!base || !multiplier || count < low || count > high) return undefined;
+      value = [0, 1, 2].map((i) => base[i] + multiplier[i] * count) as Triple;
+    } else {
+      value = timing.values[0];
+    }
+    if (!value) return undefined;
+    for (const i of [0, 1, 2]) total[i] += value[i];
+  }
+  return total;
+}
+
+function measureSnippet(source: string, knownShiftCount?: number): Measurement | undefined {
   try {
     if (!parse68kCounter || !calculateCounterTotals) return undefined;
     const normalized = normalizeCounterSnippet(source);
@@ -71,6 +124,13 @@ function measureSnippet(source: string): Measurement | undefined {
       result.cpuCycles = totals.max[0];
       result.readCycles = totals.max[1];
       result.writeCycles = totals.max[2];
+    } else if (knownShiftCount !== undefined) {
+      const resolved = resolveRangeWithCount(lines, knownShiftCount);
+      if (resolved) {
+        result.cpuCycles = resolved[0];
+        result.readCycles = resolved[1];
+        result.writeCycles = resolved[2];
+      }
     }
     return result;
   } catch {
@@ -168,8 +228,12 @@ export function measureDiagnosticImpact(
 
   const sourceLines = source.replace(/\r\n/g, "\n").replace(/\r/g, "\n").split("\n");
   const original = sourceLines.slice(span.start, span.end + 1).join("\n");
-  const before = measureSnippet(original);
-  const after = measureSnippet(replacement);
+  // A rule that matched a shift by a register only fires once the count is
+  // proven, and records it. Without it the original measures as a range and
+  // only the size is comparable, which reported a cycle win as a regression.
+  const shiftCount = typeof diagnostic.data?.shiftCount === "number" ? diagnostic.data.shiftCount : undefined;
+  const before = measureSnippet(original, shiftCount);
+  const after = measureSnippet(replacement, shiftCount);
   if (!before || !after) return diagnostic;
 
   const prior = diagnostic.suggestion!.impact;
