@@ -130,6 +130,15 @@ form`. A reader has no way to check what a source said, and a claim repeated
 
 ### Added
 
+- `optimization/dead-register-write` — a write whose value is overwritten
+  before anything reads it. Often a typo, where the write was meant for a
+  different register, so the diagnostic says so as well as offering the
+  removal. Deliberately narrow: the instruction must do nothing beyond writing
+  one register and its flags, and both have to be provably unused. Anything
+  touching memory is excluded, since a load may be from a location that changes
+  state when read. LEA is included because it computes an address without
+  dereferencing it.
+
 - Three more rules from the saved sources: `optimization/carry-to-mask-via-subx`
   (`scs`/`ext.w`/`ext.l` is a single `subx.l dn,dn`, but only where one
   instruction defines both C and X, since CMP sets C and leaves X stale),

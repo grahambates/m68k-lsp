@@ -1458,6 +1458,48 @@ describe("rules mined from the EAB thread", () => {
   });
 });
 
+describe("dead register write", () => {
+  const cfg = { processors: ["mc68000" as const], measureImpact: false };
+  const ID = "optimization/dead-register-write";
+  const lines = (source: string[]) =>
+    lint(source.join("\n"), cfg)
+      .filter((d) => d.ruleId === ID)
+      .map((d) => d.loc.line);
+
+  test("flags a write that is overwritten before anything reads it", () => {
+    expect(lines(["move.w d0,d1", "move.w d2,d1", "move.w d1,foo(a0)", "moveq #0,d7", "rts"])).toEqual([1]);
+  });
+
+  test("says nothing when the value is read in between", () => {
+    expect(lines(["move.w d0,d1", "move.w d1,foo(a0)", "move.w d2,d1", "move.w d1,bar(a0)", "rts"])).toEqual([]);
+  });
+
+  test("covers other single-register writes", () => {
+    expect(lines(["moveq #5,d3", "moveq #7,d3", "move.l d3,(a0)", "moveq #0,d7", "rts"])).toEqual([1]);
+    // LEA never dereferences, so its operand cannot carry a side effect.
+    expect(lines(["lea buf,a1", "lea other,a1", "move.l (a1),d0", "moveq #0,d7", "rts", "buf:", "other:"])).toEqual([
+      1,
+    ]);
+  });
+
+  test("keeps an instruction whose flags are still needed", () => {
+    expect(lines(["move.w d0,d1", "beq .x", "move.w d2,d1", ".x:", "move.w d1,(a0)", "moveq #0,d7", "rts"])).toEqual(
+      [],
+    );
+    // ADD sets X, which MOVEQ does not overwrite, so it escapes to the return.
+    expect(lines(["add.l d0,d1", "moveq #7,d1", "move.l d1,(a0)", "moveq #0,d7", "rts"])).toEqual([]);
+    // With X overwritten too, the dead computation can go.
+    expect(lines(["add.l d0,d1", "moveq #7,d1", "move.l d1,(a0)", "add.l d5,d6", "rts"])).toEqual([1]);
+  });
+
+  test("leaves anything touching memory alone", () => {
+    // The load may be from a location that changes state when read, so removing
+    // it would change behaviour rather than just save time.
+    expect(lines(["move.w (a2),d1", "move.w d2,d1", "move.w d1,(a0)", "moveq #0,d7", "rts"])).toEqual([]);
+    expect(lines(["move.w (a2)+,d1", "move.w d2,d1", "move.w d1,(a0)", "moveq #0,d7", "rts"])).toEqual([]);
+  });
+});
+
 describe("MOVEM save and restore mismatch", () => {
   const cfg = { processors: ["mc68000" as const], measureImpact: false };
   const ID = "suspicious/movem-restore-mismatch";

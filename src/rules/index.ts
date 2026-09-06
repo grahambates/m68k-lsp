@@ -85,6 +85,7 @@ import { movemRestoreMismatch } from "./suspicious/movem-restore-mismatch.js";
 import { maskViaMoveq } from "./optimization/mask-via-moveq.js";
 import { carryToMaskViaSubx } from "./optimization/carry-to-mask-via-subx.js";
 import { arithmeticImmediateViaScratch } from "./optimization/arithmetic-immediate-via-scratch.js";
+import { deadRegisterWrite } from "./optimization/dead-register-write.js";
 import { dataRegisterSignBitToTas } from "./optimization/data-register-sign-bit-to-tas.js";
 import { foldIndexIntoEffectiveAddress } from "./optimization/fold-index-into-effective-address.js";
 import { cancelMultiplePredecrementMoves } from "./optimization/cancel-multiple-predecrement-moves.js";
@@ -165,6 +166,7 @@ export {
   maskViaMoveq,
   carryToMaskViaSubx,
   arithmeticImmediateViaScratch,
+  deadRegisterWrite,
   dataRegisterSignBitToTas,
   foldIndexIntoEffectiveAddress,
   compareLongImmediateViaMoveq,
@@ -391,6 +393,7 @@ export const defaultRules: readonly Rule[] = [
   maskViaMoveq,
   carryToMaskViaSubx,
   arithmeticImmediateViaScratch,
+  deadRegisterWrite,
   dataRegisterSignBitToTas,
   foldIndexIntoEffectiveAddress,
   selfMove,
