@@ -5,6 +5,28 @@ previously lived in `README.md`.
 
 ## Unreleased
 
+### Changed
+
+- `suspicious/movea-word-sign-extension` reports only where the sign-extended
+  upper half is read again. Holding a 16-bit value in a spare address register
+  when data registers run short is ordinary, and reading it back with MOVE.W is
+  unaffected by the extension, so flagging every word load buried the case that
+  is actually wrong. It now fires when the register is used as a base address,
+  or read at full width, and stays quiet when only the low word is read, when
+  the register is fully overwritten first, or when it is never used again.
+- The same rule no longer depends on the spelling. It previously fired only on
+  the generic `move.w <ea>,An` and ignored an explicit `movea.w`, which are the
+  same instruction; source normalised to `movea.w` was never checked at all.
+
+### Fixed
+
+- Bit-level register liveness covers address registers, not just data
+  registers. Using one as a base address reads all 32 bits, which is what makes
+  a sign-extended upper half observable. Arithmetic that reads an address
+  register and writes it back passes the question through rather than answering
+  it: the upper half of an ADDA result comes from the upper half that went in,
+  and its low half cannot depend on the half above.
+
 ### Fixed
 
 - Impact is measured on the values operand expressions evaluate to, not on how

@@ -22,7 +22,7 @@ export const partialRegisterWrite: Rule = {
     if (!destination) return;
 
     const upperMask = size === "b" ? 0xffffff00 : 0xffff0000;
-    const use = ctx.registers.dataRegisterBitsUseAfter(index, destination.register, upperMask);
+    const use = ctx.registers.registerBitsUseAfter(index, destination.register, upperMask);
     if (use !== "used") return;
 
     // Seeding the register with a known value and then writing part of it is

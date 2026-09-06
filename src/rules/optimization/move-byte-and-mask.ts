@@ -53,7 +53,7 @@ export const moveByteAndMaskViaMoveq: Rule = {
     // example as an index register, or MOVE.B Dn,Dn), the address/value changes.
     if (registersReadByOperand(source).has(destRegister)) return;
 
-    const upperUse = ctx.registers.dataRegisterBitsUseAfter(index, dst.register, 0xffffff00);
+    const upperUse = ctx.registers.registerBitsUseAfter(index, dst.register, 0xffffff00);
     if (upperUse !== "unused") return;
     const ea = sourceOperand(ctx, previous.line, 0);
     if (!ea) return;

@@ -32,7 +32,7 @@ Valid code that may be intentional but is easy to misread or misuse.
 | `suspicious/bit-number-wraparound` | warning | Flag immediate bit numbers that wrap modulo 8 or 32 | Motorola 68000 Family Programmer's Reference Manual |
 | `suspicious/condition-after-preserved-ccr` | warning | Flag conditional instructions that deliberately rely on CCR across a flag-preserving instruction | — |
 | `suspicious/dead-register-write` | warning | Flag a register write whose value is overwritten before it is read | — |
-| `suspicious/movea-word-sign-extension` | warning | Flag generic MOVE.W spellings to address registers because they have MOVEA.W sign-extension semantics | Motorola 68000 Family Programmer's Reference Manual |
+| `suspicious/movea-word-sign-extension` | warning | Flag a word load into an address register whose sign-extended upper half is then used | Motorola 68000 Family Programmer's Reference Manual |
 | `suspicious/movem-restore-mismatch` | warning | Flag a MOVEM restore whose register list does not match the matching save | — |
 | `suspicious/nop` | off | Flag NOP instructions for review | — |
 | `suspicious/partial-register-write` | warning | Flag byte/word MOVE writes whose preserved upper bits are subsequently used | — |
@@ -47,10 +47,10 @@ Smaller or faster equivalents, gated on CPU target and proven flag/register live
 
 | Rule | Default | Description | Source |
 | --- | --- | --- | --- |
-| `optimization/address-add-to-lea` | suggestion | Use LEA for ADD immediate to an address register | ASP68K |
+| `optimization/address-add-to-lea` | suggestion | Use LEA to ADD immediate to an address register | ASP68K |
 | `optimization/address-arithmetic-indexed-lea` | suggestion | Fold address immediate arithmetic plus indexed addition into LEA | Flamewing M68000 Peephole Optimizations |
 | `optimization/address-expression-to-lea` | suggestion | Fold an address-register copy plus constant/index additions into LEA | ASP68K |
-| `optimization/address-sub-to-lea` | suggestion | Use LEA for SUB immediate to an address register | ASP68K |
+| `optimization/address-sub-to-lea` | suggestion | Use LEA to SUB immediate to an address register | ASP68K |
 | `optimization/andi-all-ones-to-tst` | suggestion | ANDI #-1/all-ones can use TST | vasm m68k optimization history |
 | `optimization/arithmetic-immediate-via-scratch` | suggestion | Materialize a small long immediate with MOVEQ before adding or subtracting it | EAB 68000 code optimisations; Optimizing 680x0 Applications |
 | `optimization/asr-byte-saturate` | suggestion | Replace ASR.B #7/#8 with ADD/SUBX on 68000 | Flamewing M68000 Peephole Optimizations |

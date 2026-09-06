@@ -1,4 +1,4 @@
-import type { ExpressionNode, ParsedFile, ParsedLine } from "m68k-parser";
+import type { ExpressionNode, OperandNode, ParsedFile, ParsedLine } from "m68k-parser";
 import { buildControlFlowGraph, type ControlFlowGraph } from "./cfg.js";
 import { evaluateConstant } from "./constants.js";
 import {
@@ -53,6 +53,25 @@ function directRegister(line: ParsedLine, index: number): Register | undefined {
   return normalizeRegister(op.register);
 }
 
+/**
+ * Operand shapes in which an address register supplies the base address. All
+ * 32 bits take part in forming it, whatever width the operand transfers.
+ */
+const BASE_ADDRESS_OPERANDS = new Set([
+  "address-register-indirect",
+  "address-register-indirect-postinc",
+  "address-register-indirect-predec",
+  "address-register-indirect-displacement",
+  "address-register-indirect-index",
+  "memory-indirect",
+]);
+
+function baseRegisterOf(op: OperandNode): Register | undefined {
+  const base = (op as { register?: { type?: string; register?: string } }).register;
+  if (!base || base.type !== "address-register" || !base.register) return undefined;
+  return normalizeRegister(base.register);
+}
+
 function isFullDataRegisterOverwriteWithoutUpperRead(line: ParsedLine, register: Register): boolean {
   if (!register.startsWith("d")) return false;
   const mnemonic = semanticMnemonic(line);
@@ -86,7 +105,14 @@ export interface RegisterAnalysis {
   valueAfter(index: number, register: RegisterLike): RegisterValue;
   knownConstantBefore(index: number, register: RegisterLike): number | undefined;
   deadDataRegistersAfter(index: number): readonly Register[];
-  dataRegisterBitsUseAfter(index: number, register: RegisterLike, mask: number): RegisterBitsUse;
+  /**
+   * Whether any of `mask`'s bits are read before being overwritten.
+   *
+   * Defined for address registers as well as data registers: using one as a
+   * base address reads all 32 bits of it, which is how a sign-extended upper
+   * half becomes observable.
+   */
+  registerBitsUseAfter(index: number, register: RegisterLike, mask: number): RegisterBitsUse;
   upperWordUseAfter(index: number, register: RegisterLike): UpperWordUse;
 }
 
@@ -286,9 +312,8 @@ export function analyzeRegisters(
   }
 
   const reg = (value: RegisterLike) => normalizeRegister(value) ?? (value as Register);
-  const dataRegisterBitsUseAfter = (index: number, register: RegisterLike, differingMask: number): RegisterBitsUse => {
+  const registerBitsUseAfter = (index: number, register: RegisterLike, differingMask: number): RegisterBitsUse => {
     const target = reg(register);
-    if (!target.startsWith("d")) return "unknown";
     const mask = differingMask >>> 0;
     if (mask === 0) return "unused";
     const visiting = new Set<number>();
@@ -309,6 +334,17 @@ export function analyzeRegisters(
           if (size === "w") readMask |= 0xffff;
           else if (size === "l") readMask = 0xffffffff;
           else return undefined;
+        } else if (op.type === "address-register" && normalizeRegister(op.register) === target) {
+          saw = true;
+          // Read as a value rather than an address: only the operand's width.
+          if (size === "w") readMask |= 0xffff;
+          else if (size === "l") readMask = 0xffffffff;
+          else return undefined;
+        } else if (BASE_ADDRESS_OPERANDS.has(op.type) && baseRegisterOf(op) === target) {
+          // Used as an address. The whole register forms it, whatever the
+          // operand's size, so a sign-extended upper half is observed here.
+          saw = true;
+          readMask = 0xffffffff;
         } else if (
           op.type === "address-register-indirect-index" ||
           op.type === "pc-relative-index" ||
@@ -347,9 +383,17 @@ export function analyzeRegisters(
       // Only a destination written as a plain data register is width-bounded.
       // A register list, or an operand shape not handled here, is not.
       const direct = (line.operands ?? []).some(
-        (op) => op.type === "data-register" && normalizeRegister(op.register) === target,
+        (op) =>
+          (op.type === "data-register" || op.type === "address-register") && normalizeRegister(op.register) === target,
       );
       if (!direct) return undefined;
+      // Arithmetic that reads an address register and writes it back keeps the
+      // dependence: the upper half of an ADDA result is derived from the upper
+      // half that went in, so it neither observes the query's bits nor ends
+      // their life. Passing the mask through unchanged is the honest transfer;
+      // calling it a full read reported a value that is only ever read back as
+      // a word, and calling it a kill lost the case that is read as a long.
+      if (semantics.reads.has(target) && !target.startsWith("d")) return 0;
       if (!semantics.partialWrites.has(target)) return 0xffffffff;
       if (size === "b") return 0xff;
       if (size === "w") return 0xffff;
@@ -474,11 +518,11 @@ export function analyzeRegisters(
     deadDataRegistersAfter(index) {
       return DATA_REGISTERS.filter((r) => (liveOut[index]?.get(r) ?? "unknown") === "dead");
     },
-    dataRegisterBitsUseAfter(index, register, mask) {
-      return dataRegisterBitsUseAfter(index, register, mask);
+    registerBitsUseAfter(index, register, mask) {
+      return registerBitsUseAfter(index, register, mask);
     },
     upperWordUseAfter(index, register) {
-      return dataRegisterBitsUseAfter(index, register, 0xffff0000);
+      return registerBitsUseAfter(index, register, 0xffff0000);
     },
   };
 }

@@ -35,10 +35,21 @@ describe("correctness and suspicious footgun rules", () => {
     expect(ids(source)).not.toContain("suspicious/condition-after-preserved-ccr");
   });
 
-  test("flags MOVEA.W sign extension including generic MOVE spelling", () => {
-    expect(ids("    move.w d0,a0")).toContain("suspicious/movea-word-sign-extension");
-    expect(ids("    movea.w (a0),a1")).not.toContain("suspicious/movea-word-sign-extension");
-    expect(ids("    move.l d0,a0")).not.toContain("suspicious/movea-word-sign-extension");
+  test("flags MOVEA.W sign extension where the extended half is used", () => {
+    const ID = "suspicious/movea-word-sign-extension";
+    const used = ["    move.w d0,a0", "    move.l (a0),d1", "    rts"].join("\n");
+    expect(ids(used)).toContain(ID);
+
+    // The spelling no longer matters: both forms are MOVEA.W.
+    const explicit = ["    movea.w d0,a0", "    move.l (a0),d1", "    rts"].join("\n");
+    expect(ids(explicit)).toContain(ID);
+
+    // Holding a 16-bit value in a spare address register and reading it back
+    // as a word is unaffected by the extension.
+    const wordOnly = ["    movea.w d0,a0", "    move.w a0,d1", "    rts"].join("\n");
+    expect(ids(wordOnly)).not.toContain(ID);
+
+    expect(ids("    move.l d0,a0")).not.toContain(ID);
   });
 
   test("flags immediate bit numbers that wrap for memory or data registers", () => {

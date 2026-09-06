@@ -328,7 +328,7 @@ export const knownRegisterAsrWordLowOnly: Rule = {
 
     const setup = precedingMoveq(ctx, index, countRegister, known);
     if (!setup || !canRemoveCountSetup(ctx, setup.index, index, countRegister, known)) return;
-    if (ctx.registers.dataRegisterBitsUseAfter(index, valueReg.register, 0xffff0000) !== "unused") return;
+    if (ctx.registers.registerBitsUseAfter(index, valueReg.register, 0xffff0000) !== "unused") return;
 
     const rotate = 16 - count;
     const reg = valueReg.register;

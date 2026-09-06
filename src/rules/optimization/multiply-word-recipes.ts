@@ -26,7 +26,7 @@ function deadScratch(
   const skip = dest.toLowerCase();
   if (mask === undefined) return ctx.registers.deadDataRegistersAfter(index).find((r) => r !== skip);
   return DATA_REGISTERS.find(
-    (r) => r !== skip && ctx.registers.dataRegisterBitsUseAfter(index, r, mask) === "unused",
+    (r) => r !== skip && ctx.registers.registerBitsUseAfter(index, r, mask) === "unused",
   );
 }
 
@@ -218,7 +218,7 @@ export const flamewingMuluWordLowWordOnly: Rule = {
     const recipe = muluLowWordRecipes[value.value];
     if (!recipe) return;
 
-    if (ctx.registers.dataRegisterBitsUseAfter(index, dest.register, 0xffff0000) !== "unused") return;
+    if (ctx.registers.registerBitsUseAfter(index, dest.register, 0xffff0000) !== "unused") return;
 
     const needsScratch = ![1, 2, 4, 8, 16, 32].includes(value.value);
     const scratch = needsScratch ? deadScratch(ctx, index, dest.register, 0xffff) : undefined;

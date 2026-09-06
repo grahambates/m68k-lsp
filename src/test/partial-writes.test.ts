@@ -93,7 +93,7 @@ describe("writes that really are dead are still reported", () => {
 
 describe("bit-level liveness accounts for narrower writes", () => {
   const bitsAfter = (lines: string[], index: number, register: string, mask: number) =>
-    analyzeRegisters(parseFile(lines.join("\n"))).dataRegisterBitsUseAfter(index, register, mask);
+    analyzeRegisters(parseFile(lines.join("\n"))).registerBitsUseAfter(index, register, mask);
 
   test("a word write ends the life of the word below it", () => {
     expect(bitsAfter(["\tmove.w d0,d1", "\tmove.w d2,d1", "\tmove.w d1,(a0)", "\trts"], 0, "d1", 0xffff)).toBe(

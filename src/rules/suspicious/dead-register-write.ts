@@ -87,7 +87,7 @@ export const deadRegisterWrite: Rule = {
     const writtenBits = partialWriteMask(line, registers.partialWrites.has(written));
     const dead =
       ctx.registers.isLiveAfter(index, written) === "dead" ||
-      (writtenBits !== undefined && ctx.registers.dataRegisterBitsUseAfter(index, written, writtenBits) === "unused");
+      (writtenBits !== undefined && ctx.registers.registerBitsUseAfter(index, written, writtenBits) === "unused");
     if (!dead) return;
     // Removing the instruction removes its flag effects too.
     for (const flag of [...flags.writes, ...flags.undefined]) {
