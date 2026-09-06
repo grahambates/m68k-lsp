@@ -82,7 +82,10 @@ export function lintParsedFile(
   const measured = unsuppressed.map((diagnostic) => {
     if (config.measureImpact === false || !config.processors.includes("mc68000")) return diagnostic;
     if (!diagnostic.suggestion || diagnostic.category !== "optimization") return diagnostic;
-    return measureDiagnosticImpact(diagnostic, file, source, ruleById.get(diagnostic.ruleId));
+    return measureDiagnosticImpact(diagnostic, file, source, ruleById.get(diagnostic.ruleId), (expression) => {
+      const result = ctx.evaluate(expression);
+      return result.known ? result.value : undefined;
+    });
   });
   const reported = measured.filter((diagnostic) =>
     matchesOptimizationGoal(diagnostic, ruleById.get(diagnostic.ruleId), config),

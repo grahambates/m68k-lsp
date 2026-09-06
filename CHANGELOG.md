@@ -7,6 +7,19 @@ previously lived in `README.md`.
 
 ### Fixed
 
+- Impact is measured on the values operand expressions evaluate to, not on how
+  they are spelled. 68kcounter reads the written form to choose an addressing
+  mode, and a compound displacement defeats that: `lea SCREEN_BW/2+(SCREEN_H/2*SCREEN_BW)(a3),a3`
+  measured 6 bytes and 12 cycles where `lea 1610(a3),a3` measures 4 and 8, so
+  keeping the source's symbols in a replacement turned a cycle saving into a
+  reported regression. Suggestions still show the symbols; only the copy handed
+  to the counter is collapsed. Parentheses alone were enough to trigger it, so
+  purely numeric expressions were affected too. Absolute addresses are left
+  alone, since substituting one would change which absolute form is chosen and a
+  branch target is not the measurement's to rewrite.
+
+### Fixed
+
 - `suspicious/dead-register-write` no longer reports instructions whose result
   survives in bits a later narrow write leaves alone. Liveness treated every
   write as ending a register's life, but a byte or word operation on a data

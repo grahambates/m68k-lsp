@@ -1,5 +1,6 @@
 import * as counterNamespace from "68kcounter";
-import type { ParsedFile } from "m68k-parser";
+import { parseFile } from "m68k-parser";
+import type { ExpressionNode, OperandNode, ParsedFile } from "m68k-parser";
 import type {
   Diagnostic,
   OptimizationExecutionImpact,
@@ -109,6 +110,68 @@ function resolveRangeWithCount(lines: unknown[], count: number): Triple | undefi
     for (const i of [0, 1, 2]) total[i] += value[i];
   }
   return total;
+}
+
+/** Resolves an expression to a constant, using the symbols in scope for the file. */
+export type ConstantEvaluator = (expression: ExpressionNode) => number | undefined;
+
+/**
+ * The expression on an operand whose width decides how the operand is encoded.
+ *
+ * Absolute addresses are left out on purpose. Substituting one would change
+ * which absolute form is chosen, and a branch target is an address the
+ * measurement has no business rewriting.
+ */
+function sizingExpression(operand: OperandNode): ExpressionNode | undefined {
+  const expression =
+    operand.type === "immediate"
+      ? operand.value
+      : "displacement" in operand
+        ? (operand.displacement as ExpressionNode | { type: "string-literal" } | undefined)
+        : undefined;
+  // A string has no value to collapse to, and no bearing on operand width here.
+  return expression && expression.type !== "string-literal" ? expression : undefined;
+}
+
+/**
+ * Replace each operand expression with the constant it evaluates to.
+ *
+ * 68kcounter reads the written form to decide an addressing mode, and a
+ * compound displacement defeats that: `lea SCREEN_BW/2+(SCREEN_H/2*SCREEN_BW)(a3),a3`
+ * measures 6 bytes and 12 cycles where `lea 1610(a3),a3` measures 4 and 8. The
+ * suggestion keeps the symbols, because that is what a person should paste, but
+ * the copy handed to the counter has them collapsed so the two sides are
+ * measured on what the assembler will actually encode.
+ *
+ * A plain number is left alone, and anything that does not evaluate is left as
+ * written, so this can only sharpen a measurement, never invent one.
+ */
+function collapseConstantExpressions(snippet: string, evaluate: ConstantEvaluator | undefined): string {
+  if (!evaluate) return snippet;
+  return snippet
+    .split("\n")
+    .map((line) => {
+      let parsed;
+      try {
+        parsed = parseFile(line).lines[0];
+      } catch {
+        return line;
+      }
+      const edits: { start: number; end: number; text: string }[] = [];
+      for (const operand of parsed?.operands ?? []) {
+        const expression = sizingExpression(operand);
+        if (!expression || expression.type === "numeric-literal") continue;
+        const value = evaluate(expression);
+        if (value === undefined) continue;
+        edits.push({ start: expression.loc.start, end: expression.loc.end, text: String(value) });
+      }
+      let out = line;
+      for (const edit of edits.sort((a, b) => b.start - a.start)) {
+        out = out.slice(0, edit.start) + edit.text + out.slice(edit.end);
+      }
+      return out;
+    })
+    .join("\n");
 }
 
 function measureSnippet(source: string, knownShiftCount?: number): Measurement | undefined {
@@ -226,6 +289,7 @@ export function measureDiagnosticImpact(
   file: ParsedFile,
   source: string,
   rule?: ImpactRuleMeta,
+  evaluate?: ConstantEvaluator,
 ): Diagnostic {
   const replacement = diagnostic.suggestion?.replacement;
   if (replacement === undefined) return diagnostic;
@@ -238,8 +302,8 @@ export function measureDiagnosticImpact(
   // proven, and records it. Without it the original measures as a range and
   // only the size is comparable, which reported a cycle win as a regression.
   const shiftCount = typeof diagnostic.data?.shiftCount === "number" ? diagnostic.data.shiftCount : undefined;
-  const before = measureSnippet(original, shiftCount);
-  const after = measureSnippet(replacement, shiftCount);
+  const before = measureSnippet(collapseConstantExpressions(original, evaluate), shiftCount);
+  const after = measureSnippet(collapseConstantExpressions(replacement, evaluate), shiftCount);
   if (!before || !after) return diagnostic;
 
   const prior = diagnostic.suggestion!.impact;
