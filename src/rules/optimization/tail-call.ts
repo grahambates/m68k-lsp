@@ -1,6 +1,6 @@
 import type { Rule } from "../../core/rule.js";
 import { isInstruction } from "../../util/ast.js";
-import { sourceOperand } from "./helpers.js";
+import { hasLabelBetween, sourceOperand } from "./helpers.js";
 
 function makeTailCallRule(id: string, from: "jsr" | "bsr", to: "jmp" | "bra"): Rule {
   return {
@@ -18,10 +18,16 @@ function makeTailCallRule(id: string, from: "jsr" | "bsr", to: "jmp" | "bra"): R
       const next = ctx.nextInstruction(index);
       if (!next || !isInstruction(next.line, "rts")) return;
 
-      // If a label sits on the RTS line, other code may branch to it. The
-      // optimization can still be considered, but definitely requires manual review.
       const target = sourceOperand(ctx, line, 0);
       if (!target) return;
+
+      // A label anywhere in the pair may be branched to from elsewhere, and
+      // folding them away would take it with them. There is no single rewrite
+      // that preserves such an entry point, so it stays a manual judgement;
+      // everything else is the ordinary tail call, whose only catch is a
+      // condition we can state. The label is often on its own line above the
+      // RTS rather than sharing it, so the whole span has to be checked.
+      const labelled = hasLabelBetween(ctx, index, next.index);
 
       ctx.report({
         ruleId: id,
@@ -32,14 +38,15 @@ function makeTailCallRule(id: string, from: "jsr" | "bsr", to: "jmp" | "bra"): R
         loc: line.mnemonic!.loc,
         suggestion: {
           description: `Replace the pair with ${to.toUpperCase()} ${target}`,
-          applicability: "manual",
+          replacement: labelled ? undefined : `${to} ${target}`,
+          applicability: labelled ? "manual" : "conditional",
         },
         notes: [
           {
-            message: `${from.toUpperCase()} + RTS can become ${to.toUpperCase()}, but the stack depth in the callee differs.`,
+            message: `${to.toUpperCase()} leaves one fewer return address on the stack than ${from.toUpperCase()} + RTS, so the callee must not read arguments relative to SP or otherwise depend on the depth.`,
           },
-          ...(next.line.label
-            ? [{ message: "The RTS line has a label; preserve any externally reachable label when rewriting." }]
+          ...(labelled
+            ? [{ message: "A label inside the pair may be an externally reachable entry point; preserve it when rewriting." }]
             : []),
         ],
         data: { secondInstructionIndex: next.index },

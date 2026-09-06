@@ -5,6 +5,27 @@ previously lived in `README.md`.
 
 ## Unreleased
 
+### Changed
+
+- Rules offer a rewrite wherever one exists. `manual` now means there is no
+  single mechanical replacement to give, not that applying one needs thought.
+  Several rules produced replacement text and then marked it `manual`, which
+  showed a rewrite while declaring none existed; and the tail-call rules
+  withheld the text entirely. `optimization/bsr-rts-tail-call` and
+  `optimization/jsr-rts-tail-call` now supply `BRA`/`JMP` as a conditional
+  suggestion, with the stack-depth requirement stated. Also moved from `manual`
+  to `conditional`: the adjacent CLR and MOVE combinations, `jsr-jmp-tail-dispatch`,
+  the memory form of the logical-identity TST rules, and DIVU power-of-two where
+  the packed remainder's use is unproven.
+- The tail-call rules are measured by the impact audit, which they could not be
+  while they offered nothing to measure. Both save 2 bytes and 24 cycles.
+
+### Fixed
+
+- The tail-call rules detect a label anywhere in the matched pair, not only one
+  sharing the RTS line. A label on its own line above the RTS marks the same
+  externally reachable entry point.
+
 ### Fixed
 
 - CMPA is recorded as setting the condition codes. It was grouped with MOVEA,

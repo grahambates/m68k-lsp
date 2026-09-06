@@ -83,14 +83,14 @@ describe("optimization rules", () => {
     expect(ids("lea 9(a2),a2")).not.toContain("optimization/prefer-lea-quick");
   });
 
-  test("detects JSR/BSR followed by RTS as manual tail-call candidates", () => {
+  test("offers the JSR/BSR followed by RTS tail call, conditional on stack depth", () => {
     expect(ids(["jsr helper", "rts"].join("\n"))).toContain("optimization/jsr-rts-tail-call");
     expect(ids(["bsr helper", "rts"].join("\n"))).toContain("optimization/bsr-rts-tail-call");
 
     const diagnostic = lint(["jsr helper", "rts"].join("\n")).find(
       (d) => d.ruleId === "optimization/jsr-rts-tail-call",
     );
-    expect(diagnostic?.suggestion?.applicability).toBe("manual");
+    expect(diagnostic?.suggestion?.applicability).toBe("conditional");
   });
 
   test("folds address-register push plus immediate stack adjustment into PEA", () => {
@@ -188,7 +188,7 @@ test("DIVU.W power-of-two remains manual when remainder use is unknown", () => {
   const source = ["divu.w #4,d0", "rts"].join("\n");
   const diagnostic = lint(source).find((d) => d.ruleId === "optimization/divu-word-power-of-two");
   expect(diagnostic?.data?.upperWordUse).toBe("unknown");
-  expect(diagnostic?.suggestion?.applicability).toBe("manual");
+  expect(diagnostic?.suggestion?.applicability).toBe("conditional");
 });
 
 describe("Flamewing address sequence rules", () => {
@@ -414,11 +414,11 @@ describe("v0.8 sequence rules", () => {
     expect(ids(source)).not.toContain("optimization/btst-sign-branch");
   });
 
-  test("finds adjacent absolute CLR byte/word stores but keeps them manual", () => {
+  test("finds adjacent absolute CLR byte/word stores and offers the combined store", () => {
     const bytes = lint(["clr.b $1000", "clr.b $1001"].join("\n")).find(
       (d) => d.ruleId === "optimization/combine-adjacent-clr-bytes",
     );
-    expect(bytes?.suggestion?.applicability).toBe("manual");
+    expect(bytes?.suggestion?.applicability).toBe("conditional");
 
     expect(ids(["clr.w $2000", "clr.w $2002"].join("\n"))).toContain("optimization/combine-adjacent-clr-words");
   });
@@ -428,7 +428,7 @@ describe("v0.8 sequence rules", () => {
       (d) => d.ruleId === "optimization/combine-adjacent-move-bytes",
     );
     expect(bytes?.suggestion?.description).toContain("#$1234");
-    expect(bytes?.suggestion?.applicability).toBe("manual");
+    expect(bytes?.suggestion?.applicability).toBe("conditional");
 
     const words = lint(["move.w #$1234,$2000", "move.w #$5678,$2002"].join("\n")).find(
       (d) => d.ruleId === "optimization/combine-adjacent-move-words",
@@ -951,12 +951,12 @@ describe("v0.22 deferred-rule tranche", () => {
     );
   });
 
-  test("suggests DIVU.W power-of-two shifts with remainder review when upper-word use is unknown", () => {
+  test("suggests DIVU.W power-of-two shifts conditionally when upper-word use is unknown", () => {
     const diagnostic = lint(["divu.w #8,d0", "rts"].join("\n")).find(
       (d) => d.ruleId === "optimization/divu-word-power-of-two",
     );
     expect(diagnostic?.suggestion?.replacement).toBe("\tlsr.l #3,d0");
-    expect(diagnostic?.suggestion?.applicability).toBe("manual");
+    expect(diagnostic?.suggestion?.applicability).toBe("conditional");
     expect(diagnostic?.data?.upperWordUse).toBe("unknown");
   });
 
@@ -1134,10 +1134,10 @@ describe("vasm-derived optimizations", () => {
     ).toBe(true);
   });
 
-  test("marks memory logical-identity replacement manual because RMW side effects differ", () => {
+  test("marks memory logical-identity replacement conditional because RMW side effects differ", () => {
     const result = lint("ori.w #0,(a0)\n", { processors: ["mc68000"] });
     const diagnostic = result.find((d) => d.ruleId === "optimization/ori-zero-to-tst");
-    expect(diagnostic?.suggestion?.applicability).toBe("manual");
+    expect(diagnostic?.suggestion?.applicability).toBe("conditional");
   });
 
   test("narrows signed-word CMPA immediates", () => {

@@ -62,7 +62,7 @@ function makeIdentityRule(
         suggestion: {
           description: `Use TST.${size.toUpperCase()}`,
           replacement: `tst.${size} ${text}`,
-          applicability: registerOnly ? "safe" : "manual",
+          applicability: registerOnly ? "safe" : "conditional",
         },
         notes: registerOnly
           ? [

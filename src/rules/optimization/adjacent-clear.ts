@@ -53,7 +53,7 @@ function clearPair(fromSize: "b" | "w", toSize: "w" | "l", delta: number, id: st
         suggestion: {
           description: `Use CLR.${toSize} ${rendered}`,
           replacement: `clr.${toSize} ${rendered}`,
-          applicability: "manual",
+          applicability: "conditional",
         },
         notes: [
           { message: "The two addresses are adjacent, so one wider access covers both." },

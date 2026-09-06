@@ -74,7 +74,7 @@ function movePair(
         suggestion: {
           description: `Use MOVE.${toSize} #${literal},${dest}`,
           replacement: `move.${toSize} #${literal},${dest}`,
-          applicability: "manual",
+          applicability: "conditional",
         },
         notes: [
           {

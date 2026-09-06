@@ -207,8 +207,16 @@ always explicit:
 - **safe** — the replacement is equivalent and every observable difference is
   proven dead.
 - **conditional** — equivalent under a stated condition the linter cannot prove.
-- **manual** — a real candidate that needs human judgement, e.g. tail calls,
-  which change stack depth in a way the callee can observe.
+- **manual** — no single mechanical rewrite exists, so there is nothing to
+  offer: a label inside the matched code may be an entry point other code
+  branches to, or the finding is a question about intent rather than a
+  substitution.
+
+A rewrite is withheld only when there is none to write. Where the text is known
+and its correctness rests on something statable but unprovable — a callee that
+must not read arguments relative to SP, a device that must tolerate a wider
+access — that is `conditional`, and the replacement is given along with the
+condition.
 
 The linter deliberately does not duplicate assembler validation. Illegal
 instruction, size and addressing-mode combinations belong to the assembler unless

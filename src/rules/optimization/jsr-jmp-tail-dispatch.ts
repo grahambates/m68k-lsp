@@ -28,7 +28,7 @@ export const jsrJmpDispatch: Rule = {
       suggestion: {
         description: `Push ${cont} as the return address, then JMP directly to ${sub}`,
         replacement: `pea ${cont}\njmp ${sub}`,
-        applicability: "manual",
+        applicability: "conditional",
       },
       notes: [
         { message: "For an ordinary RTS return this reaches the same continuation with the same stack depth." },
