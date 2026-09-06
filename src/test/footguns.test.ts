@@ -58,4 +58,35 @@ describe("correctness and suspicious footgun rules", () => {
     const source = ["    move.b (a0),d0", "    moveq #0,d0", "    move.l d0,d1", "    rts"].join("\n");
     expect(ids(source)).not.toContain("suspicious/partial-register-write");
   });
+
+  test("does not flag a narrow load into a register seeded with a known value", () => {
+    // The standard zero-extension idiom: the preserved bits are the point.
+    const source = ["    moveq #0,d2", "    move.b 0(a2,d1.w),d2", "    move.l d2,d3", "    rts"].join("\n");
+    expect(ids(source)).not.toContain("suspicious/partial-register-write");
+  });
+
+  test("the seed does not have to be the preceding instruction", () => {
+    // Constant propagation supplies the value, so anything in between is fine.
+    const source = [
+      "    moveq #0,d2",
+      "    move.l d3,d4",
+      "    nop",
+      "    move.b (a2),d2",
+      "    move.l d2,d3",
+      "    rts",
+    ].join("\n");
+    expect(ids(source)).not.toContain("suspicious/partial-register-write");
+  });
+
+  test("accepts any known seed, not just MOVEQ zero", () => {
+    for (const seed of ["clr.l d2", "moveq #-1,d2", "move.l #$ff00,d2"]) {
+      const source = ["    " + seed, "    move.b (a2),d2", "    move.l d2,d3", "    rts"].join("\n");
+      expect([seed, ids(source).includes("suspicious/partial-register-write")]).toEqual([seed, false]);
+    }
+  });
+
+  test("still flags a narrow write over bits of unknown provenance", () => {
+    const source = ["    move.l d5,d2", "    move.b (a2),d2", "    move.l d2,d3", "    rts"].join("\n");
+    expect(ids(source)).toContain("suspicious/partial-register-write");
+  });
 });

@@ -49,6 +49,13 @@ form`. A reader has no way to check what a source said, and a claim repeated
 
 ### Fixed
 
+- `suspicious/partial-register-write` no longer flags a narrow load into a
+  register that was seeded with a known value. `moveq #0,d2` followed by
+  `move.b 0(a2,d1.w),d2` is the ordinary zero-extension idiom, where the
+  preserved bits are the point rather than an oversight. Constant propagation
+  supplies the value, so the seed need not be the preceding instruction, and
+  `CLR` or a non-zero seed work as well as `MOVEQ #0`.
+
 - `correctness/amiga-tas-unsupported` no longer flags `TAS Dn`. What the Amiga
   cannot arbitrate is the locked read-modify-write bus cycle TAS uses to reach
   memory; a data-register operand performs no memory access and is safe. This
