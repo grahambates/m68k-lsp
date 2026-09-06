@@ -5,6 +5,36 @@ previously lived in `README.md`.
 
 ## Unreleased
 
+### Added
+
+- Constants are resolved across the project. Files are linted one at a time, so
+  a name an include defines was simply unknown, and roughly three quarters of
+  the rules depend on resolving constants. Every assembly and header file under
+  the project is now indexed, which sidesteps needing the entry point and the
+  assembler's include paths to rebuild the real include hierarchy. The index is
+  monotonic by construction: it answers only for a name the whole project agrees
+  on, so it can turn "unknown" into "known" but never "known" into "wrong".
+  Conflicting definitions — a debug and a release configuration, per-machine
+  headers — leave the name unknown as before. Disable with
+  `"projectSymbols": false`.
+- Diagnostics name the file a borrowed constant came from, since a value taken
+  from a header the linter merely found is the likeliest thing to be wrong about
+  a report.
+
+### Fixed
+
+- The symbol table no longer guesses. Two different definitions of one name
+  resolved to whichever came last, though which is in force depends on assembly
+  order and conditional arms that cannot be evaluated; they now resolve to
+  unknown. A definition repeated identically, as happens when a header is
+  included twice, is still not a conflict, and the include-guard idiom that
+  wraps most real constants in a conditional still resolves.
+- Constants defined inside a macro body are no longer treated as file-global.
+  They belong to an expansion, may not exist until the macro is invoked, and may
+  differ between invocations.
+- The CLI indexes the directory being linted rather than the working directory
+  when no config file marks the project root.
+
 ### Fixed
 
 - Macro invocations are no longer invisible to the analysis. The parser types a

@@ -6,6 +6,7 @@ import type { Rule } from "./rule.js";
 import { defaultRules } from "../rules/index.js";
 import { measureDiagnosticImpact } from "../analysis/impact.js";
 import { createInlineSuppression } from "./inline-config.js";
+import type { ExternalSymbols } from "../analysis/symbols.js";
 
 function matchesOptimizationGoal(diagnostic: Diagnostic, rule: Rule | undefined, config: LintConfig): boolean {
   const goal = config.goal ?? "balanced";
@@ -46,8 +47,9 @@ export function lintParsedFile(
   source: string,
   config: LintConfig = defaultConfig,
   rules: readonly Rule[] = defaultRules,
+  external?: ExternalSymbols,
 ): Diagnostic[] {
-  const ctx = new DefaultRuleContext(file, source, config);
+  const ctx = new DefaultRuleContext(file, source, config, external);
 
   for (const rule of rules) {
     const severity = effectiveSeverity(rule, config);
@@ -56,7 +58,12 @@ export function lintParsedFile(
     const before = ctx.getDiagnostics().length;
 
     if (rule.checkLine) {
-      file.lines.forEach((line, index) => rule.checkLine?.(ctx, line, index));
+      file.lines.forEach((line, index) => {
+        // Constants resolved while checking one line belong to that line's
+        // diagnostics, not to a later one that happened to follow.
+        ctx.forgetExternalUses();
+        rule.checkLine?.(ctx, line, index);
+      });
     }
     rule.checkFile?.(ctx);
 
@@ -100,6 +107,7 @@ export function lintSource(
   source: string,
   config: LintConfig = defaultConfig,
   rules: readonly Rule[] = defaultRules,
+  external?: ExternalSymbols,
 ): Diagnostic[] {
-  return lintParsedFile(parseFile(source), source, config, rules);
+  return lintParsedFile(parseFile(source), source, config, rules, external);
 }

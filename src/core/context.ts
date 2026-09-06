@@ -1,6 +1,6 @@
 import type { ExpressionNode, ParsedFile, ParsedLine } from "m68k-parser";
 import { evaluateConstant, type ConstantResult } from "../analysis/constants.js";
-import { DefaultSymbolTable, type SymbolTable } from "../analysis/symbols.js";
+import { DefaultSymbolTable, type ExternalSymbols, type ExternalUse, type SymbolTable } from "../analysis/symbols.js";
 import { analyzeFlags, type FlagAnalysis } from "../analysis/flags.js";
 import { analyzeRegisters, type RegisterAnalysis } from "../analysis/registers.js";
 import type { LintConfig } from "./config.js";
@@ -23,6 +23,20 @@ export interface RuleContext {
   nextInstruction(index: number): { line: ParsedLine; index: number } | undefined;
 }
 
+/**
+ * Name any constant the diagnostic depended on that came from another file.
+ *
+ * A value taken from a header the linter merely found, rather than one this
+ * file states, is the likeliest thing to be wrong about a report. Saying where
+ * it came from turns a confident and otherwise inexplicable diagnostic into one
+ * the reader can check.
+ */
+function withProvenance(diagnostic: Diagnostic, used: readonly ExternalUse[]): Diagnostic["notes"] {
+  if (used.length === 0) return diagnostic.notes;
+  const listed = used.map(({ name, value, origin }) => `${name} = ${value} (from ${origin})`).join(", ");
+  return [...(diagnostic.notes ?? []), { message: `Resolved from outside this file: ${listed}.` }];
+}
+
 export class DefaultRuleContext implements RuleContext {
   private readonly diagnostics: Diagnostic[] = [];
   private readonly sourceLines: string[];
@@ -34,9 +48,10 @@ export class DefaultRuleContext implements RuleContext {
     public readonly file: ParsedFile,
     public readonly source: string,
     public readonly config: LintConfig,
+    external?: ExternalSymbols,
   ) {
     this.sourceLines = source.split(/\r?\n/);
-    this.symbols = new DefaultSymbolTable(file);
+    this.symbols = new DefaultSymbolTable(file, external);
     this.flags = analyzeFlags(file);
     this.registers = analyzeRegisters(file, (name) => {
       const result = this.symbols.evaluate(name);
@@ -45,7 +60,12 @@ export class DefaultRuleContext implements RuleContext {
   }
 
   report(diagnostic: Diagnostic): void {
-    this.diagnostics.push(diagnostic);
+    this.diagnostics.push({ ...diagnostic, notes: withProvenance(diagnostic, this.symbols.externalUses()) });
+  }
+
+  /** Drop the record of constants borrowed from other files. Called per line. */
+  forgetExternalUses(): void {
+    this.symbols.forgetExternalUses();
   }
 
   evaluate(expr: ExpressionNode): ConstantResult {

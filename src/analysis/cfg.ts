@@ -2,6 +2,7 @@ import type { ExpressionNode, ParsedFile, ParsedLine } from "m68k-parser";
 import { getFlagSemantics } from "../semantics/flags.js";
 import { canonicalMnemonic } from "../semantics/mnemonics.js";
 import { isExecutableLine } from "../util/ast.js";
+import { scanBlocks } from "./blocks.js";
 
 export interface ControlFlowGraph {
   successors: ReadonlyArray<ReadonlySet<number>>;
@@ -34,80 +35,21 @@ function isExecutable(line: ParsedLine | undefined): line is ParsedLine {
   return isExecutableLine(line);
 }
 
-function directiveName(line: ParsedLine | undefined): string | undefined {
-  return line?.mnemonic?.type === "directive" ? line.mnemonic.directive.toLowerCase() : undefined;
-}
+export function buildControlFlowGraph(file: ParsedFile): ControlFlowGraph {
+  const { region, repeats: repeatBlocks } = scanBlocks(file);
 
-interface BlockStructure {
-  /** Which flow region each line belongs to. 0 is the file itself; each macro definition gets its own. */
-  region: number[];
-  /** REPT bodies, as the first and last executable line each contains. */
-  repeats: { first: number; last: number }[];
-}
-
-/**
- * Assembler block structure that changes what flows where.
- *
- * A macro *definition* emits nothing where it is written: the instructions
- * between MACRO and ENDM run wherever the macro is invoked, not here. Treating
- * them as ordinary straight-line code let flow run from the code above a
- * definition, through its body, and out into the code below — a path that never
- * executes. Each definition therefore gets its own region, and flow neither
- * enters nor leaves it. The body is still analysed, because a write its own
- * body overwrites before reading is dead in every expansion; it just cannot be
- * reasoned about jointly with the code surrounding the definition.
- *
- * REPT assembles its body N times, so the last line of the body is followed by
- * the first, exactly as in a DBF loop. Without that back edge the body reads as
- * straight-line code and a value carried between iterations looks dead.
- */
-function scanBlocks(file: ParsedFile): BlockStructure {
-  const region = new Array<number>(file.lines.length).fill(0);
+  // Convert each REPT's directive bounds into the executable lines it encloses.
   const repeats: { first: number; last: number }[] = [];
-  const repeatStack: number[] = [];
-  let current = 0;
-  let nextRegion = 0;
-  let depth = 0;
-
-  for (let i = 0; i < file.lines.length; i++) {
-    const directive = directiveName(file.lines[i]);
-    if (directive === "macro") {
-      if (depth === 0) current = ++nextRegion;
-      depth++;
-      region[i] = current;
-      continue;
-    }
-    if (directive === "endm") {
-      region[i] = current;
-      depth = Math.max(0, depth - 1);
-      if (depth === 0) current = 0;
-      continue;
-    }
-    region[i] = current;
-    if (directive === "rept") repeatStack.push(i);
-    else if (directive === "endr") {
-      const start = repeatStack.pop();
-      if (start !== undefined) repeats.push({ first: start, last: i });
-    }
-  }
-
-  // Convert each REPT's directive bounds into the executable lines they enclose.
-  const bodies: { first: number; last: number }[] = [];
-  for (const { first, last } of repeats) {
+  for (const { start, end } of repeatBlocks) {
     let head: number | undefined;
     let tail: number | undefined;
-    for (let i = first + 1; i < last; i++) {
+    for (let i = start + 1; i < end; i++) {
       if (!isExecutable(file.lines[i])) continue;
       head ??= i;
       tail = i;
     }
-    if (head !== undefined && tail !== undefined && head !== tail) bodies.push({ first: head, last: tail });
+    if (head !== undefined && tail !== undefined && head !== tail) repeats.push({ first: head, last: tail });
   }
-  return { region, repeats: bodies };
-}
-
-export function buildControlFlowGraph(file: ParsedFile): ControlFlowGraph {
-  const { region, repeats } = scanBlocks(file);
 
   /**
    * The next executable line in the same region. Lines belonging to another

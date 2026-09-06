@@ -165,6 +165,30 @@ current physical line, `disable-next-line` the following one. Projects that need
 centrally enforced configuration can set `"inlineConfig": false` or pass
 `--no-inline-config`.
 
+## Constants from other files
+
+Most rules need to know what a constant is worth, and most constants live in an
+include rather than in the file being linted. Reconstructing the real include
+hierarchy would need the program's entry point and the assembler's include
+paths, neither of which is in the source, so m68k-lint instead indexes every
+assembly and header file under the project and resolves names from that.
+
+The index only answers for a name the whole project agrees on. Where two files
+define one differently — a debug and a release configuration, per-machine
+hardware headers — the name stays unknown and the rules that depend on it stay
+silent, exactly as they were before the index existed. It can turn "unknown"
+into "known", never "known" into "wrong", because a misresolved constant would
+make rules fire confidently and wrongly.
+
+Any diagnostic that depended on a value from another file names the file it came
+from:
+
+```
+  note: Resolved from outside this file: SHIFT_COUNT = 32 (from include/hardware.i).
+```
+
+Set `"projectSymbols": false` to analyse each file strictly on its own.
+
 ## Rules
 
 See [`docs/rules.md`](docs/rules.md) for the full generated table, or run

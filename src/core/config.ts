@@ -19,6 +19,11 @@ export interface LintConfig {
   inlineConfig?: boolean;
   /** Optional rule presets. `style` enables subjective convention rules. */
   presets?: RulePreset[];
+  /**
+   * Resolve constants a file does not define by indexing the rest of the
+   * project. On by default; set false to analyse each file strictly alone.
+   */
+  projectSymbols?: boolean;
   rules?: Record<string, RuleSetting>;
   categories?: Partial<Record<RuleCategory, boolean>>;
 }
@@ -29,5 +34,6 @@ export const defaultConfig: LintConfig = {
   goal: "balanced",
   measureImpact: true,
   inlineConfig: true,
+  projectSymbols: true,
   presets: ["recommended"],
 };

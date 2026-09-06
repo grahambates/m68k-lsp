@@ -1,9 +1,12 @@
 #!/usr/bin/env node
 
 import { readFile, writeFile } from "node:fs/promises";
-import { dirname, resolve } from "node:path";
+import { statSync } from "node:fs";
+import { dirname, relative, resolve, sep } from "node:path";
 import { parseFile, type ParseError } from "m68k-parser";
 import { lintParsedFile } from "../core/lint.js";
+import { buildProjectSymbols, type ProjectSymbols } from "../analysis/project-symbols.js";
+import type { ExternalSymbols } from "../analysis/symbols.js";
 import {
   defaultConfig,
   type LintConfig,
@@ -351,11 +354,71 @@ function formatImpactSummary(diagnostics: Diagnostic[]): string | undefined {
   return lines.join("\n");
 }
 
-async function lintOne(path: string, options: CliOptions, config: LintConfig) {
+async function lintOne(path: string, options: CliOptions, config: LintConfig, external?: ExternalSymbols) {
   const source = await readFile(path, "utf8");
   const parsed = parseFile(source);
-  const diagnostics = lintParsedFile(parsed, source, config);
+  const diagnostics = lintParsedFile(parsed, source, config, undefined, external);
   return { path, source, parseErrors: parsed.errors, diagnostics };
+}
+
+/**
+ * Index constants defined anywhere in the project, so a file that uses a name
+ * an include defines can still be analysed.
+ *
+ * Deliberately wider than the lint set: headers are often excluded from linting
+ * but are exactly where constants live. Reading them costs one pass and the
+ * index answers only for names the whole project agrees on, so a project with
+ * conflicting definitions is no worse off than before.
+ */
+/**
+ * Where to look for constants when no config file marks the project.
+ *
+ * `process.cwd()` is the wrong guess for `m68k-lint ../game/src`: it would index
+ * the directory the command was typed in rather than the one being linted. The
+ * inputs themselves say what the project is.
+ */
+function inputRoot(inputs: readonly string[], fallback: string): string {
+  const directories = inputs.map((input) => {
+    const absolute = resolve(fallback, input);
+    return statSync(absolute, { throwIfNoEntry: false })?.isDirectory() ? absolute : dirname(absolute);
+  });
+  if (directories.length === 0) return fallback;
+
+  let common = directories[0].split(sep);
+  for (const directory of directories.slice(1)) {
+    const parts = directory.split(sep);
+    let i = 0;
+    while (i < common.length && i < parts.length && common[i] === parts[i]) i++;
+    common = common.slice(0, i);
+  }
+  return common.join(sep) || fallback;
+}
+
+async function buildProjectIndex(
+  root: string,
+  ignorePatterns: readonly string[],
+  extensions: readonly string[],
+): Promise<ProjectSymbols | undefined> {
+  let paths: string[];
+  try {
+    paths = await discoverFiles([root], {
+      cwd: root,
+      extensions: [...new Set([...extensions, ...defaultAssemblyExtensions, ".inc", ".h"])],
+      ignorePatterns: [...ignorePatterns],
+    });
+  } catch {
+    return undefined;
+  }
+
+  const files = [];
+  for (const path of paths) {
+    try {
+      files.push({ path: relative(root, path) || path, source: await readFile(path, "utf8") });
+    } catch {
+      // Unreadable files simply contribute nothing to the index.
+    }
+  }
+  return buildProjectSymbols(files);
 }
 
 async function runInit(color: boolean): Promise<number> {
@@ -546,11 +609,24 @@ async function main(): Promise<number> {
   }
 
   const config = buildConfig(options, projectConfig);
+  const projectIndex =
+    config.projectSymbols === false
+      ? undefined
+      : await buildProjectIndex(
+          projectConfigPath ? projectRoot : inputRoot(rawInputs, projectRoot),
+          [
+            "node_modules/**",
+            ".git/**",
+            ...(projectConfig.ignores ?? projectConfig.ignorePatterns ?? []),
+            ...options.ignorePatterns,
+          ],
+          options.extensions ?? projectConfig.extensions ?? defaultAssemblyExtensions,
+        );
   const results = [];
   let ioFailed = false;
   for (const file of inputFiles) {
     try {
-      results.push(await lintOne(file, options, config));
+      results.push(await lintOne(file, options, config, projectIndex));
     } catch (error) {
       ioFailed = true;
       if (options.format === "json")
