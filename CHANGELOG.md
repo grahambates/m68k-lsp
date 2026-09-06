@@ -7,6 +7,18 @@ previously lived in `README.md`.
 
 ### Fixed
 
+- A rule no longer matches a run of instructions across a block directive. The
+  tail-call rule paired a BSR inside an IFNE arm with the RTS after the ENDC and
+  offered a BRA covering all three lines, deleting the ENDC so the file stopped
+  assembling. The same lexical scan would pair a BSR in one arm with an RTS in
+  the other, which never run together at all. The search for an adjacent
+  instruction now stops at a conditional, REPT or macro boundary, as it already
+  did at a macro invocation, so every sequence rule is covered. A span
+  containing any directive is refused outright as a second line of defence,
+  which also stops a replacement swallowing an alignment directive.
+
+### Fixed
+
 - A goal no longer hides a rewrite that is free on the axis it cares about.
   `serves` gated the whole rule, so a rule that usually costs bytes was off in
   every size-focused run even on inputs where it costs none: `muls.w #2` saves

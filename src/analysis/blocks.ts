@@ -52,6 +52,29 @@ export function isInMacroDefinition(blocks: BlockStructure, index: number): bool
   return (blocks.region[index] ?? 0) !== 0;
 }
 
+/**
+ * Directives that break a run of instructions into separate blocks.
+ *
+ * Two instructions either side of one are not a straight-line sequence: the
+ * arms of a conditional are alternatives, a REPT body runs a different number
+ * of times than the code around it, and a macro definition is not executed
+ * where it is written. A rule matching across one is matching a sequence that
+ * does not exist, and a replacement spanning one would delete it.
+ */
+export function isBlockBoundary(line: ParsedLine | undefined): boolean {
+  const directive = directiveName(line);
+  if (!directive) return false;
+  return (
+    isConditionalOpener(directive) ||
+    CONDITIONAL_ALTERNATIVES.has(directive) ||
+    CONDITIONAL_ENDS.has(directive) ||
+    directive === "rept" ||
+    directive === "endr" ||
+    directive === "macro" ||
+    directive === "endm"
+  );
+}
+
 export function scanBlocks(file: ParsedFile): BlockStructure {
   const region = new Array<number>(file.lines.length).fill(0);
   const repeats: { start: number; end: number }[] = [];

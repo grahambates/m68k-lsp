@@ -8,6 +8,7 @@ import type { LintConfig } from "./config.js";
 import type { Diagnostic } from "./diagnostic.js";
 import { isMacroInvocation } from "../util/ast.js";
 import { computeSourceSpan, type SourceSpan } from "./span.js";
+import { isBlockBoundary } from "../analysis/blocks.js";
 
 export interface RuleContext {
   readonly file: ParsedFile;
@@ -323,6 +324,14 @@ export class DefaultRuleContext implements RuleContext {
     if (!suggestion || suggestion.replacement === undefined || !span) return undefined;
 
     const matched = this.file.lines.slice(span.startLine - 1, span.endLine);
+    // A directive inside the match is structure, not code to be rewritten.
+    // Replacing the run would delete an ENDC or an alignment and the file would
+    // stop assembling, so there is no rewrite to offer. Rules should not match
+    // across one in the first place; this is the backstop for any that build a
+    // span some other way.
+    if (matched.some((line) => isBlockBoundary(line) || line?.mnemonic?.type === "directive")) {
+      return { ...suggestion, replacement: undefined, applicability: "manual" };
+    }
     if (matched.slice(1).some((line) => line?.label)) {
       return { ...suggestion, replacement: undefined, applicability: "manual" };
     }
@@ -391,18 +400,25 @@ export class DefaultRuleContext implements RuleContext {
   }
 
   /**
-   * The adjacent instruction, or nothing if a macro invocation comes first.
+   * The adjacent instruction, or nothing if a macro invocation or a block
+   * boundary comes first.
    *
    * Sequence rules use these to match a run of instructions and then offer a
    * replacement spanning it. A macro invocation between two of them is code
    * that would be deleted by such a replacement, so it has to end the search
    * rather than be stepped over: `prefer-link-sequence` was collapsing a frame
    * setup around an intervening macro call and dropping it.
+   *
+   * A block directive ends the search for the same reason and a stronger one.
+   * `bsr Foo` inside an IFNE arm and an RTS after the ENDC are not a sequence a
+   * replacement can stand in for -- collapsing them deletes the ENDC and the
+   * file stops assembling -- and if the RTS is in the ELSE arm instead, the two
+   * never even run together.
    */
   previousInstruction(index: number): { line: ParsedLine; index: number } | undefined {
     for (let i = index - 1; i >= 0; i--) {
       const line = this.file.lines[i];
-      if (isMacroInvocation(line)) return undefined;
+      if (isMacroInvocation(line) || isBlockBoundary(line)) return undefined;
       if (line?.mnemonic?.type === "instruction") return { line, index: i };
     }
     return undefined;
@@ -411,7 +427,7 @@ export class DefaultRuleContext implements RuleContext {
   nextInstruction(index: number): { line: ParsedLine; index: number } | undefined {
     for (let i = index + 1; i < this.file.lines.length; i++) {
       const line = this.file.lines[i];
-      if (isMacroInvocation(line)) return undefined;
+      if (isMacroInvocation(line) || isBlockBoundary(line)) return undefined;
       if (line?.mnemonic?.type === "instruction") return { line, index: i };
     }
     return undefined;
