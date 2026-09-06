@@ -494,12 +494,14 @@ describe("v0.9 local peepholes", () => {
   test("uses low-word masks for BSET/BCLR when CCR differences are dead", () => {
     const source = ["bset.l #3,d0", "move.l d1,d2", "rts"].join("\n");
     const bset = lint(source).find((d) => d.ruleId === "optimization/bset-low-word-mask");
-    expect(bset?.suggestion?.replacement).toBe("\tor.w #$0008,d0");
+    // The mask is written as a shift of the bit number rather than the value it
+    // produces, so it says which bit is meant and keeps a symbolic bit number.
+    expect(bset?.suggestion?.replacement).toBe("\tor.w #1<<3,d0");
     expect(bset?.suggestion?.applicability).toBe("safe");
 
     expect(
       lint("bclr.l #7,d1").find((d) => d.ruleId === "optimization/bclr-low-word-mask")?.suggestion?.replacement,
-    ).toBe("\tand.w #$FF7F,d1");
+    ).toBe("\tand.w #~(1<<7),d1");
   });
 
   test("suggests two ADDs for two-bit byte/word shifts on supported CPUs", () => {

@@ -1,6 +1,6 @@
 import type { Rule } from "../../core/rule.js";
 import { dataRegisterOperand, immediateOperand, instructionSize, isInstruction } from "../../util/ast.js";
-import { changedFlagsApplicability } from "./helpers.js";
+import { changedFlagsApplicability, embeddedValueText } from "./helpers.js";
 
 function makeRule(kind: "bset" | "bclr"): Rule {
   return {
@@ -23,9 +23,14 @@ function makeRule(kind: "bset" | "bclr"): Rule {
       if (!bit.known || bit.value < 0 || bit.value > 15) return;
       if (!ctx.config.processors.every((cpu) => ["mc68000", "mc68010", "mc68030", "mc68040"].includes(cpu))) return;
 
-      const mask = kind === "bset" ? 1 << bit.value : 0xffff ^ (1 << bit.value);
       const op = kind === "bset" ? "or" : "and";
-      const renderedMask = `$${(mask & 0xffff).toString(16).toUpperCase().padStart(4, "0")}`;
+      // Written as a shift of the bit number rather than the value it produces.
+      // It says which bit is meant instead of leaving the reader to decode a
+      // hex constant, and it is the only way the bit number survives when it is
+      // a symbol: `bset #SPRITE_ON,d3` keeps that name rather than becoming
+      // `or.w #$0100,d3`, which stops tracking the constant it came from.
+      const bitText = embeddedValueText(ctx, bitOp.value, bit.value);
+      const renderedMask = kind === "bset" ? `1<<${bitText}` : `~(1<<${bitText})`;
       const safety = changedFlagsApplicability(ctx, index, ["N", "Z", "V", "C"]);
 
       ctx.report({
@@ -33,7 +38,7 @@ function makeRule(kind: "bset" | "bclr"): Rule {
         category: this.meta.category,
         severity: this.meta.defaultSeverity,
         confidence: safety.confidence,
-        message: `${kind.toUpperCase()} #${bit.value},${dest.register} can use ${op.toUpperCase()}.W with a constant mask`,
+        message: `${kind.toUpperCase()} #${bitText},${dest.register} can use ${op.toUpperCase()}.W with a word mask`,
         loc: line.mnemonic!.loc,
         suggestion: {
           description: `Use ${op.toUpperCase()}.W #${renderedMask},${dest.register}`,

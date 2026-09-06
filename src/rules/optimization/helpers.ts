@@ -109,3 +109,19 @@ export function negatedValueText(ctx: RuleContext, expression: ExpressionNode | 
 function isAtom(expression: ExpressionNode | undefined): boolean {
   return expression?.type === "symbol" || expression?.type === "numeric-literal";
 }
+
+/**
+ * The expression as written, ready to be embedded in a larger one.
+ *
+ * Parenthesised unless it is a bare symbol or number, because the surrounding
+ * operator may bind tighter than something inside it: `1<<BASE+1` relies on the
+ * assembler agreeing with C about precedence, where `1<<(BASE+1)` does not.
+ */
+export function embeddedValueText(
+  ctx: RuleContext,
+  expression: ExpressionNode | undefined,
+  evaluated: number,
+): string {
+  const text = valueText(ctx, expression, evaluated);
+  return isAtom(expression) || text === String(evaluated) ? text : `(${text})`;
+}

@@ -61,3 +61,33 @@ describe("removal is not loss", () => {
     expect((found?.notes ?? []).map((n) => n.message).some((m) => /does not appear/.test(m))).toBe(false);
   });
 });
+
+/**
+ * Where the derivation can be written in assembly, writing it keeps the name.
+ * A bit mask is `1<<n`, so `bset #SPRITE_ON,d3` need not collapse to a hex
+ * constant that no longer mentions SPRITE_ON.
+ */
+describe("a derivation the assembler can express keeps the symbol", () => {
+  const replacement = (instruction: string, ruleId: string) => {
+    const source = `SPRITE_ON equ 2\nBASE equ 1\n\t${instruction}\n\tmoveq #0,d7\n\trts`;
+    return lintSource(source, { processors: ["mc68000"] }).find((d) => d.ruleId === ruleId)?.suggestion?.replacement;
+  };
+
+  test("a literal bit number is written as a shift, not a hex mask", () => {
+    expect(replacement("bset #2,d3", "optimization/bset-low-word-mask")).toBe("\tor.w #1<<2,d3");
+  });
+
+  test("a symbolic bit number survives", () => {
+    expect(replacement("bset #SPRITE_ON,d3", "optimization/bset-low-word-mask")).toBe("\tor.w #1<<SPRITE_ON,d3");
+    expect(lossNote(["bset #SPRITE_ON,d3"], "optimization/bset-low-word-mask")).toBeUndefined();
+  });
+
+  // `1<<BASE+1` would depend on the assembler agreeing with C about precedence.
+  test("a compound bit number is parenthesised", () => {
+    expect(replacement("bset #BASE+1,d3", "optimization/bset-low-word-mask")).toBe("\tor.w #1<<(BASE+1),d3");
+  });
+
+  test("BCLR writes the complement of the same shift", () => {
+    expect(replacement("bclr #SPRITE_ON,d3", "optimization/bclr-low-word-mask")).toBe("\tand.w #~(1<<SPRITE_ON),d3");
+  });
+});
