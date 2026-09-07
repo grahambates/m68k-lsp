@@ -3,26 +3,30 @@ import type { Diagnostic } from "./diagnostic.js";
 /**
  * What to do with one finding.
  *
- * `acknowledge` and `ignore` both write a suppression comment and differ only
- * in what it says: one records that the code was looked at and is meant to be
- * this way, the other that the finding is not wanted here. Keeping them apart
- * matters when someone reads the file later — "checked, intentional" and "not
- * interested" are different claims, and only the first is evidence.
+ * The two ways of silencing something differ in scope rather than sentiment,
+ * which is the only distinction worth encoding. `allow` says this occurrence is
+ * fine and writes a directive beside it; `disable` says the rule does not suit
+ * this project at all and belongs in the config, where one entry replaces a
+ * comment on every occurrence.
+ *
+ * An earlier pair, "acknowledge" and "ignore", tried to record how the reader
+ * felt about the finding. It read as a claim about intent, but equally as
+ * "I have applied this by hand", which is not a suppression at all -- a finding
+ * you have actually fixed stops being reported on its own.
  */
-export type Decision = "apply" | "skip" | "acknowledge" | "ignore" | "quit";
+export type Decision = "apply" | "skip" | "allow" | "disable" | "quit";
 
 export interface InteractiveResult {
   output: string;
   applied: Diagnostic[];
   suppressed: Diagnostic[];
+  /** Rules the reader turned off for the whole project. */
+  disabledRules: string[];
   /** True when the review was ended early; decisions already made still stand. */
   quit: boolean;
 }
 
-const REASONS: Record<"acknowledge" | "ignore", string> = {
-  acknowledge: "reviewed: intentional",
-  ignore: "ignored",
-};
+
 
 /** The indentation of a line, so an inserted directive lines up with the code. */
 function indentOf(line: string | undefined): string {
@@ -32,8 +36,8 @@ function indentOf(line: string | undefined): string {
   return /^\S+([ \t]+)(?=\S)/.exec(line)?.[1] ?? "";
 }
 
-function suppressionFor(diagnostic: Diagnostic, indent: string, decision: "acknowledge" | "ignore"): string {
-  return `${indent}; m68k-lint-disable-next-line ${diagnostic.ruleId} -- ${REASONS[decision]}`;
+function suppressionFor(diagnostic: Diagnostic, indent: string): string {
+  return `${indent}; m68k-lint-disable-next-line ${diagnostic.ruleId} -- allowed here`;
 }
 
 /**
@@ -58,15 +62,22 @@ export async function runInteractive(
     .slice()
     .sort((a, b) => a.span!.startLine - b.span!.startLine);
 
-  const decisions: { diagnostic: Diagnostic; decision: Exclude<Decision, "skip" | "quit"> }[] = [];
+  const decisions: { diagnostic: Diagnostic; decision: "apply" | "allow" }[] = [];
+  const disabledRules = new Set<string>();
   let quit = false;
   for (const diagnostic of reviewable) {
+    // Once a rule is off for the project there is nothing left to ask about it.
+    if (disabledRules.has(diagnostic.ruleId)) continue;
     const decision = await decide(diagnostic);
     if (decision === "quit") {
       quit = true;
       break;
     }
     if (decision === "skip") continue;
+    if (decision === "disable") {
+      disabledRules.add(diagnostic.ruleId);
+      continue;
+    }
     decisions.push({ diagnostic, decision });
   }
 
@@ -85,11 +96,17 @@ export async function runInteractive(
       lines.splice(startLine - 1, endLine - startLine + 1, ...(replacement === "" ? [] : replacement.split("\n")));
       applied.push(diagnostic);
     } else {
-      lines.splice(startLine - 1, 0, suppressionFor(diagnostic, indentOf(lines[startLine - 1]), decision));
+      lines.splice(startLine - 1, 0, suppressionFor(diagnostic, indentOf(lines[startLine - 1])));
       suppressed.push(diagnostic);
     }
     lowestTouched = startLine;
   }
 
-  return { output: lines.join("\n"), applied: applied.reverse(), suppressed: suppressed.reverse(), quit };
+  return {
+    output: lines.join("\n"),
+    applied: applied.reverse(),
+    suppressed: suppressed.reverse(),
+    disabledRules: [...disabledRules],
+    quit,
+  };
 }

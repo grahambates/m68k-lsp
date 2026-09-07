@@ -55,13 +55,13 @@ describe("reviewing findings one at a time", () => {
   });
 
   test("several decisions at once land in the right places", async () => {
-    const { output, applied, suppressed } = await review(SOURCE, ["apply", "acknowledge", "ignore"]);
+    const { output, applied, suppressed } = await review(SOURCE, ["apply", "allow", "allow"]);
     expect(output.split("\n")).toEqual([
       "start:",
       "\tmoveq\t#100,d0\t; count",
-      "\t; m68k-lint-disable-next-line optimization/prefer-moveq -- reviewed: intentional",
+      "\t; m68k-lint-disable-next-line optimization/prefer-moveq -- allowed here",
       "\tmove.l\t#5,d1",
-      "\t; m68k-lint-disable-next-line suspicious/partial-register-write -- ignored",
+      "\t; m68k-lint-disable-next-line suspicious/partial-register-write -- allowed here",
       "\tmove.w\td4,d7",
       "\tmove.l\td7,(a0)",
       "\trts",
@@ -72,16 +72,22 @@ describe("reviewing findings one at a time", () => {
 
   // The whole point of a suppression comment is that it silences the finding.
   test("what it writes actually suppresses on the next run", async () => {
-    const { output } = await review(SOURCE, ["skip", "acknowledge", "ignore"]);
+    const { output } = await review(SOURCE, ["skip", "allow", "allow"]);
     const remaining = lintSource(output, { processors: ["mc68000"] }).map((d) => d.ruleId);
     expect(remaining).toEqual(["optimization/prefer-moveq"]);
   });
 
-  test("acknowledge and ignore say different things", async () => {
-    const acknowledged = (await review(SOURCE, ["acknowledge"])).output;
-    const ignored = (await review(SOURCE, ["ignore"])).output;
-    expect(acknowledged).toContain("-- reviewed: intentional");
-    expect(ignored).toContain("-- ignored");
+  // Silencing one occurrence and turning the rule off differ in scope, which is
+  // the only distinction worth encoding: one writes a directive beside the
+  // code, the other is reported back for the config.
+  test("disabling a rule asks nothing further about it", async () => {
+    const { output, disabledRules, asked } = await review(SOURCE, ["disable", "allow"]);
+    expect(disabledRules).toEqual(["optimization/prefer-moveq"]);
+    // The second PREFER-MOVEQ finding is never put to the reader.
+    expect(asked).toEqual(["optimization/prefer-moveq@2", "suspicious/partial-register-write@4"]);
+    // And nothing is written into the file for it.
+    expect(output).not.toContain("disable-next-line optimization/prefer-moveq");
+    expect(output).toContain("disable-next-line suspicious/partial-register-write");
   });
 
   test("quitting keeps the decisions already made", async () => {
@@ -95,13 +101,15 @@ describe("reviewing findings one at a time", () => {
 
   test("a finding with no rewrite can still be acknowledged", async () => {
     const source = "\tmove.w\td4,d7\n\tmove.l\td7,(a0)\n\trts";
-    const { output, suppressed } = await review(source, ["acknowledge"]);
+    const { output, suppressed } = await review(source, ["allow"]);
     expect(suppressed).toHaveLength(1);
     expect(output.split("\n")[0]).toContain("m68k-lint-disable-next-line suspicious/partial-register-write");
   });
 
   test("a directive is indented to match the code it guards", async () => {
-    const { output } = await review("        move.l  #100,d0\n        rts", ["ignore"]);
-    expect(output.split("\n")[0]).toBe("        ; m68k-lint-disable-next-line optimization/prefer-moveq -- ignored");
+    const { output } = await review("        move.l  #100,d0\n        rts", ["allow"]);
+    expect(output.split("\n")[0]).toBe(
+      "        ; m68k-lint-disable-next-line optimization/prefer-moveq -- allowed here",
+    );
   });
 });
