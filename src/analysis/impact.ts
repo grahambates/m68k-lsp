@@ -207,11 +207,7 @@ function provenCount(diagnostic: Diagnostic): number | undefined {
   return undefined;
 }
 
-function measureSnippet(
-  source: string,
-  knownShiftCount?: number,
-  branchTiming?: "not-taken",
-): Measurement | undefined {
+function measureSnippet(source: string, knownShiftCount?: number, branchTiming?: "not-taken"): Measurement | undefined {
   try {
     if (!parse68kCounter || !calculateCounterTotals) return undefined;
     const normalized = normalizeCounterSnippet(source);

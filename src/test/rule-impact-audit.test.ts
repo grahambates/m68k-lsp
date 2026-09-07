@@ -1,4 +1,3 @@
-import { asp68kCoverage, asp68kCoverageSummary } from "../coverage-asp68k.js";
 import { defaultRules } from "../rules/index.js";
 import { normalizeRuleImpactAuditSource, ruleImpactAuditCases, runRuleImpactAudit } from "../audit/rule-impact.js";
 import { normalizeCounterSnippet } from "../analysis/impact.js";
@@ -65,17 +64,4 @@ test("sequence folds measure their full source span", () => {
     expect(results.length).toBeGreaterThan(0);
     expect(results.some((r) => r.status === "regression")).toBe(false);
   }
-});
-
-describe("ASP68K coverage bookkeeping", () => {
-  test("never tracks more rows than the table is recorded as having", () => {
-    const summary = asp68kCoverageSummary();
-    expect(summary.trackedRows).toBeLessThanOrEqual(summary.totalTransformRows);
-    expect(summary.implementedRows).toBeLessThanOrEqual(summary.trackedRows);
-  });
-
-  test("no table row is claimed by two coverage entries", () => {
-    const rows = asp68kCoverage.flatMap((entry) => entry.sourceLines);
-    expect(rows.length).toBe(new Set(rows).size);
-  });
 });

@@ -11,8 +11,6 @@ export * from "./analysis/impact.js";
 export * from "./semantics/flags.js";
 export * from "./semantics/mnemonics.js";
 export * from "./rules/index.js";
-export * from "./coverage-asp68k.js";
-export * from "./coverage-flamewing.js";
 
 export * from "./audit/rule-impact.js";
 

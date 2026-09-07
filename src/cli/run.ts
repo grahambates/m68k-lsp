@@ -1,0 +1,366 @@
+import { readFile, writeFile } from "node:fs/promises";
+import { statSync } from "node:fs";
+import { dirname, relative, resolve, sep } from "node:path";
+import { parseFile } from "m68k-parser";
+import { lintParsedFile } from "../core/lint.js";
+import { applyFixes, type FixResult } from "../core/fix.js";
+import type { Applicability, Diagnostic, OptimizationAssessment, RuleCategory, Severity } from "../core/diagnostic.js";
+import { buildProjectSymbols, type ProjectSymbols } from "../analysis/project-symbols.js";
+import type { ExternalSymbols } from "../analysis/symbols.js";
+import { defaultConfig, type LintConfig } from "../core/config.js";
+import { formatDiagnostic, formatImpactSummary, paint } from "./format.js";
+import { runInit } from "./init.js";
+import { runRuleImpactAudit } from "../audit/rule-impact.js";
+import { defaultAssemblyExtensions, discoverFiles } from "./file-discovery.js";
+import { findProjectConfig, loadProjectConfig, type ProjectConfig } from "./project-config.js";
+import { categories, parseArgs, severityRank, usage, type CliOptions } from "./args.js";
+import { ruleImpactAuditFailed, ruleImpactAuditLines, ruleListLines } from "./reports.js";
+import { runInteractiveFixes } from "./review.js";
+import { VERSION } from "./version.js";
+
+export function buildConfig(options: CliOptions, project: ProjectConfig = {}): LintConfig {
+  const config: LintConfig = {
+    ...defaultConfig,
+    processors: options.processors ?? project.processors ?? defaultConfig.processors,
+    platform: options.platform ?? project.platform ?? defaultConfig.platform,
+    goal: options.goal ?? project.goal ?? defaultConfig.goal,
+    measureImpact: options.measureImpact ?? project.measureImpact ?? defaultConfig.measureImpact,
+    inlineConfig: options.inlineConfig ?? project.inlineConfig ?? defaultConfig.inlineConfig,
+    presets: [...new Set([...(defaultConfig.presets ?? []), ...(project.presets ?? []), ...options.presets])],
+    rules: { ...(project.rules ?? {}), ...options.rules },
+  };
+
+  const categoryConfig: Partial<Record<RuleCategory, boolean>> = { ...(project.categories ?? {}) };
+  if (options.onlyCategories) {
+    for (const category of categories) categoryConfig[category] = options.onlyCategories.includes(category);
+  }
+  for (const category of options.disabledCategories) categoryConfig[category] = false;
+  if (Object.keys(categoryConfig).length) config.categories = categoryConfig;
+  if (!Object.keys(config.rules ?? {}).length) config.rules = undefined;
+  return config;
+}
+
+export function failsThreshold(diagnostics: readonly Diagnostic[], threshold: Severity): boolean {
+  const rank = severityRank[threshold];
+  return diagnostics.some((d) => severityRank[d.severity] <= rank);
+}
+
+async function lintOne(path: string, options: CliOptions, config: LintConfig, external?: ExternalSymbols) {
+  let source = await readFile(path, "utf8");
+  let fixed: FixResult | undefined;
+
+  if (options.fix) {
+    const accept: Applicability[] = options.fixConditional ? ["safe", "conditional"] : ["safe"];
+    // A trade-off is only a decision once you have said which resource matters.
+    // Under an explicit goal the filtering has already dropped the ones that
+    // hurt it, so what is left genuinely helps the axis asked for; under
+    // balanced it is a coin-flip the linter should not call. Neutral rewrites
+    // are never applied: changing the file for no measured gain is churn.
+    const goal = config.goal ?? "balanced";
+    const acceptAssessments: OptimizationAssessment[] =
+      goal === "balanced" ? ["improvement"] : ["improvement", "tradeoff"];
+    // A rewrite that will not parse is worse than no rewrite, so a round whose
+    // result reads worse than what went in is rolled back rather than written.
+    const errorCount = parseFile(source).errors.length;
+    fixed = applyFixes(source, (text) => lintParsedFile(parseFile(text), text, config, undefined, external), {
+      accept,
+      acceptAssessments,
+      annotate: options.fixAnnotate,
+      verify: (candidate) => parseFile(candidate).errors.length <= errorCount,
+    });
+    if (fixed.applied.length && !options.fixDryRun) {
+      await writeFile(path, fixed.output, "utf8");
+      source = fixed.output;
+    } else if (fixed.applied.length) {
+      source = fixed.output;
+    }
+  }
+
+  const parsed = parseFile(source);
+  const diagnostics = lintParsedFile(parsed, source, config, undefined, external);
+  return { path, source, parseErrors: parsed.errors, diagnostics, fixed };
+}
+
+/**
+ * Where to look for constants when no config file marks the project.
+ *
+ * `process.cwd()` is the wrong guess for `m68k-lint ../game/src`: it would index
+ * the directory the command was typed in rather than the one being linted. The
+ * inputs themselves say what the project is.
+ */
+export function inputRoot(inputs: readonly string[], fallback: string): string {
+  const directories = inputs.map((input) => {
+    const absolute = resolve(fallback, input);
+    return statSync(absolute, { throwIfNoEntry: false })?.isDirectory() ? absolute : dirname(absolute);
+  });
+  if (directories.length === 0) return fallback;
+
+  let common = directories[0].split(sep);
+  for (const directory of directories.slice(1)) {
+    const parts = directory.split(sep);
+    let i = 0;
+    while (i < common.length && i < parts.length && common[i] === parts[i]) i++;
+    common = common.slice(0, i);
+  }
+  return common.join(sep) || fallback;
+}
+
+/**
+ * Index constants defined anywhere in the project, so a file that uses a name
+ * an include defines can still be analysed.
+ *
+ * Deliberately wider than the lint set: headers are often excluded from linting
+ * but are exactly where constants live. Reading them costs one pass and the
+ * index answers only for names the whole project agrees on, so a project with
+ * conflicting definitions is no worse off than before.
+ */
+async function buildProjectIndex(
+  root: string,
+  ignorePatterns: readonly string[],
+  extensions: readonly string[],
+): Promise<ProjectSymbols | undefined> {
+  let paths: string[];
+  try {
+    paths = await discoverFiles([root], {
+      cwd: root,
+      extensions: [...new Set([...extensions, ...defaultAssemblyExtensions, ".inc", ".h"])],
+      ignorePatterns: [...ignorePatterns],
+    });
+  } catch {
+    return undefined;
+  }
+
+  const files = [];
+  for (const path of paths) {
+    try {
+      files.push({ path: relative(root, path) || path, source: await readFile(path, "utf8") });
+    } catch {
+      // Unreadable files simply contribute nothing to the index.
+    }
+  }
+  return buildProjectSymbols(files);
+}
+
+type LintResult = Awaited<ReturnType<typeof lintOne>> | { path: string; ioError: string };
+
+/**
+ * Print the findings, then what changed on disk, then what could not be read.
+ *
+ * Two blank lines between findings, three between files. Printing each file
+ * with its own console.log gave the opposite: a blank line inside a file and
+ * only a newline at the boundary between two, so the last finding of one ran
+ * straight into the first of the next.
+ */
+function reportPretty(results: readonly LintResult[], options: CliOptions): void {
+  const blocks = results
+    .filter((result): result is Extract<LintResult, { source: string }> => "source" in result)
+    .map((result) =>
+      result.diagnostics.map((d) => formatDiagnostic(result.path, result.source, d, options.color)).join("\n\n\n"),
+    )
+    .filter((block) => block.length > 0);
+  if (blocks.length) console.log(blocks.join("\n\n\n"));
+
+  // What changed on disk is the first thing to say, before what remains.
+  for (const result of results) {
+    const fixed = "fixed" in result ? result.fixed : undefined;
+    if (!fixed || fixed.applied.length === 0) continue;
+    const verb = options.fixDryRun ? "would fix" : "fixed";
+    const counts = new Map<string, number>();
+    for (const one of fixed.applied) counts.set(one.ruleId, (counts.get(one.ruleId) ?? 0) + 1);
+    const detail = [...counts]
+      .sort()
+      .map(([ruleId, n]) => `${ruleId}${n > 1 ? ` x${n}` : ""}`)
+      .join(", ");
+    console.log(
+      `\n${result.path}: ${verb} ${fixed.applied.length} ${fixed.applied.length === 1 ? "issue" : "issues"} ` +
+        `${paint(options.color, 90, `(${detail})`)}`,
+    );
+  }
+
+  for (const result of results) {
+    const outcome = "fixed" in result ? result.fixed : undefined;
+    if (outcome?.rejected) {
+      console.log(
+        paint(
+          options.color,
+          33,
+          `\n${result.path}: a rewrite was rolled back because the result would not have parsed.`,
+        ),
+      );
+    }
+  }
+
+  // Syntax belongs to the assembler, which reports it against its own grammar
+  // rather than this parser's more permissive one. What is worth saying is
+  // that a file was not fully read, so an empty result is not mistaken for a
+  // verified one.
+  for (const result of results) {
+    if (!("parseErrors" in result) || result.parseErrors.length === 0) continue;
+    console.log(
+      paint(
+        options.color,
+        90,
+        `\n${result.path}: ${result.parseErrors.length} line${result.parseErrors.length === 1 ? "" : "s"} could not be parsed; findings for this file may be incomplete.`,
+      ),
+    );
+  }
+
+  const diagnostics = results.flatMap((r) => ("diagnostics" in r ? r.diagnostics : []));
+  if (options.impactSummary) {
+    const summary = formatImpactSummary(diagnostics);
+    if (summary) console.log(`\n${summary}`);
+  }
+
+  const counts = { error: 0, warning: 0, suggestion: 0, info: 0 } satisfies Record<Severity, number>;
+  for (const d of diagnostics) counts[d.severity]++;
+  const total = diagnostics.length;
+  if (!total) return;
+
+  const plural = (n: number, word: string) => `${n} ${word}${n > 1 ? "s" : ""}`;
+  const groups: string[] = [];
+  if (counts.error) groups.push(paint(options.color, 31, plural(counts.error, "error")));
+  if (counts.warning) groups.push(paint(options.color, 33, plural(counts.warning, "warning")));
+  if (counts.suggestion) groups.push(paint(options.color, 36, plural(counts.suggestion, "suggestion")));
+  if (counts.info) groups.push(paint(options.color, 90, `${counts.info} info`));
+  console.log(`\n\n${total} issue${total === 1 ? "" : "s"}: ${groups.join(", ")}`);
+}
+
+/**
+ * The whole command, as an exit code.
+ *
+ * Takes the argument vector and returns rather than exiting, so that the
+ * behaviour can be exercised without spawning a process. `main.ts` is only the
+ * shebang and the call.
+ */
+export async function run(argv: string[]): Promise<number> {
+  let parsedArgs: CliOptions | "help" | "version";
+  try {
+    parsedArgs = parseArgs(argv);
+  } catch (error) {
+    console.error(`m68k-lint: ${error instanceof Error ? error.message : String(error)}\n`);
+    console.error(usage());
+    return 2;
+  }
+
+  if (parsedArgs === "help") {
+    console.log(usage());
+    return 0;
+  }
+  if (parsedArgs === "version") {
+    console.log(VERSION);
+    return 0;
+  }
+
+  const options = parsedArgs;
+  if (options.init) return runInit(options.color);
+  if (options.listRules) {
+    console.log(ruleListLines().join("\n"));
+    return 0;
+  }
+  if (options.auditRuleImpact) {
+    const audit = runRuleImpactAudit();
+    if (options.format === "json") console.log(JSON.stringify({ version: VERSION, audit }, null, 2));
+    else console.log(ruleImpactAuditLines(audit).join("\n"));
+    return ruleImpactAuditFailed(audit) ? 1 : 0;
+  }
+
+  let projectConfig: ProjectConfig = {};
+  let projectConfigPath: string | undefined;
+  if (options.configPath && !options.useConfig) {
+    console.error("m68k-lint: --config cannot be combined with --no-config");
+    return 2;
+  }
+  try {
+    projectConfigPath = options.configPath
+      ? resolve(options.configPath)
+      : options.useConfig
+        ? await findProjectConfig()
+        : undefined;
+    if (projectConfigPath) projectConfig = await loadProjectConfig(projectConfigPath);
+  } catch (error) {
+    console.error(`m68k-lint: ${error instanceof Error ? error.message : String(error)}`);
+    return 2;
+  }
+
+  const projectRoot = projectConfigPath ? dirname(projectConfigPath) : process.cwd();
+  const rawInputs = options.files.length
+    ? options.files.map((input) => resolve(process.cwd(), input))
+    : (projectConfig.files ?? projectConfig.include ?? []).map((input) => resolve(projectRoot, input));
+  if (!rawInputs.length) {
+    console.error("m68k-lint: no input files, directories, or globs (and config has no include patterns)\n");
+    console.error(usage());
+    return 2;
+  }
+
+  const extensions = options.extensions ?? projectConfig.extensions ?? defaultAssemblyExtensions;
+  const ignorePatterns = [
+    "node_modules/**",
+    ".git/**",
+    ...(projectConfig.ignores ?? projectConfig.ignorePatterns ?? []),
+    ...options.ignorePatterns,
+  ];
+
+  let inputFiles: string[];
+  try {
+    inputFiles = await discoverFiles(rawInputs, { cwd: projectRoot, extensions, ignorePatterns });
+  } catch (error) {
+    console.error(`m68k-lint: ${error instanceof Error ? error.message : String(error)}`);
+    return 2;
+  }
+  if (!inputFiles.length) {
+    console.error(`m68k-lint: no matching assembly files (extensions: ${extensions.join(", ")})`);
+    return 2;
+  }
+
+  const config = buildConfig(options, projectConfig);
+
+  if (options.fixInteractive) {
+    return runInteractiveFixes(inputFiles, config, { color: options.color, projectConfigPath, projectRoot });
+  }
+
+  const projectIndex =
+    config.projectSymbols === false
+      ? undefined
+      : await buildProjectIndex(
+          projectConfigPath ? projectRoot : inputRoot(rawInputs, projectRoot),
+          ignorePatterns,
+          extensions,
+        );
+
+  const results: LintResult[] = [];
+  let ioFailed = false;
+  for (const file of inputFiles) {
+    try {
+      results.push(await lintOne(file, options, config, projectIndex));
+    } catch (error) {
+      ioFailed = true;
+      const message = error instanceof Error ? error.message : String(error);
+      if (options.format === "json") results.push({ path: file, ioError: message });
+      else console.error(`${file}: ${paint(options.color, 31, "error")}: ${message}`);
+    }
+  }
+
+  if (options.format === "json") {
+    console.log(
+      JSON.stringify(
+        {
+          version: VERSION,
+          configFile: projectConfigPath,
+          processors: config.processors,
+          platform: config.platform,
+          goal: config.goal,
+          files: results,
+        },
+        null,
+        2,
+      ),
+    );
+  } else {
+    reportPretty(results, options);
+  }
+
+  const allDiagnostics = results.flatMap((r) => ("diagnostics" in r ? r.diagnostics : []));
+  // A file this parser cannot read is not a lint failure. The assembler decides
+  // what is valid syntax, and its grammar is the narrower one.
+  return ioFailed || failsThreshold(allDiagnostics, options.failOn) ? 1 : 0;
+}

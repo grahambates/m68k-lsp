@@ -74,7 +74,6 @@ explicit file paths are always linted whatever their suffix.
 | `--fail-on <severity>`                   | Exit 1 at this severity or higher, default `error`             |
 | `--init`                                 | Create a project config file interactively                     |
 | `--list-rules`                           | List built-in rules and exit                                   |
-| `--asp68k-coverage`                      | Show tracked ASP68K table coverage and exit                    |
 | `--color` / `--no-color`                 | Force or disable ANSI colours; default TTY only                |
 | `-h`, `--help` / `-v`, `--version`       | Show help or version                                           |
 
@@ -480,18 +479,17 @@ MOVE preserves X and the return escapes analysis.
 Rule IDs are descriptive rather than source-named; provenance lives in rule
 metadata.
 
-Each corpus is tracked separately so overlapping, corrected or disputed rules can
-be reconciled explicitly rather than silently merged. Sources are audited, not
-trusted: rows have been rejected for computing the wrong value, for using
-encodings that do not exist, and for claiming savings that measurement disproves.
+Each corpus was audited rather than trusted: rows have been rejected for
+computing the wrong value, for using encodings that do not exist, and for
+claiming savings that measurement disproves.
 
-- **ASP68K** — the first corpus. `m68k-lint --asp68k-coverage` reports the
-  machine-readable manifest; every transformation row is classified as
-  implemented, partial, deferred or rejected.
-- **Flamewing's M68000 peephole list** — classified in
-  `src/coverage-flamewing.ts`.
-- **vasm, 68000 Tricks and Traps, EAB discussion** — each reviewed row accepted
-  or rejected before adoption.
+- **ASP68K** — the first corpus.
+- **Flamewing's M68000 peephole list**
+- **vasm, 68000 Tricks and Traps, EAB discussion**
+
+Which corpus a rule came from is recorded in its `docs.source` metadata and
+listed in [docs/rules.md](docs/rules.md). The per-corpus review write-ups are
+working notes rather than shipped documentation.
 
 `docs/` holds the documentation shipped with the package. The audit write-ups,
 source reviews, impact-measurement methodology and rule roadmap behind the above

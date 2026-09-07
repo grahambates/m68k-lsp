@@ -545,17 +545,6 @@ describe("v0.9 local peepholes", () => {
   });
 });
 
-describe("ASP68K coverage manifest", () => {
-  test("every implemented manifest rule exists in the default registry", async () => {
-    const { asp68kCoverage } = await import("../coverage-asp68k.js");
-    const { defaultRules } = await import("../rules/index.js");
-    const ids = new Set(defaultRules.map((r) => r.meta.id));
-    for (const entry of asp68kCoverage) {
-      if (entry.status === "implemented" && entry.rule) expect(ids.has(entry.rule)).toBe(true);
-    }
-  });
-});
-
 describe("register analysis", () => {
   test("tracks a known-zero data register into a CLR optimisation", () => {
     const source = ["moveq #0,d7", "clr.l -(a0)", "rts"].join("\n");

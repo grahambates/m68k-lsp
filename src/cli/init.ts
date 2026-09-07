@@ -1,7 +1,8 @@
-import { readdir } from "node:fs/promises";
-import { join } from "node:path";
+import { readdir, readFile, writeFile } from "node:fs/promises";
+import { join, resolve } from "node:path";
 import type { OptimizationGoal, Platform, Processor } from "../core/config.js";
 import { defaultAssemblyExtensions } from "./file-discovery.js";
+import { paint } from "./format.js";
 
 export const initConfigFileName = "m68k-lint.json";
 
@@ -161,4 +162,58 @@ export function terminalPrompt(rl: { question: (query: string) => Promise<string
       return /^y(es)?$/i.test(answer);
     },
   };
+}
+
+/**
+ * Ask the questions and write the config file.
+ *
+ * Lives here with the answers it collects rather than in the entry point, and
+ * returns an exit code instead of exiting, so the caller decides what a
+ * cancelled run means.
+ */
+export async function runInit(color: boolean): Promise<number> {
+  if (!process.stdin.isTTY) {
+    console.error("m68k-lint: --init needs an interactive terminal. Write m68k-lint.json by hand instead;");
+    console.error("its schema is at node_modules/m68k-lint/m68k-lint.schema.json.");
+    return 2;
+  }
+
+  const target = resolve(process.cwd(), initConfigFileName);
+  const { createInterface } = await import("node:readline/promises");
+  const rl = createInterface({ input: process.stdin, output: process.stdout });
+  try {
+    let existing = false;
+    try {
+      await readFile(target, "utf8");
+      existing = true;
+    } catch {
+      // No config yet, which is the normal case.
+    }
+
+    const prompt = terminalPrompt(rl);
+    if (existing && !(await prompt.confirm(`${initConfigFileName} already exists. Overwrite?`, false))) {
+      console.log("Cancelled; nothing written.");
+      return 0;
+    }
+
+    const answers = await collectInitAnswers(prompt, await detectSourceGlobs(process.cwd()));
+    answers.processors = validateProcessors(answers.processors);
+    answers.ignores = normalizeIgnoreGlobs(answers.ignores);
+
+    const contents = renderInitConfig(answers);
+    console.log(`\n${contents}`);
+    if (!(await prompt.confirm(`Write ${initConfigFileName}?`, true))) {
+      console.log("Cancelled; nothing written.");
+      return 0;
+    }
+
+    await writeFile(target, contents, "utf8");
+    console.log(`${paint(color, 32, "Created")} ${initConfigFileName} (${describeInitConfig(answers)})`);
+    return 0;
+  } catch (error) {
+    console.error(`m68k-lint: ${error instanceof Error ? error.message : String(error)}`);
+    return 2;
+  } finally {
+    rl.close();
+  }
 }

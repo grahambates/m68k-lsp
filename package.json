@@ -46,8 +46,8 @@
   ],
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
-    "test": "jest",
-    "test:coverage": "jest --coverage",
+    "test": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js",
+    "test:coverage": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js --coverage",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
@@ -82,12 +82,7 @@
       "^.+\\.tsx?$": [
         "ts-jest",
         {
-          "useESM": true,
-          "diagnostics": {
-            "ignoreCodes": [
-              151002
-            ]
-          }
+          "useESM": true
         }
       ]
     },
@@ -107,10 +102,10 @@
     ],
     "coverageThreshold": {
       "global": {
-        "statements": 75,
-        "branches": 68,
-        "functions": 65,
-        "lines": 80
+        "statements": 84,
+        "branches": 79,
+        "functions": 89,
+        "lines": 89
       }
     }
   },

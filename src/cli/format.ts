@@ -1,5 +1,6 @@
 import { parseFile } from "m68k-parser";
-import type { OptimizationImpact } from "../core/diagnostic.js";
+import type { Applicability, Diagnostic, OptimizationImpact, Severity } from "../core/diagnostic.js";
+import type { SourceSpan } from "../core/span.js";
 
 export function paint(enabled: boolean, code: number, text: string): string {
   return enabled ? `\u001b[${code}m${text}\u001b[0m` : text;
@@ -149,4 +150,94 @@ export function highlightAsm(text: string, color: boolean): string {
 function gap(text: string, afterMnemonic: boolean, color: boolean): string {
   if (!afterMnemonic || !text.trim()) return text;
   return text.replace(/\S+/g, (match) => paint(color, COLORS.punctuation, match));
+}
+
+/** The severity word, coloured the way the report colours that severity elsewhere. */
+export function severityLabel(severity: Severity, color: boolean): string {
+  const code = severity === "error" ? 31 : severity === "warning" ? 33 : severity === "suggestion" ? 36 : 90;
+  return paint(color, code, severity);
+}
+
+/**
+ * The source a finding covers.
+ *
+ * Every line of the match is shown, because a match is a run of instructions:
+ * BSR followed by RTS is one finding about two lines, and drawing only the
+ * first hid what the suggestion was going to replace.
+ *
+ * There is no caret. Rules point at a mnemonic -- all but one of them -- so an
+ * underline never said more than "this instruction", which the line itself
+ * already says, and under a multi-line match it marked one line of several as
+ * though the others were context.
+ */
+export function sourceContext(source: string, span: SourceSpan | undefined, color: boolean): string[] {
+  if (!span) return [];
+  const lines = source.replace(/\r\n/g, "\n").replace(/\r/g, "\n").split("\n");
+  const text: string[] = [];
+  for (let line = span.startLine; line <= span.endLine; line++) {
+    const content = lines[line - 1];
+    if (content === undefined) continue;
+    text.push(highlightAsm(content, color));
+  }
+  return text;
+}
+
+export function formatApplicability(applicability: Applicability, color: boolean): string {
+  const colors = {
+    safe: 32,
+    conditional: 33,
+    manual: 34,
+  };
+  return paint(color, colors[applicability], applicability);
+}
+
+/** One finding, as the pretty reporter prints it: location, header, source, action, notes. */
+export function formatDiagnostic(file: string, source: string, diagnostic: Diagnostic, color: boolean): string {
+  const line = diagnostic.loc.line ?? 1;
+  const col = diagnostic.loc.start + 1;
+  const location = paint(color, 34, `${file}:${line}:${col}`);
+  const header = `${severityLabel(diagnostic.severity, color)}  ${diagnostic.message}  ${paint(color, 90, `[${diagnostic.ruleId}]`)}`;
+  const lines = [location, header, ...sourceContext(source, diagnostic.span, color)];
+  if (diagnostic.suggestion) {
+    const replacement = diagnostic.suggestion.replacement;
+    const applicability = formatApplicability(diagnostic.suggestion.applicability, color);
+    lines.push(`${paint(color, 90, "action:")} ${diagnostic.suggestion.description} (${applicability})`);
+    if (replacement) {
+      lines.push(...replacement.split("\n").map((text) => highlightAsm(text, color)));
+    }
+    const impact = diagnostic.suggestion.impact;
+    if (impact) {
+      const summary = formatImpact(impact, color);
+      if (summary) lines.push(summary);
+    }
+  }
+  const notes = diagnostic.notes ?? [];
+  if (notes.length) {
+    lines.push(`${paint(color, 90, "notes:")}`, ...notes.map((n) => " - " + n.message));
+  }
+  return lines.join("\n");
+}
+
+/** Measured outcomes grouped by rule, worst first, for `--impact-summary`. */
+export function formatImpactSummary(diagnostics: readonly Diagnostic[]): string | undefined {
+  const byRule = new Map<string, Record<"improvement" | "tradeoff" | "neutral" | "regression", number>>();
+  for (const d of diagnostics) {
+    const assessment = d.suggestion?.impact?.assessment;
+    if (!assessment) continue;
+    const counts = byRule.get(d.ruleId) ?? { improvement: 0, tradeoff: 0, neutral: 0, regression: 0 };
+    counts[assessment]++;
+    byRule.set(d.ruleId, counts);
+  }
+  if (!byRule.size) return undefined;
+
+  const rank = (counts: Record<string, number>) =>
+    counts.regression * 1000 + counts.tradeoff * 100 + counts.neutral * 10 + counts.improvement;
+  const rows = [...byRule.entries()].sort((a, b) => rank(b[1]) - rank(a[1]) || a[0].localeCompare(b[0]));
+  const lines = ["68000 impact summary by rule:", "assessment\trule\tcount"];
+  for (const [rule, counts] of rows) {
+    for (const assessment of ["regression", "tradeoff", "neutral", "improvement"] as const) {
+      if (counts[assessment]) lines.push(`${assessment}\t${rule}\t${counts[assessment]}`);
+    }
+  }
+  return lines.join("\n");
 }
