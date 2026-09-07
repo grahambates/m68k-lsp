@@ -61,7 +61,7 @@
     "prepublishOnly": "npm run typecheck && npm run lint && npm test && npm run build && npm run audit:impact"
   },
   "dependencies": {
-    "68kcounter": "^3.2.1",
+    "68kcounter": "^4.0.0",
     "m68k-parser": "^1.2.1"
   },
   "devDependencies": {
