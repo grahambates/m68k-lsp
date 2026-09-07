@@ -1,4 +1,4 @@
-import { copyFile, mkdir } from "node:fs/promises";
+import { copyFile, mkdir, rm } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import * as esbuild from "esbuild";
@@ -58,6 +58,14 @@ const client = {
   // Supplied by the extension host, never bundled.
   external: ["vscode"],
 };
+
+// A minified build leaves the previous run's .map behind, which is stale the
+// moment it is orphaned. Clear both out directories rather than layer builds.
+await Promise.all(
+  [join(root, "packages/server/out"), join(root, "packages/client/out")].map((dir) =>
+    rm(dir, { recursive: true, force: true }),
+  ),
+);
 
 if (args.has("--watch")) {
   const contexts = await Promise.all([esbuild.context(server), esbuild.context(client)]);

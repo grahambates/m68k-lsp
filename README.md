@@ -90,6 +90,11 @@ npm run lint
 npm run package      # build a .vsix
 ```
 
+`vsce` has to run inside `packages/client`; from the repo root it reads the workspace manifest
+and fails with `Manifest missing field: engines.vscode`. `npm run package` handles that, and a
+`vscode:prepublish` hook rebuilds minified first, so a `.vsix` cannot pick up the unminified
+bundle that `npm test` leaves behind.
+
 ### Tests
 
 `packages/server/test` spawns the built server as a separate process and speaks LSP to it over

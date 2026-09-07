@@ -25,7 +25,7 @@
     "test": "npm run build:dev && node --test packages/server/test/*.test.mjs",
     "lint": "eslint .",
     "format": "prettier --write .",
-    "package": "npm run build && cd packages/client && npx @vscode/vsce package --no-dependencies"
+    "package": "npm run package --workspace packages/client"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

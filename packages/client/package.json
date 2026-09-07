@@ -28,6 +28,11 @@
     "vscode": "^1.85.0"
   },
   "main": "./out/extension.js",
+  "scripts": {
+    "build": "node ../../scripts/build.mjs --minify",
+    "vscode:prepublish": "npm run build",
+    "package": "vsce package --no-dependencies"
+  },
   "activationEvents": [
     "onLanguage:m68k",
     "onLanguage:vasmmot",
