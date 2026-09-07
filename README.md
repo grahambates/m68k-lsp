@@ -31,7 +31,7 @@ highlighted.
 ## Install
 
 ```sh
-npm install --save-dev m68k-lint
+npm install -g m68k-lint
 ```
 
 Requires Node 20 or newer.
