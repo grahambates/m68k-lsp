@@ -10,7 +10,7 @@ enabled explicitly, or the preset that turns it on. Override any of them with
 configuration.
 
 **Source** records historical provenance. Rule IDs are deliberately descriptive
-rather than source-named; see `docs/rule-id-migrations.md`.
+rather than source-named.
 
 ## correctness (3)
 

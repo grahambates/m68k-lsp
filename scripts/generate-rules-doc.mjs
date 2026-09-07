@@ -43,7 +43,7 @@ const lines = [
   "configuration.",
   "",
   "**Source** records historical provenance. Rule IDs are deliberately descriptive",
-  "rather than source-named; see `docs/rule-id-migrations.md`.",
+  "rather than source-named.",
   "",
 ];
 

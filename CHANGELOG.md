@@ -484,7 +484,7 @@ previously lived in `README.md`.
   the identity pairs with `ADD #m`, not with the next power of two: `neg` then
   `add #8` of 3 is 5, where `eor #7` of 3 is 4. The rule matched the power of
   two and emitted the mask, producing a result one too low. It now matches the
-  mask. See [`docs/rule-id-migrations.md`](docs/rule-id-migrations.md).
+  mask. See `notes/rule-id-migrations.md`.
 
 ### Changed
 
@@ -495,7 +495,7 @@ previously lived in `README.md`.
   fault. Relying on the CCR surviving across address arithmetic is also a
   deliberate technique. Its sibling `condition-after-preserved-ccr` already
   covers the provable case, so the less certain rule was carrying the stronger
-  category. See [`docs/rule-id-migrations.md`](docs/rule-id-migrations.md).
+  category. See `notes/rule-id-migrations.md`.
 - Rule files are laid out by category then platform, mirroring the rule ID:
   `correctness/amiga-tas-unsupported` now lives in
   `correctness/amiga/tas-unsupported.ts` rather than under a separate
@@ -798,7 +798,7 @@ First general 68k footgun pack:
 ## 0.40.0
 
 - Public rule IDs are source-neutral and descriptive; provenance moved to rule
-  metadata. See [`docs/rule-id-migrations.md`](docs/rule-id-migrations.md).
+  metadata. See `notes/rule-id-migrations.md`.
 - Added `--platform generic|amiga`.
 - Amiga-only correctness rules for unsupported `TAS` and custom-chip register
   access direction.

@@ -3,24 +3,30 @@
 Extensible static analysis and linting for Motorola 68k assembly, built on
 [`m68k-parser`](https://github.com/grahambates/m68k-parser).
 
-124 built-in rules across correctness, suspicious-construct, optimization and
+132 built-in rules across correctness, suspicious-construct, optimization and
 style checks, backed by condition-code liveness, register liveness and constant
 propagation. Optimization suggestions on `mc68000` carry **exact** measured
 size and cycle deltas from [`68kcounter`](https://github.com/grahambates/68kcounter),
 so a claimed improvement is a measured one.
 
 ```
-game.s:42:9  suggestion  Immediate 42 fits the MOVEQ signed 8-bit range  [optimization/prefer-moveq]
-        move.l #42,d3
-        ^~~~
-  fix: Use moveq #42,d3 (safe)
-  replace with: moveq #42,d3
-  saves: 4 bytes, 8(2,0) cycles
+game.s:42:2
+suggestion  Immediate 42 fits the MOVEQ signed 8-bit range  [optimization/prefer-moveq]
+	move.l	#42,d3
+action: Use moveq #42,d3 (safe)
+	moveq	#42,d3
+saves: 4 bytes, 8(2,0) cycles, (overall improvement)
 ```
+
+A finding names the lines it covers rather than a character range, since a match
+is a run of instructions and never a substring. The replacement is shown as it
+would be written, carrying the indentation and operand column of what it
+replaces.
 
 Measurements read as savings in the `cycles(reads,writes)` shape the 68k manuals
 use, so bigger is better; a cost shows as a negative saving. With colour, savings
-are green and costs red.
+are green, costs red, and both the matched source and the replacement are syntax
+highlighted.
 
 ## Install
 
@@ -49,7 +55,7 @@ explicit file paths are always linted whatever their suffix.
 | `--ext <ext,...>`                        | Extensions for directory/glob discovery (default `.s,.asm,.i`) |
 | `--ignore-pattern <glob>`                | Ignore matching files (repeatable)                             |
 | `--cpu <cpu,...>`                        | Target processor(s), default `mc68000`                         |
-| `--platform <generic\|amiga>`            | Target platform, default `generic`                             |
+| `--platform <generic\|amiga\|atari>`     | Target platform, default `generic`                             |
 | `--preset <name,...>`                    | Enable rule presets: `recommended`, `style`                    |
 | `--goal <balanced\|speed\|size>`         | Filter known optimization trade-offs                           |
 | `--impact` / `--no-impact`               | Enable/disable exact 68000 measurement                         |
@@ -59,15 +65,23 @@ explicit file paths are always linted whatever their suffix.
 | `--only <category,...>`                  | Run only selected rule categories                              |
 | `--disable-category <category>`          | Disable a category (repeatable)                                |
 | `--rule <id>=<setting>`                  | Override a rule: `off\|error\|warning\|suggestion\|info`       |
+| `--fix`                                  | Apply safe suggestions and rewrite the files                   |
+| `--fix-conditional`                      | Also apply conditional ones; read their notes first            |
+| `--fix-annotate`                         | Keep the original, commented out, above an opaque rewrite      |
+| `-i`, `--fix-interactive`                | Review each finding and choose what to do with it              |
+| `--fix-dry-run`                          | Report what `--fix` would change, writing nothing              |
 | `--format <pretty\|json>`                | Output format, default `pretty`                                |
 | `--fail-on <severity>`                   | Exit 1 at this severity or higher, default `error`             |
+| `--init`                                 | Create a project config file interactively                     |
 | `--list-rules`                           | List built-in rules and exit                                   |
 | `--asp68k-coverage`                      | Show tracked ASP68K table coverage and exit                    |
-| `--no-color`                             | Disable ANSI colours                                           |
+| `--color` / `--no-color`                 | Force or disable ANSI colours; default TTY only                |
+| `-h`, `--help` / `-v`, `--version`       | Show help or version                                           |
 
-Parser errors and `error`-severity diagnostics exit 1; warnings and suggestions
-are printed but do not fail the command. `--fail-on` makes CI stricter. Usage
-and configuration errors exit 2.
+`error`-severity diagnostics exit 1; warnings and suggestions are printed but do
+not fail the command. `--fail-on` makes CI stricter. Usage and configuration
+errors exit 2. A file this parser cannot fully read is reported as such but does
+not fail the run — see [Syntax errors](#syntax-errors).
 
 ## Library
 
@@ -184,7 +198,8 @@ Any diagnostic that depended on a value from another file names the file it came
 from:
 
 ```
-  note: Resolved from outside this file: SHIFT_COUNT = 32 (from include/hardware.i).
+notes:
+ - Resolved from outside this file: SHIFT_COUNT = 32 (from include/hardware.i).
 ```
 
 Set `"projectSymbols": false` to analyse each file strictly on its own.
@@ -197,8 +212,8 @@ See [`docs/rules.md`](docs/rules.md) for the full generated table, or run
 | Category       | Count | Purpose                                                     |
 | -------------- | ----- | ----------------------------------------------------------- |
 | `correctness`  | 3     | Valid assembly with a provable semantic or runtime problem  |
-| `suspicious`   | 8     | Valid code that may be intentional but is easy to misread   |
-| `optimization` | 106   | Smaller or faster equivalents, gated on target and liveness |
+| `suspicious`   | 12    | Valid code that may be intentional but is easy to misread   |
+| `optimization` | 110   | Smaller or faster equivalents, gated on target and liveness |
 | `style`        | 7     | Subjective conventions, opt-in                              |
 
 `severity`, `confidence` and `applicability` are independent. Applicability is
@@ -308,6 +323,14 @@ which should never happen and is cheap insurance if it does.
 
 ## Goals
 
+```sh
+m68k-lint --goal balanced game.s   # default: every valid suggestion, trade-offs included
+m68k-lint --goal speed game.s      # suppress suggestions known to be slower
+m68k-lint --goal size game.s       # suppress known code-size increases
+```
+
+Unknown performance is never silently treated as a regression.
+
 `--goal speed` and `--goal size` filter optimization suggestions on measured
 impact: a rewrite that costs bytes is not offered in a size-focused run, and one
 that costs cycles is not offered in a speed-focused run. A goal excludes what
@@ -329,23 +352,31 @@ per suggestion: cost is a property of the instance rather than the rule, and
 costs bytes. The declaration is checked against the audit, so a rule cannot
 claim to serve a goal the measurements contradict.
 
+## Scope
+
 The linter deliberately does not duplicate assembler validation. Illegal
 instruction, size and addressing-mode combinations belong to the assembler unless
 the linter can add materially better semantic or contextual information.
 
+### Syntax errors
+
 Syntax errors are not reported for the same reason, and because this parser is
 deliberately more permissive than any one assembler: a line it cannot read may
 be perfectly valid to yours. A file that does not fully parse is noted once, so
-an empty result is not mistaken for a verified one, and does not fail the run.
+an empty result is not mistaken for a verified one, and does not fail the run:
 
-### Presets
+```
+game.s: 3 lines could not be parsed; findings for this file may be incomplete.
+```
+
+## Presets
 
 `recommended` is the default baseline. `style` enables the subjective convention
 rules. A handful of alias-preference rules are individually opt-in rather than
 part of any preset, because they conflict in pairs — do not enable both sides of
 `prefer-dbra` / `prefer-dbf` at once. Explicit rule settings beat presets.
 
-### Platform modes
+## Platform modes
 
 `--platform` adds platform-specific correctness and footgun rules on top of
 generic 68k linting: `amiga`, `atari`, or `generic` (the default).
@@ -385,16 +416,6 @@ so the discrepancy is auditable. `--impact-summary` groups measured outcomes by
 rule, regressions first — useful for finding historical rules whose stated
 benefit does not hold for the source forms a project actually contains.
 
-### Optimization goals
-
-```sh
-m68k-lint --goal balanced game.s   # default: show valid suggestions regardless of trade-off
-m68k-lint --goal speed game.s      # suppress suggestions known to be slower
-m68k-lint --goal size game.s       # suppress known code-size increases
-```
-
-Unknown performance is never silently treated as a regression.
-
 ### Rule impact audit
 
 ```sh
@@ -426,8 +447,13 @@ inability to prove a fact yields `unknown`, never an optimistic assumption.
 - **Condition codes** — `X`, `N`, `Z`, `V` and `C` modelled individually, with
   liveness and reaching definitions.
 - **Registers** — per-register liveness, definite constants, constant and copy
-  propagation, sub-register (upper/lower word) use tracking, and dead
-  data-register discovery for scratch-register optimisations.
+  propagation, bit-level use tracking so a rewrite that only differs in bits
+  nothing reads is still provably safe, and dead data-register discovery for
+  scratch-register optimisations.
+- **Blocks** — macro bodies, `REPT` and the arms of an `IF`/`ELSE` are separate
+  regions rather than straight-line code, so a sequence is never matched across
+  a boundary the assembler may not lay out that way, and a macro invocation is
+  treated as code whose effects are unknown.
 
 Two conservative cases worth knowing, because they surprise people:
 
@@ -452,8 +478,7 @@ MOVE preserves X and the return escapes analysis.
 ## Provenance
 
 Rule IDs are descriptive rather than source-named; provenance lives in rule
-metadata. See [`docs/rule-id-migrations.md`](docs/rule-id-migrations.md) if you
-have overrides using pre-0.40 IDs.
+metadata.
 
 Each corpus is tracked separately so overlapping, corrected or disputed rules can
 be reconciled explicitly rather than silently merged. Sources are audited, not
@@ -487,6 +512,12 @@ npm run docs:rules    # regenerate docs/rules.md
 
 CI runs all of these. `npm run lint:fix` and `npm run format:check` are also
 available.
+
+`npm run verify:semantics` is separate and not part of CI. It runs suggested
+replacements and the code they replace through an emulator and compares
+registers, memory and CCR, which catches a rewrite that is wrong rather than
+merely unprofitable. It is sharded across child processes because the
+interpreter it uses becomes unreliable after a few hundred instantiations.
 
 Rule fixtures in `src/test` are written in compact column-zero form and indented
 by the helpers in `src/test/helpers.ts`, which share one indent rule with the
