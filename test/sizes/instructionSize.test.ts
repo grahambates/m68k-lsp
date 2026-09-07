@@ -31,6 +31,11 @@ describe("instructionSize", () => {
     expect(result.bytes).toEqual(4);
   });
 
+  test("bset long immediate", () => {
+    const [result] = parse(" bset.l #1,d0");
+    expect(result.bytes).toEqual(4);
+  });
+
   test("Bcc short", () => {
     const [result] = parse(" bra.s #foo");
     expect(result.bytes).toEqual(2);

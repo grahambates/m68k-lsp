@@ -8,7 +8,12 @@ import {
 } from "../syntax";
 import { InstructionStatement } from "../parse/nodes";
 
-const bitOps: Mnemonic[] = [Mnemonics.BCHG, Mnemonics.BCLR, Mnemonics.BTST];
+const bitOps: Mnemonic[] = [
+  Mnemonics.BCHG,
+  Mnemonics.BCLR,
+  Mnemonics.BSET,
+  Mnemonics.BTST,
+];
 const branchOps: Mnemonic[] = [
   Mnemonics.BRA,
   Mnemonics.BSR,
