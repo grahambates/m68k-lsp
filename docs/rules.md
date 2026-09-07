@@ -147,7 +147,7 @@ Smaller or faster equivalents, gated on CPU target and proven flag/register live
 | `optimization/push-immediate-pea` | suggestion | Use PEA for a signed-16-bit immediate longword push | ASP68K |
 | `optimization/redundant-lea` | suggestion | Remove LEA (An),An when source and destination are identical | ASP68K |
 | `optimization/redundant-tst` | suggestion | Remove a TST when the previous instruction already established the required flags | — |
-| `optimization/redundant-zero-displacement` | suggestion | Omit a zero address-register displacement | ASP68K |
+| `optimization/redundant-zero-displacement` | preset: style | Omit a zero address-register displacement | ASP68K |
 | `optimization/roxl-to-addx` | suggestion | Use ADDX for small rotate-through-extend-left counts on 68000 | Flamewing M68000 Peephole Optimizations |
 | `optimization/shift-to-clear` | suggestion | Replace shifts that necessarily clear the operand | ASP68K |
 | `optimization/shift-two-adds` | suggestion | Consider two ADDs for a two-bit byte/word left shift | ASP68K |

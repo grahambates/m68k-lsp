@@ -7,9 +7,14 @@ export const redundantZeroDisplacement: Rule = {
     id: "optimization/redundant-zero-displacement",
     category: "optimization",
     defaultSeverity: "suggestion",
+    enabledByDefault: false,
+    presets: ["style"],
     description: "Omit a zero address-register displacement",
     tags: ["asp68k", "addressing"],
-    docs: { source: "ASP68K" },
+    docs: {
+      source: "ASP68K",
+      note: "Off by default: vasm and other optimising assemblers encode 0(a0) and (a0) identically, so the measured saving is in the written form rather than the output. What is left is a preference about how the source reads, and a displacement of zero is sometimes written on purpose to match the non-zero cases around it.",
+    },
   },
   checkLine(ctx, line) {
     for (let i = 0; i < (line.operands?.length ?? 0); i++) {
@@ -35,7 +40,7 @@ export const redundantZeroDisplacement: Rule = {
         notes: [
           {
             message:
-              "Both spellings address the same location; the zero displacement costs an extension word for nothing.",
+              "Both spellings address the same location. An assembler that optimises addressing modes, vasm among them, emits the same encoding for either, so the bytes measured here are those of the written form rather than of the output.",
           },
         ],
         data: { operandIndex: i },

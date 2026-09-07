@@ -443,23 +443,38 @@ describe("v0.9 local peepholes", () => {
     expect(ids("cmp.l #0,d0")).toContain("optimization/prefer-tst-zero");
   });
 
+  // Off by default, since an optimising assembler encodes both spellings the
+  // same way; asked for here so the rewrite itself stays covered.
+  const withZeroDisplacement = { processors: ["mc68000" as const], presets: ["style" as const] };
+
   test("removes zero address-register displacements", () => {
     // Replacements are line-scoped, so this rewrites the operand within the whole
     // instruction rather than handing back a bare operand fragment.
-    const diagnostic = lint("move.l 0(a0),d0").find((d) => d.ruleId === "optimization/redundant-zero-displacement");
+    const diagnostic = lint("move.l 0(a0),d0", withZeroDisplacement).find(
+      (d) => d.ruleId === "optimization/redundant-zero-displacement",
+    );
     expect(diagnostic?.suggestion?.replacement).toBe("\tmove.l (a0),d0");
     expect(diagnostic?.message).toContain("(a0)");
   });
 
-  test("measures the zero-displacement rewrite as a real 68000 saving", () => {
-    const diagnostic = lint("move.l 0(a0),d0").find((d) => d.ruleId === "optimization/redundant-zero-displacement");
-    // A bare operand fragment is unmeasurable, which is what previously hid this.
+  // The measurement is of the written form. vasm emits the same encoding for
+  // either spelling, so this is what the source costs, not the output.
+  test("measures the zero-displacement rewrite against the written form", () => {
+    const diagnostic = lint("move.l 0(a0),d0", withZeroDisplacement).find(
+      (d) => d.ruleId === "optimization/redundant-zero-displacement",
+    );
     expect(diagnostic?.suggestion?.impact?.sizeBytes?.delta).toBe(-2);
     expect(diagnostic?.suggestion?.impact?.assessment).toBe("improvement");
   });
 
+  test("is off unless asked for", () => {
+    expect(ids("move.l 0(a0),d0")).not.toContain("optimization/redundant-zero-displacement");
+  });
+
   test("rewrites only the matched operand, leaving the rest of the line alone", () => {
-    const diagnostic = lint("move.l 0(a0),0(a1)").find((d) => d.ruleId === "optimization/redundant-zero-displacement");
+    const diagnostic = lint("move.l 0(a0),0(a1)", withZeroDisplacement).find(
+      (d) => d.ruleId === "optimization/redundant-zero-displacement",
+    );
     expect(diagnostic?.suggestion?.replacement).toBe("\tmove.l (a0),0(a1)");
   });
 

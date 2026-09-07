@@ -5,6 +5,15 @@ previously lived in `README.md`.
 
 ## Unreleased
 
+### Changed
+
+- `optimization/redundant-zero-displacement` is off by default, available under
+  the `style` preset. vasm and other optimising assemblers encode `0(a0)` and
+  `(a0)` identically, so the measured saving is in the written form rather than
+  the output. What is left is a preference about how the source reads, and a
+  zero displacement is sometimes written deliberately to line up with the
+  non-zero cases around it.
+
 ### Fixed
 
 - DIVU.W and DIVS.W are recorded as reading a 32-bit dividend. The `.w` names
