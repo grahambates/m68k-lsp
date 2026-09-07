@@ -6,6 +6,7 @@ import { dirname, relative, resolve, sep } from "node:path";
 import { parseFile } from "m68k-parser";
 import { lintParsedFile } from "../core/lint.js";
 import { applyFixes, type FixResult } from "../core/fix.js";
+import { runInteractive, type InteractiveResult } from "../core/interactive.js";
 import type {
   Applicability,
   Diagnostic,
@@ -84,10 +85,12 @@ interface CliOptions {
   fixDryRun: boolean;
   /** Keep the original, commented out, above a rewrite that is hard to read back. */
   fixAnnotate: boolean;
+  /** Review each finding and choose what to do with it. */
+  fixInteractive: boolean;
 }
 
 function usage(): string {
-  return `m68k-lint ${VERSION}\n\nUsage:\n  m68k-lint [options] <file|directory|glob ...>\n\nOptions:\n  --config <path>               Use a specific JSON config file\n  --no-config                   Disable config-file discovery\n  --ext <ext[,ext...]>          Extensions for directory/glob discovery; default: .s,.asm,.i\n  --ignore-pattern <glob>       Ignore matching files (repeatable)\n  --cpu <cpu[,cpu...]>          Target processor(s), default: mc68000\n  --platform <name>             generic, amiga, atari; default: generic\n  --preset <name[,name...]>     Enable rule preset(s): recommended, style\n  --goal <balanced|speed|size>  Filter known optimization trade-offs, default: balanced\n  --impact                      Enable exact 68000 impact measurement\n  --no-impact                   Disable exact 68000 impact measurement\n  --inline-config               Honor m68k-lint comment directives (default)\n  --no-inline-config            Ignore m68k-lint comment directives\n  --impact-summary              Summarize measured outcomes by rule\n  --audit-rule-impact           Run representative 68000 timing audit for every optimization rule\n  --only <category[,category]>  Run only selected rule categories\n  --disable-category <category> Disable a rule category (repeatable)\n  --rule <id>=<setting>         Override a rule: off|error|warning|suggestion|info\n  --fix                         Apply safe suggestions and rewrite the files\n  --fix-conditional             Also apply conditional ones; read their notes first\n  --fix-annotate                Keep the original, commented out, above an opaque rewrite\n  --fix-dry-run                 Report what --fix would change, writing nothing\n  --format <pretty|json>        Output format, default: pretty\n  --fail-on <severity>          Exit 1 at this severity or higher, default: error\n  --init                        Create a project config file interactively\n  --list-rules                  List built-in rules and exit\n  --asp68k-coverage             Show tracked ASP68K table coverage and exit\n  --color / --no-color          Force or disable ANSI colours; default: TTY only\n  -h, --help                    Show this help\n  -v, --version                 Show version\n\nExamples:\n  m68k-lint game.s\n  m68k-lint src/\n  m68k-lint "src/**/*.asm"\n  m68k-lint --ext .s,.asm,.i,.inc src/\n  m68k-lint --platform amiga --cpu mc68000 src/\n  m68k-lint --rule suspicious/nop=warning --fail-on warning game.s\n  m68k-lint --fix src/\n`;
+  return `m68k-lint ${VERSION}\n\nUsage:\n  m68k-lint [options] <file|directory|glob ...>\n\nOptions:\n  --config <path>               Use a specific JSON config file\n  --no-config                   Disable config-file discovery\n  --ext <ext[,ext...]>          Extensions for directory/glob discovery; default: .s,.asm,.i\n  --ignore-pattern <glob>       Ignore matching files (repeatable)\n  --cpu <cpu[,cpu...]>          Target processor(s), default: mc68000\n  --platform <name>             generic, amiga, atari; default: generic\n  --preset <name[,name...]>     Enable rule preset(s): recommended, style\n  --goal <balanced|speed|size>  Filter known optimization trade-offs, default: balanced\n  --impact                      Enable exact 68000 impact measurement\n  --no-impact                   Disable exact 68000 impact measurement\n  --inline-config               Honor m68k-lint comment directives (default)\n  --no-inline-config            Ignore m68k-lint comment directives\n  --impact-summary              Summarize measured outcomes by rule\n  --audit-rule-impact           Run representative 68000 timing audit for every optimization rule\n  --only <category[,category]>  Run only selected rule categories\n  --disable-category <category> Disable a rule category (repeatable)\n  --rule <id>=<setting>         Override a rule: off|error|warning|suggestion|info\n  --fix                         Apply safe suggestions and rewrite the files\n  --fix-conditional             Also apply conditional ones; read their notes first\n  --fix-annotate                Keep the original, commented out, above an opaque rewrite\n  -i, --fix-interactive         Review each finding and choose what to do with it\n  --fix-dry-run                 Report what --fix would change, writing nothing\n  --format <pretty|json>        Output format, default: pretty\n  --fail-on <severity>          Exit 1 at this severity or higher, default: error\n  --init                        Create a project config file interactively\n  --list-rules                  List built-in rules and exit\n  --asp68k-coverage             Show tracked ASP68K table coverage and exit\n  --color / --no-color          Force or disable ANSI colours; default: TTY only\n  -h, --help                    Show this help\n  -v, --version                 Show version\n\nExamples:\n  m68k-lint game.s\n  m68k-lint src/\n  m68k-lint "src/**/*.asm"\n  m68k-lint --ext .s,.asm,.i,.inc src/\n  m68k-lint --platform amiga --cpu mc68000 src/\n  m68k-lint --rule suspicious/nop=warning --fail-on warning game.s\n  m68k-lint --fix src/\n`;
 }
 
 function requireValue(argv: string[], index: number, option: string): string {
@@ -129,6 +132,7 @@ function parseArgs(argv: string[]): CliOptions | "help" | "version" {
     fixConditional: false,
     fixDryRun: false,
     fixAnnotate: false,
+    fixInteractive: false,
   };
 
   for (let i = 0; i < argv.length; i++) {
@@ -166,6 +170,10 @@ function parseArgs(argv: string[]): CliOptions | "help" | "version" {
     if (arg === "--fix-conditional") {
       options.fix = true;
       options.fixConditional = true;
+      continue;
+    }
+    if (arg === "--fix-interactive" || arg === "-i") {
+      options.fixInteractive = true;
       continue;
     }
     if (arg === "--fix-annotate") {
@@ -401,6 +409,43 @@ function formatImpactSummary(diagnostics: Diagnostic[]): string | undefined {
     }
   }
   return lines.join("\n");
+}
+
+
+/**
+ * Review the findings in one file, one at a time.
+ *
+ * Each is shown as it would be reported, followed by what applying it would
+ * do, so the choice is made with the same information the report carries. A
+ * finding with no rewrite can still be acknowledged or ignored: those are the
+ * useful answers to "I have looked at this".
+ */
+async function reviewFile(
+  path: string,
+  source: string,
+  diagnostics: readonly Diagnostic[],
+  ask: (query: string) => Promise<string>,
+  color: boolean,
+): Promise<InteractiveResult> {
+  return runInteractive(source, diagnostics, async (diagnostic) => {
+    console.log(`\n${formatDiagnostic(path, source, diagnostic, color)}`);
+    const fixable = diagnostic.suggestion?.replacement !== undefined;
+    const choices = fixable ? "y/n/a/i/q/?" : "n/a/i/q/?";
+    for (;;) {
+      const answer = (await ask(`  ${fixable ? "apply" : "no rewrite available"} [${choices}] `)).trim().toLowerCase();
+      if (answer === "?" || answer === "h") {
+        if (fixable) console.log("  y apply   n skip   a acknowledge as intentional   i ignore here   q stop");
+        else console.log("  n skip   a acknowledge as intentional   i ignore here   q stop");
+        continue;
+      }
+      if (answer === "q") return "quit";
+      if (answer === "a") return "acknowledge";
+      if (answer === "i") return "ignore";
+      if (answer === "n" || answer === "") return "skip";
+      if (answer === "y" && fixable) return "apply";
+      console.error(`  Expected one of: ${choices}`);
+    }
+  });
 }
 
 async function lintOne(path: string, options: CliOptions, config: LintConfig, external?: ExternalSymbols) {
@@ -687,6 +732,34 @@ async function main(): Promise<number> {
   }
 
   const config = buildConfig(options, projectConfig);
+
+  if (options.fixInteractive) {
+    if (!process.stdin.isTTY) {
+      console.error("m68k-lint: --fix-interactive needs a terminal. Use --fix, or --fix-dry-run to see what it would do.");
+      return 2;
+    }
+    const { createInterface } = await import("node:readline/promises");
+    const rl = createInterface({ input: process.stdin, output: process.stdout });
+    let applied = 0;
+    let suppressed = 0;
+    try {
+      for (const file of inputFiles) {
+        const source = await readFile(file, "utf8");
+        const diagnostics = lintParsedFile(parseFile(source), source, config);
+        if (diagnostics.length === 0) continue;
+        const result = await reviewFile(file, source, diagnostics, (query) => rl.question(query), options.color);
+        if (result.output !== source) await writeFile(file, result.output, "utf8");
+        applied += result.applied.length;
+        suppressed += result.suppressed.length;
+        if (result.quit) break;
+      }
+    } finally {
+      rl.close();
+    }
+    console.log(`\n${applied} applied, ${suppressed} suppressed.`);
+    return 0;
+  }
+
   const projectIndex =
     config.projectSymbols === false
       ? undefined

@@ -1,0 +1,107 @@
+import { runInteractive, type Decision } from "../core/interactive.js";
+import { lintSource } from "../core/lint.js";
+
+/**
+ * Reviewing findings one at a time. The answers are scripted here rather than
+ * typed, which is the point of driving the session through a callback: the
+ * ordering rules below are the fiddly part and want testing without a terminal.
+ *
+ * Questions come in file order, because that is how a person reads. Edits are
+ * made afterwards from the bottom up, because that is the only order in which
+ * line numbers stay valid.
+ */
+const SOURCE = [
+  "start:",
+  "\tmove.l\t#100,d0\t; count",
+  "\tmove.l\t#5,d1",
+  "\tmove.w\td4,d7",
+  "\tmove.l\td7,(a0)",
+  "\trts",
+].join("\n");
+
+const review = async (source: string, answers: Decision[]) => {
+  const diagnostics = lintSource(source, { processors: ["mc68000"] });
+  let i = 0;
+  const asked: string[] = [];
+  const result = await runInteractive(source, diagnostics, (diagnostic) => {
+    asked.push(`${diagnostic.ruleId}@${diagnostic.span?.startLine}`);
+    return Promise.resolve(answers[i++] ?? "skip");
+  });
+  return { ...result, asked };
+};
+
+describe("reviewing findings one at a time", () => {
+  test("asks in file order", async () => {
+    const { asked } = await review(SOURCE, []);
+    expect(asked).toEqual([
+      "optimization/prefer-moveq@2",
+      "optimization/prefer-moveq@3",
+      "suspicious/partial-register-write@4",
+    ]);
+  });
+
+  test("skipping everything leaves the file alone", async () => {
+    const { output, applied, suppressed } = await review(SOURCE, ["skip", "skip", "skip"]);
+    expect(output).toBe(SOURCE);
+    expect(applied).toEqual([]);
+    expect(suppressed).toEqual([]);
+  });
+
+  test("applying rewrites just that finding", async () => {
+    const { output, applied } = await review(SOURCE, ["apply", "skip", "skip"]);
+    expect(output.split("\n")[1]).toBe("\tmoveq\t#100,d0\t; count");
+    expect(output.split("\n")[2]).toBe("\tmove.l\t#5,d1");
+    expect(applied).toHaveLength(1);
+  });
+
+  test("several decisions at once land in the right places", async () => {
+    const { output, applied, suppressed } = await review(SOURCE, ["apply", "acknowledge", "ignore"]);
+    expect(output.split("\n")).toEqual([
+      "start:",
+      "\tmoveq\t#100,d0\t; count",
+      "\t; m68k-lint-disable-next-line optimization/prefer-moveq -- reviewed: intentional",
+      "\tmove.l\t#5,d1",
+      "\t; m68k-lint-disable-next-line suspicious/partial-register-write -- ignored",
+      "\tmove.w\td4,d7",
+      "\tmove.l\td7,(a0)",
+      "\trts",
+    ]);
+    expect(applied).toHaveLength(1);
+    expect(suppressed).toHaveLength(2);
+  });
+
+  // The whole point of a suppression comment is that it silences the finding.
+  test("what it writes actually suppresses on the next run", async () => {
+    const { output } = await review(SOURCE, ["skip", "acknowledge", "ignore"]);
+    const remaining = lintSource(output, { processors: ["mc68000"] }).map((d) => d.ruleId);
+    expect(remaining).toEqual(["optimization/prefer-moveq"]);
+  });
+
+  test("acknowledge and ignore say different things", async () => {
+    const acknowledged = (await review(SOURCE, ["acknowledge"])).output;
+    const ignored = (await review(SOURCE, ["ignore"])).output;
+    expect(acknowledged).toContain("-- reviewed: intentional");
+    expect(ignored).toContain("-- ignored");
+  });
+
+  test("quitting keeps the decisions already made", async () => {
+    const { output, applied, quit } = await review(SOURCE, ["apply", "quit"]);
+    expect(quit).toBe(true);
+    expect(applied).toHaveLength(1);
+    expect(output.split("\n")[1]).toBe("\tmoveq\t#100,d0\t; count");
+    // The finding after the one quit on is untouched.
+    expect(output.split("\n")[2]).toBe("\tmove.l\t#5,d1");
+  });
+
+  test("a finding with no rewrite can still be acknowledged", async () => {
+    const source = "\tmove.w\td4,d7\n\tmove.l\td7,(a0)\n\trts";
+    const { output, suppressed } = await review(source, ["acknowledge"]);
+    expect(suppressed).toHaveLength(1);
+    expect(output.split("\n")[0]).toContain("m68k-lint-disable-next-line suspicious/partial-register-write");
+  });
+
+  test("a directive is indented to match the code it guards", async () => {
+    const { output } = await review("        move.l  #100,d0\n        rts", ["ignore"]);
+    expect(output.split("\n")[0]).toBe("        ; m68k-lint-disable-next-line optimization/prefer-moveq -- ignored");
+  });
+});

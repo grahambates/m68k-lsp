@@ -267,6 +267,25 @@ Two things trigger it, both measurable: the replacement has more lines than what
 it replaces, or it dropped a name that the code no longer mentions. Ordinary
 one-for-one rewrites are left plain.
 
+`-i` / `--fix-interactive` reviews findings one at a time instead, showing each
+as it would be reported and asking what to do:
+
+| key |                                                                 |
+| --- | --------------------------------------------------------------- |
+| `y` | apply the rewrite                                               |
+| `n` | skip, leaving the finding to report again                       |
+| `a` | acknowledge: the code was looked at and is meant to be this way |
+| `i` | ignore: the finding is not wanted here                          |
+| `q` | stop; decisions already made still stand                        |
+
+`a` and `i` both write a `m68k-lint-disable-next-line` directive above the code,
+differing only in the reason recorded. They are the useful answers for a finding
+that has no rewrite, where the question is whether the code is intentional
+rather than how to change it.
+
+Questions come in file order, and edits are made afterwards from the bottom up,
+which is the only order in which line numbers stay valid.
+
 Fixes are applied from the bottom of the file up so earlier line numbers stay
 valid, and overlapping ones are left for the next round rather than dropped.
 Rounds repeat because one rewrite exposes another, up to a limit. If a round

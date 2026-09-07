@@ -5,6 +5,17 @@ previously lived in `README.md`.
 
 ## Unreleased
 
+### Added
+
+- `-i` / `--fix-interactive` reviews findings one at a time, showing each as it
+  would be reported and asking whether to apply it, skip it, acknowledge it as
+  intentional, ignore it, or stop. Acknowledging and ignoring both write a
+  `m68k-lint-disable-next-line` directive above the code and differ in the
+  reason recorded, which is what makes them useful for the findings that have no
+  rewrite: the question there is whether the code is intentional, not how to
+  change it. Questions come in file order; edits are made afterwards from the
+  bottom up.
+
 ### Changed
 
 - `--fix` applies only measured improvements by default. Applicability and
