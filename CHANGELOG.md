@@ -9,11 +9,11 @@ previously lived in `README.md`.
 
 - `optimization/redundant-zero-displacement` is off by default, available under
   the `style` preset. vasm drops the zero displacement under its default
-  optimisations, so for most builds the measured saving is in the written form
-  rather than the output, and a zero displacement is sometimes written
+  optimisations, so for the common case the measured saving is in the written
+  form rather than the output, and a zero displacement is sometimes written
   deliberately to line up with the non-zero cases around it. It is worth
-  enabling if you assemble with optimisations disabled, where the extension word
-  really is emitted.
+  enabling wherever the extension word survives — vasm with optimisations off,
+  or an assembler that does not fold the operand at all.
 
 ### Fixed
 
