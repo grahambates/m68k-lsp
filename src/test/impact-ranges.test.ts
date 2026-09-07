@@ -39,17 +39,15 @@ describe("timing that depends on a proven shift count", () => {
     expect(impact?.assessment).toBe("tradeoff");
   });
 
-  // A conditional branch is a range too, but not because of a count: its
-  // timing depends on whether it is taken. Reporting one path as the
-  // measurement would be worse than reporting nothing.
-  test("a range with no count behind it stays unmeasured", () => {
+  test("an equivalent conditional branch measures the not-taken path", () => {
     const impact = impactOf(
       ["\tbtst #7,d0", "\tbne .x", ".x:", "\tmoveq #0,d7", "\trts"],
       "optimization/btst-sign-branch",
     );
     expect(impact).toBeDefined();
     expect(impact?.sizeBytes?.confidence).toBe("exact");
-    expect(impact?.execution?.cpuCycles).toBeUndefined();
+    expect(impact?.execution?.cpuCycles?.delta).toBe(-6);
+    expect(impact?.execution?.cpuCycles?.confidence).toBe("exact");
   });
 });
 

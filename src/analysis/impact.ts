@@ -16,6 +16,7 @@ interface ImpactRuleMeta {
 
 type CounterTotals = {
   isRange: boolean;
+  min: [number, number, number];
   max: [number, number, number];
   bytes: number;
 };
@@ -206,7 +207,11 @@ function provenCount(diagnostic: Diagnostic): number | undefined {
   return undefined;
 }
 
-function measureSnippet(source: string, knownShiftCount?: number): Measurement | undefined {
+function measureSnippet(
+  source: string,
+  knownShiftCount?: number,
+  branchTiming?: "not-taken",
+): Measurement | undefined {
   try {
     if (!parse68kCounter || !calculateCounterTotals) return undefined;
     const normalized = normalizeCounterSnippet(source);
@@ -219,12 +224,16 @@ function measureSnippet(source: string, knownShiftCount?: number): Measurement |
     // unavailable measurement rather than a miraculous zero-byte encoding.
     if (source.trim() && totals.bytes === 0) return undefined;
 
-    // Conditional branches have min/max timing. The current impact schema is
-    // deliberately scalar, so don't pretend one path is "the" exact timing.
+    // Conditional branches have min/max timing. A rule may explicitly opt in
+    // to one path when both versions take the same branch condition.
     if (!totals.isRange) {
       result.cpuCycles = totals.max[0];
       result.readCycles = totals.max[1];
       result.writeCycles = totals.max[2];
+    } else if (branchTiming === "not-taken") {
+      result.cpuCycles = totals.min[0];
+      result.readCycles = totals.min[1];
+      result.writeCycles = totals.min[2];
     } else if (knownShiftCount !== undefined) {
       const resolved = resolveRangeWithCount(lines, knownShiftCount);
       if (resolved) {
@@ -309,8 +318,9 @@ export function measureDiagnosticImpact(
   // proven, and records it. Without it the original measures as a range and
   // only the size is comparable, which reported a cycle win as a regression.
   const shiftCount = provenCount(diagnostic);
-  const before = measureSnippet(collapseConstantExpressions(original, evaluate), shiftCount);
-  const after = measureSnippet(collapseConstantExpressions(replacement, evaluate), shiftCount);
+  const branchTiming = diagnostic.data?.branchTiming === "not-taken" ? "not-taken" : undefined;
+  const before = measureSnippet(collapseConstantExpressions(original, evaluate), shiftCount, branchTiming);
+  const after = measureSnippet(collapseConstantExpressions(replacement, evaluate), shiftCount, branchTiming);
   if (!before || !after) return diagnostic;
 
   const prior = diagnostic.suggestion!.impact;

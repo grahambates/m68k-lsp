@@ -93,7 +93,9 @@ export const btstSignBranch: Rule = {
               },
             ]),
       ],
-      data: { secondInstructionIndex: next.index },
+      // The replacement changes BEQ/BNE only to the equivalent BPL/BMI, so
+      // the branch-not-taken path is directly comparable on both sides.
+      data: { secondInstructionIndex: next.index, branchTiming: "not-taken" },
     });
   },
 };
