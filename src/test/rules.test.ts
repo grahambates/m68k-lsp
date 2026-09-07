@@ -160,14 +160,14 @@ describe("optimization rules", () => {
   // differential checker, which caught this claiming `safe` with no flag check.
   test("LINK is only safe where the condition codes the MOVE sets are dead", () => {
     const dead = ["move.l a6,-(sp)", "move.l sp,a6", "add.w #-32,sp", "moveq #0,d0", "rts"].join("\n");
-    expect(
-      lint(dead).find((d) => d.ruleId === "optimization/prefer-link-sequence")?.suggestion?.applicability,
-    ).toBe("safe");
+    expect(lint(dead).find((d) => d.ruleId === "optimization/prefer-link-sequence")?.suggestion?.applicability).toBe(
+      "safe",
+    );
 
     const live = ["move.l a6,-(sp)", "move.l sp,a6", "add.w #-32,sp", "beq .out", ".out:", "rts"].join("\n");
-    expect(
-      lint(live).find((d) => d.ruleId === "optimization/prefer-link-sequence")?.suggestion?.applicability,
-    ).toBe("conditional");
+    expect(lint(live).find((d) => d.ruleId === "optimization/prefer-link-sequence")?.suggestion?.applicability).toBe(
+      "conditional",
+    );
   });
 });
 
@@ -443,8 +443,8 @@ describe("v0.9 local peepholes", () => {
     expect(ids("cmp.l #0,d0")).toContain("optimization/prefer-tst-zero");
   });
 
-  // Off by default, since an optimising assembler encodes both spellings the
-  // same way; asked for here so the rewrite itself stays covered.
+  // Off by default, since vasm drops the zero displacement under its default
+  // optimisations; asked for here so the rewrite itself stays covered.
   const withZeroDisplacement = { processors: ["mc68000" as const], presets: ["style" as const] };
 
   test("removes zero address-register displacements", () => {
@@ -457,8 +457,8 @@ describe("v0.9 local peepholes", () => {
     expect(diagnostic?.message).toContain("(a0)");
   });
 
-  // The measurement is of the written form. vasm emits the same encoding for
-  // either spelling, so this is what the source costs, not the output.
+  // The measurement is of the written form. Under vasm's default optimisations
+  // that is not what the output costs; with optimisations off it is.
   test("measures the zero-displacement rewrite against the written form", () => {
     const diagnostic = lint("move.l 0(a0),d0", withZeroDisplacement).find(
       (d) => d.ruleId === "optimization/redundant-zero-displacement",
@@ -1141,7 +1141,9 @@ describe("vasm-derived optimizations", () => {
   test("replaces logical identity immediates on data registers with TST", () => {
     const result = lint("andi.w #$ffff,d0\nori.l #0,d1\neori.b #0,d2\n", { processors: ["mc68000"] });
     expect(
-      result.some((d) => d.ruleId === "optimization/andi-all-ones-to-tst" && d.suggestion?.replacement === "\ttst.w d0"),
+      result.some(
+        (d) => d.ruleId === "optimization/andi-all-ones-to-tst" && d.suggestion?.replacement === "\ttst.w d0",
+      ),
     ).toBe(true);
     expect(
       result.some((d) => d.ruleId === "optimization/ori-zero-to-tst" && d.suggestion?.replacement === "\ttst.l d1"),

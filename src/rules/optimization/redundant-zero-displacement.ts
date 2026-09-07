@@ -13,7 +13,7 @@ export const redundantZeroDisplacement: Rule = {
     tags: ["asp68k", "addressing"],
     docs: {
       source: "ASP68K",
-      note: "Off by default: vasm and other optimising assemblers encode 0(a0) and (a0) identically, so the measured saving is in the written form rather than the output. What is left is a preference about how the source reads, and a displacement of zero is sometimes written on purpose to match the non-zero cases around it.",
+      note: "Off by default, because vasm drops the zero displacement under its default optimisations, so for most builds the measured saving is in the written form rather than the output, and a displacement of zero is sometimes written on purpose to match the non-zero cases around it. Enable it if you assemble with optimisations disabled: the extension word is then really emitted and the saving is real.",
     },
   },
   checkLine(ctx, line) {
@@ -40,7 +40,7 @@ export const redundantZeroDisplacement: Rule = {
         notes: [
           {
             message:
-              "Both spellings address the same location. An assembler that optimises addressing modes, vasm among them, emits the same encoding for either, so the bytes measured here are those of the written form rather than of the output.",
+              "Both spellings address the same location. vasm drops the zero displacement under its default optimisations, in which case these bytes are those of the written form rather than of the output; with optimisations disabled the extension word is emitted and the saving is real.",
           },
         ],
         data: { operandIndex: i },

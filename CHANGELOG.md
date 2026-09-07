@@ -8,11 +8,12 @@ previously lived in `README.md`.
 ### Changed
 
 - `optimization/redundant-zero-displacement` is off by default, available under
-  the `style` preset. vasm and other optimising assemblers encode `0(a0)` and
-  `(a0)` identically, so the measured saving is in the written form rather than
-  the output. What is left is a preference about how the source reads, and a
-  zero displacement is sometimes written deliberately to line up with the
-  non-zero cases around it.
+  the `style` preset. vasm drops the zero displacement under its default
+  optimisations, so for most builds the measured saving is in the written form
+  rather than the output, and a zero displacement is sometimes written
+  deliberately to line up with the non-zero cases around it. It is worth
+  enabling if you assemble with optimisations disabled, where the extension word
+  really is emitted.
 
 ### Fixed
 
