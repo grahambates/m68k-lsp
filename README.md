@@ -463,17 +463,14 @@ encodings that do not exist, and for claiming savings that measurement disproves
 - **ASP68K** — the first corpus. `m68k-lint --asp68k-coverage` reports the
   machine-readable manifest; every transformation row is classified as
   implemented, partial, deferred or rejected.
-- **Flamewing's M68000 peephole list** — `src/coverage-flamewing.ts` and
-  [`docs/flamewing-audit.md`](docs/flamewing-audit.md).
-- **vasm, 68000 Tricks and Traps, EAB discussion** — reviewed in
-  [`docs/source-review.md`](docs/source-review.md).
+- **Flamewing's M68000 peephole list** — classified in
+  `src/coverage-flamewing.ts`.
+- **vasm, 68000 Tricks and Traps, EAB discussion** — each reviewed row accepted
+  or rejected before adoption.
 
-Further reading: [`docs/impact-measurement.md`](docs/impact-measurement.md),
-[`docs/rule-impact-audit.md`](docs/rule-impact-audit.md),
-[`docs/prior-art.md`](docs/prior-art.md).
-Planned rules for the thinner categories, and the policy on what belongs here
-rather than in the assembler, are in
-[`docs/rule-roadmap.md`](docs/rule-roadmap.md).
+`docs/` holds the documentation shipped with the package. The audit write-ups,
+source reviews, impact-measurement methodology and rule roadmap behind the above
+are working notes, kept in an untracked `notes/` directory.
 
 ## Development
 

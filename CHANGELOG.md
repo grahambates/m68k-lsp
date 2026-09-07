@@ -468,7 +468,7 @@ previously lived in `README.md`.
   documentation disclaims full accuracy, so it is calibrated against 29
   documented 68000 behaviours first, and a difference means a rule and an
   interpreter disagree. See
-  [`docs/differential-checker.md`](docs/differential-checker.md).
+  `notes/differential-checker.md`.
 
 ### Fixed
 
@@ -615,7 +615,7 @@ form`. A reader has no way to check what a source said, and a claim repeated
   `optimization` substitutions. It is gone from `RuleCategory`, the CLI `--only`
   and `--disable-category` lists, the JSON schema, the config loader and the
   impact-measurement paths. A config setting `categories.performance` now errors
-  rather than being silently ignored. See [`docs/rule-roadmap.md`](docs/rule-roadmap.md).
+  rather than being silently ignored. See `notes/rule-roadmap.md`.
 
 ### Added
 
@@ -855,7 +855,7 @@ First general 68k footgun pack:
 - Started the Flamewing audit, tracked in `src/coverage-flamewing.ts` separately
   from ASP68K. Flamewing is treated as a candidate corpus, not ground truth:
   each row is independently checked before it becomes a rule. See
-  [`docs/flamewing-audit.md`](docs/flamewing-audit.md).
+  `notes/flamewing-audit.md`.
 
 ## 0.23
 
