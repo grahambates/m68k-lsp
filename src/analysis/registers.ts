@@ -121,6 +121,7 @@ export function analyzeRegisters(
   resolveSymbol?: (name: string) => number | undefined,
 ): RegisterAnalysis {
   const cfg = buildControlFlowGraph(file);
+  const registerBitsUseMemo = new Map<string, RegisterBitsUse>();
   const liveIn = file.lines.map(() => new Map<Register, RegisterLiveness>());
   const liveOut = file.lines.map(() => new Map<Register, RegisterLiveness>());
   for (const maps of [liveIn, liveOut]) for (const map of maps) for (const r of REGISTERS) map.set(r, "dead");
@@ -317,7 +318,7 @@ export function analyzeRegisters(
     const mask = differingMask >>> 0;
     if (mask === 0) return "unused";
     const visiting = new Set<number>();
-    const memo = new Map<string, RegisterBitsUse>();
+    const memo = registerBitsUseMemo;
     const directReadMask = (line: ParsedLine): number | undefined => {
       const size = instructionSize(line);
       const mnemonic = semanticMnemonic(line);
@@ -429,14 +430,18 @@ export function analyzeRegisters(
         else result = state;
       };
       const push = (i: number, currentMask: number) => {
-        const key = `${i}:${currentMask >>> 0}`;
+        const key = `${target}:${i}:${currentMask >>> 0}`;
         const cached = memo.get(key);
         if (cached) {
-          frames.at(-1)!.childResult = cached;
+          const parent = frames.at(-1);
+          if (parent) parent.childResult = cached;
+          else result = cached;
           return;
         }
         if (visiting.has(i)) {
-          frames.at(-1)!.childResult = "unknown";
+          const parent = frames.at(-1);
+          if (parent) parent.childResult = "unknown";
+          else result = "unknown";
           return;
         }
         visiting.add(i);
