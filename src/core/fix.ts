@@ -96,11 +96,14 @@ function indentOf(sourceLine: string): string {
  */
 function annotated(original: readonly string[], replacement: string, indent: string): string {
   const commented = original.map((line) => `${indent}; ${line.trim()}`);
-  return [`${indent}; was:`, ...commented, `${indent};${"-".repeat(30)}`, replacement, `${indent};${"-".repeat(30)}`].join(
-    "\n",
-  );
+  return [
+    `${indent}; was:`,
+    ...commented,
+    `${indent};${"-".repeat(30)}`,
+    replacement,
+    `${indent};${"-".repeat(30)}`,
+  ].join("\n");
 }
-
 
 const DEFAULT_ASSESSMENTS: readonly OptimizationAssessment[] = ["improvement"];
 

@@ -93,7 +93,10 @@ interface OperandAlignment {
  * always uses a tab. Taken from the parsed line rather than by scanning text,
  * so a label or a size qualifier does not confuse the mnemonic's extent.
  */
-function operandAlignmentOf(line: ParsedLine | undefined, sourceLine: string | undefined): OperandAlignment | undefined {
+function operandAlignmentOf(
+  line: ParsedLine | undefined,
+  sourceLine: string | undefined,
+): OperandAlignment | undefined {
   const operandStart = line?.operands?.[0]?.loc.start;
   const mnemonicEnd = line?.qualifier?.loc.end ?? line?.mnemonic?.loc.end;
   if (sourceLine === undefined || operandStart === undefined || mnemonicEnd === undefined) return undefined;

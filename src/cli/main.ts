@@ -7,13 +7,7 @@ import { parseFile } from "m68k-parser";
 import { lintParsedFile } from "../core/lint.js";
 import { applyFixes, type FixResult } from "../core/fix.js";
 import { runInteractive, type InteractiveResult } from "../core/interactive.js";
-import type {
-  Applicability,
-  Diagnostic,
-  OptimizationAssessment,
-  RuleCategory,
-  Severity,
-} from "../core/diagnostic.js";
+import type { Applicability, Diagnostic, OptimizationAssessment, RuleCategory, Severity } from "../core/diagnostic.js";
 import { buildProjectSymbols, type ProjectSymbols } from "../analysis/project-symbols.js";
 import type { ExternalSymbols } from "../analysis/symbols.js";
 import {
@@ -411,8 +405,6 @@ function formatImpactSummary(diagnostics: Diagnostic[]): string | undefined {
   return lines.join("\n");
 }
 
-
-
 /**
  * Turn rules off for the whole project, in the config file.
  *
@@ -768,7 +760,9 @@ async function main(): Promise<number> {
 
   if (options.fixInteractive) {
     if (!process.stdin.isTTY) {
-      console.error("m68k-lint: --fix-interactive needs a terminal. Use --fix, or --fix-dry-run to see what it would do.");
+      console.error(
+        "m68k-lint: --fix-interactive needs a terminal. Use --fix, or --fix-dry-run to see what it would do.",
+      );
       return 2;
     }
     const { createInterface } = await import("node:readline/promises");

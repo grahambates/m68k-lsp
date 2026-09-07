@@ -26,8 +26,6 @@ export interface InteractiveResult {
   quit: boolean;
 }
 
-
-
 /** The indentation of a line, so an inserted directive lines up with the code. */
 function indentOf(line: string | undefined): string {
   if (line === undefined) return "";
@@ -108,7 +106,9 @@ export async function runInteractive(
   const suppressed: Diagnostic[] = [];
   let lowestTouched = Number.POSITIVE_INFINITY;
 
-  for (const { diagnostic, decision } of decisions.slice().sort((a, b) => b.diagnostic.span!.startLine - a.diagnostic.span!.startLine)) {
+  for (const { diagnostic, decision } of decisions
+    .slice()
+    .sort((a, b) => b.diagnostic.span!.startLine - a.diagnostic.span!.startLine)) {
     const { startLine, endLine } = diagnostic.span!;
     if (endLine >= lowestTouched) continue;
 
