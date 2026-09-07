@@ -36,6 +36,10 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./project-config": {
+      "types": "./dist/cli/project-config.d.ts",
+      "import": "./dist/cli/project-config.js"
     }
   },
   "files": [
