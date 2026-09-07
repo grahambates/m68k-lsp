@@ -30,6 +30,15 @@ describe("optimization rules", () => {
     expect(ids("move.w #1,d0")).not.toContain("optimization/prefer-moveq");
   });
 
+  test("prefers MOVEQ for negative immediates written as unsigned longs", () => {
+    const diagnostic = lint("move.l #$ffffff80,d5").find((d) => d.ruleId === "optimization/prefer-moveq");
+    // The unsigned spelling is out of MOVEQ's operand range, so the suggestion
+    // has to give the signed form.
+    expect(diagnostic?.suggestion?.replacement).toBe("\tmoveq #-128,d5");
+    expect(ids("move.l #$ffffff7f,d5")).not.toContain("optimization/prefer-moveq");
+    expect(ids("move.l #$7fffffff,d5")).not.toContain("optimization/prefer-moveq");
+  });
+
   test("prefers MOVEQ when an EQU expression resolves to the range", () => {
     const source = ["answer equ 40+2", "move.l #answer,d0"].join("\n");
 
@@ -774,6 +783,12 @@ describe("v0.16 redundant TST and additional ASP68K rules", () => {
       (d) => d.ruleId === "optimization/move-immediate-swap",
     );
     expect(diagnostic?.suggestion?.replacement).toBe("\tmoveq #42,d0\n\tswap d0");
+  });
+
+  test("does not suggest MOVEQ + SWAP where MOVEQ alone loads the value", () => {
+    // SWAP of $ffffffff or 0 is a no-op: optimization/prefer-moveq covers these.
+    const diagnostics = lint(["move.l #-1,d3", "move.l #0,d4", "rts"].join("\n"));
+    expect(diagnostics.filter((d) => d.ruleId === "optimization/move-immediate-swap")).toEqual([]);
   });
 });
 

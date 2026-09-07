@@ -19,6 +19,12 @@ function swapWord(v: number): number {
   return (((v & 0xffff) << 16) | ((v >>> 16) & 0xffff)) >>> 0;
 }
 
+/** True when MOVEQ alone loads the value, making any follow-up transform pointless. */
+function isMoveqValue(v: number): boolean {
+  const u = u32(v);
+  return u <= 0x7f || u >= 0xffffff80;
+}
+
 function findMoveqSeed(target: number, transform: (v: number) => number): number | undefined {
   const wanted = u32(target);
   for (let m = -128; m <= 127; m++) if (transform(moveqValue(m)) === wanted) return m;
@@ -47,6 +53,8 @@ function synthesisRule(
       if (!imm || imm.value.type === "string-literal" || !dest) return;
       const value = ctx.evaluate(imm.value);
       if (!value.known || !ctx.config.processors.every((cpu) => allowed.includes(cpu))) return;
+      // e.g. SWAP on MOVEQ #-1 or #0 is a no-op: optimization/prefer-moveq covers these.
+      if (isMoveqValue(value.value)) return;
       const seed = findMoveqSeed(value.value, transform);
       if (seed === undefined) return;
 
