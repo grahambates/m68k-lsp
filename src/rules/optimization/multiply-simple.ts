@@ -37,12 +37,6 @@ export const multiplyWordByZero: Rule = {
       message: `${line.mnemonic!.type === "instruction" ? line.mnemonic!.instruction.toUpperCase() : "MUL"}.W by zero always produces zero`,
       loc: line.mnemonic!.loc,
       suggestion: { description: `Use ${replacement.toUpperCase()}`, replacement, applicability: "safe" },
-      notes: [
-        { message: "The result and N/Z/V/C state are equivalent; X is preserved by both forms." },
-        {
-          message: "Multiplying by zero always yields zero, so the multiply is unnecessary.",
-        },
-      ],
     });
   },
 };
@@ -73,7 +67,6 @@ export const multiplySignedWordByOne: Rule = {
       message: "Signed word multiplication by one is just sign extension to long",
       loc: line.mnemonic!.loc,
       suggestion: { description: `Use ${replacement.toUpperCase()}`, replacement, applicability: "safe" },
-      notes: [{ message: "EXT.L produces the same 32-bit value and N/Z/V/C state as MULS.W #1; X is preserved." }],
     });
   },
 };
@@ -107,10 +100,6 @@ export const multiplyUnsignedWordByOne: Rule = {
       message: "Unsigned word multiplication by one only zero-extends the low word",
       loc: line.mnemonic!.loc,
       suggestion: { description: `Zero-extend ${r.toUpperCase()} without MULU`, replacement, applicability: "safe" },
-      notes: [
-        { message: "This trades code size for speed rather than improving both." },
-        { message: "The final SWAP leaves N/Z/V/C consistent with the zero-extended result; X is preserved." },
-      ],
     });
   },
 };
@@ -148,7 +137,6 @@ export const multiplySignedWordPowerOfTwo: Rule = {
       loc: line.mnemonic!.loc,
       suggestion: { description: `Use EXT.L + ASL.L #${shift}`, replacement, applicability: safety.applicability },
       notes: [
-        { message: "Multiplying by 2^m is a left shift of m, applied here for 1 <= m <= 8." },
         ...(safety.applicability === "safe"
           ? [{ message: "The differing X/V/C values are dead after this instruction." }]
           : [{ message: "ASL can leave different X/V/C values from MULS; review any later flag use." }]),
@@ -189,10 +177,6 @@ export const multiplyUnsignedWordPowerOfTwo: Rule = {
       loc: line.mnemonic!.loc,
       suggestion: { description: `Zero-extend then LSL.L #${shift}`, replacement, applicability: safety.applicability },
       notes: [
-        {
-          message:
-            "Multiplying by 2^m is a left shift of m, applied here for 1 <= m <= 8. It trades code size for speed.",
-        },
         ...(safety.applicability === "safe"
           ? [{ message: "The differing X/V/C values are dead after this instruction." }]
           : [{ message: "LSL can leave different X/V/C values from MULU; review later flag use." }]),
@@ -238,9 +222,6 @@ export const multiplySignedWordHighPowerOfTwo: Rule = {
         applicability: safety.applicability,
       },
       notes: [
-        {
-          message: "Used for 2^m with m=9..15; m=8 is left to the simpler EXT+ASL form.",
-        },
         ...(safety.applicability === "safe"
           ? [{ message: "The differing X/V/C values are dead after this instruction." }]
           : [{ message: "The replacement can leave different X/V/C values from MULS; review later flag use." }]),
@@ -286,9 +267,6 @@ export const multiplyUnsignedWordHighPowerOfTwo: Rule = {
         applicability: safety.applicability,
       },
       notes: [
-        {
-          message: "Used for 2^m with m=9..15; m=8 is left to the lower-power form.",
-        },
         ...(safety.applicability === "safe"
           ? [{ message: "The differing X/V/C values are dead after this instruction." }]
           : [{ message: "The replacement can leave different X/V/C values from MULU; review later flag use." }]),

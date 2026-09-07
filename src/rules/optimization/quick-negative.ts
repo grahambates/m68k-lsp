@@ -41,7 +41,6 @@ function quickNegative(id: string, from: "add" | "sub", to: "subq" | "addq"): Ru
           applicability: safety.applicability,
         },
         notes: [
-          { message: "Negating the immediate moves it into the quick form's 1 to 8 range." },
           {
             message:
               safety.applicability === "safe"

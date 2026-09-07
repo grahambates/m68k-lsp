@@ -70,16 +70,11 @@ export const dataRegisterSignBitToTas: Rule = {
         applicability: safety.applicability,
       },
       notes: [
-        { message: "TAS sets bit 7 of the low byte, which is the same bit and the same resulting value." },
         {
           message:
             mnemonic === "bset"
               ? "Z means the same thing in both, but TAS also writes N, V and C where BSET leaves them alone."
               : "V and C are cleared by both, but TAS reports the byte's state before the change where ORI reports it after.",
-        },
-        {
-          message:
-            "Safe on hardware that cannot arbitrate a locked read-modify-write cycle, because a data-register operand performs no memory access.",
         },
       ],
       data: { register },

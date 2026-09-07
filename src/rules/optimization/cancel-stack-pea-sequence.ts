@@ -90,7 +90,6 @@ export const cancelStackPeaSequence: Rule = {
           applicability: ccr.applicability,
         },
         notes: [
-          { message: "The stack pointer has the same final value and the longword is written to the same address." },
           ...(ccr.applicability === "safe"
             ? []
             : [{ message: "PEA preserves CCR, whereas the replacement MOVE.L writes N/Z/V/C." }]),

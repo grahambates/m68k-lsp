@@ -92,9 +92,6 @@ export const foldIndexIntoEffectiveAddress: Rule = {
       },
       notes: [
         {
-          message: `The indexed mode computes ${base.register.toUpperCase()} plus ${indexRegister.register.toUpperCase()} as part of the access, so the addition is not needed.`,
-        },
-        {
           message: `${base.register.toUpperCase()} keeps its original value afterwards, which is proven unused here. ADDA does not affect the condition codes, so none are lost.`,
         },
         {

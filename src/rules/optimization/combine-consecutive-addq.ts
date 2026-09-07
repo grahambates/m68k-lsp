@@ -1,7 +1,13 @@
 import type { ParsedLine } from "m68k-parser";
 import type { Rule } from "../../core/rule.js";
 import { immediateOperand, instructionSize, isInstruction, operand } from "../../util/ast.js";
-import { changedFlagsApplicability, containsSymbol, embeddedValueText, hasLabelBetween, sourceOperand } from "./helpers.js";
+import {
+  changedFlagsApplicability,
+  containsSymbol,
+  embeddedValueText,
+  hasLabelBetween,
+  sourceOperand,
+} from "./helpers.js";
 
 function directRegisterName(line: ParsedLine): string | undefined {
   const op = operand(line, 1);

@@ -66,9 +66,6 @@ function synthesisRule(
           applicability: safety.applicability,
         },
         notes: [
-          {
-            message: `The candidate sequence is derived by evaluating every MOVEQ seed, so the range it covers is checked rather than assumed.`,
-          },
           ...(safety.applicability === "safe"
             ? []
             : [

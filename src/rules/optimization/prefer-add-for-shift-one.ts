@@ -41,7 +41,6 @@ export const preferAddForShiftOne: Rule = {
         applicability: safety.applicability,
       },
       notes: [
-        { message: "Adding a register to itself doubles it, exactly as a one-bit left shift does." },
         ...(safety.applicability === "safe"
           ? []
           : [{ message: "Flag equivalence is not assumed here; review CCR use before applying." }]),

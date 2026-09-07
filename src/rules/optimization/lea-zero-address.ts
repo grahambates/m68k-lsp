@@ -32,12 +32,6 @@ export const leaZeroAddress: Rule = {
         replacement: `suba.l ${dest.register},${dest.register}`,
         applicability: "safe",
       },
-      notes: [
-        {
-          message:
-            "Subtracting a register from itself zeroes it. The explicit SUBA spelling makes the CCR-preserving address-register form clear.",
-        },
-      ],
     });
   },
 };

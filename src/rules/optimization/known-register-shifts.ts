@@ -142,7 +142,6 @@ export const lsrByteSeven: Rule = {
         applicability: safety.applicability,
       },
       notes: [
-        { message: "This trades four bytes of code size for speed." },
         ...(safety.applicability === "safe" ? [] : [{ message: "X/C differ from LSR.B #7 and must not be observed." }]),
       ],
     });
@@ -413,7 +412,6 @@ export const knownRegisterAsrLongHighReduction: Rule = {
         applicability: safety.applicability,
       },
       notes: [
-        { message: "The replacement preserves the full 32-bit arithmetic-shift result without using the stack." },
         ...(safety.applicability === "safe"
           ? []
           : [{ message: "The sequence produces different CCR results, so the changed flags must be unobserved." }]),

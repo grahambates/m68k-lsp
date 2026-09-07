@@ -60,7 +60,6 @@ export const singleRegisterMovem: Rule = {
       loc: line.mnemonic!.loc,
       suggestion: { description: `Use ${replacement.toUpperCase()}`, replacement, applicability: safety.applicability },
       notes: [
-        { message: "A one-register MOVEM still encodes a register-mask word, which a plain MOVE does not need." },
         ...(safety.applicability === "safe"
           ? []
           : [{ message: "MOVEM preserves CCR while the MOVE replacement may update N/Z/V/C; review flag use." }]),

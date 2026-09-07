@@ -99,9 +99,6 @@ export const flamewingMulsWordFullResultConstants: Rule = {
       },
       notes: [
         { message: `${scratch.toUpperCase()} is proven dead after the original multiply and may be clobbered.` },
-        {
-          message: "The recipe preserves the complete signed 16×constant 32-bit result, not just the low word.",
-        },
         ...(safety.applicability === "safe"
           ? []
           : [{ message: "X/V/C can differ from MULS.W and must not be observed." }]),

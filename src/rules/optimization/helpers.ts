@@ -117,11 +117,7 @@ function isAtom(expression: ExpressionNode | undefined): boolean {
  * operator may bind tighter than something inside it: `1<<BASE+1` relies on the
  * assembler agreeing with C about precedence, where `1<<(BASE+1)` does not.
  */
-export function embeddedValueText(
-  ctx: RuleContext,
-  expression: ExpressionNode | undefined,
-  evaluated: number,
-): string {
+export function embeddedValueText(ctx: RuleContext, expression: ExpressionNode | undefined, evaluated: number): string {
   const text = valueText(ctx, expression, evaluated);
   return isAtom(expression) || text === String(evaluated) ? text : `(${text})`;
 }

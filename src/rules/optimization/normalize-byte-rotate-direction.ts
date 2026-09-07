@@ -42,10 +42,6 @@ export const normalizeByteRotate: Rule = {
         applicability: safety.applicability,
       },
       notes: [
-        {
-          message:
-            "For an 8-bit value, rotating k bits one way is value-equivalent to rotating 8-k bits the other way.",
-        },
         ...(safety.applicability === "safe"
           ? []
           : [

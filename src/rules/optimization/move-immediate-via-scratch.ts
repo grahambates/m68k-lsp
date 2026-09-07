@@ -61,9 +61,6 @@ export const moveImmediateViaScratch: Rule = {
           message:
             "The scratch register is proven dead after the original instruction and is not used to form the destination address.",
         },
-        {
-          message: "MOVEQ encodes a signed 8-bit value in the instruction word, so -128..127 needs no extension word.",
-        },
       ],
     });
   },

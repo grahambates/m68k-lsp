@@ -36,7 +36,6 @@ export const redundantLea: Rule = {
         replacement: canDeleteWholeLine ? "" : undefined,
         applicability: canDeleteWholeLine ? "safe" : "manual",
       },
-      notes: [{ message: "The instruction loads the register with its own value, so it has no effect." }],
     });
   },
 };

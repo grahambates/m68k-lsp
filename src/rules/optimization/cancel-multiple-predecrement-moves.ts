@@ -77,10 +77,6 @@ export const cancelMultiplePredecrementMoves: Rule = {
           message:
             "Both source effective addresses are independent of the adjusted address register, which the fold requires.",
         },
-        {
-          message:
-            "The replacement performs the same stores in the same order and leaves the address register at the same final value.",
-        },
       ],
       data: { secondInstructionIndex: first.index, thirdInstructionIndex: second.index },
     });

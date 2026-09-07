@@ -30,7 +30,6 @@ export const preferMoveqZero: Rule = {
         replacement: `moveq #0,${dest.register}`,
         applicability: "safe",
       },
-      notes: [{ message: "MOVEQ #0 zeroes the whole register in one word, with the same flag result as CLR.L." }],
     });
   },
 };

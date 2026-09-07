@@ -43,7 +43,6 @@ export const preferAddq: Rule = {
         replacement: originalDestination ? `addq${suffix} #${written},${originalDestination}` : undefined,
         applicability: "safe",
       },
-      notes: [{ message: "ADDQ encodes its operand in three bits, covering 1 to 8." }],
     });
   },
 };

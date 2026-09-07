@@ -187,7 +187,6 @@ export const multiplySignedLong060: Rule = {
         replacement: `asl.l #${shift},${dest.register}`,
         applicability: safety.applicability,
       },
-      notes: [{ message: "Multiplying by 2^m is a left shift of m; the 68060 form is used for 1 <= m <= 8." }],
     });
   },
 };

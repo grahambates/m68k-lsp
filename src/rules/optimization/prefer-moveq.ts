@@ -38,7 +38,6 @@ export const preferMoveq: Rule = {
         replacement: `moveq #${written},${dest.register}`,
         applicability: "safe",
       },
-      notes: [{ message: "MOVEQ encodes the value in the instruction word, so no extension words are needed." }],
     });
   },
 };

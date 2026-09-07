@@ -47,7 +47,6 @@ export const moveImmediateAddressToLea: Rule = {
       loc: line.mnemonic!.loc,
       suggestion: { description: "Use LEA", replacement, applicability: "safe" },
       notes: [
-        { message: "Both forms load the same address-register value and preserve CCR." },
         {
           message:
             size === "l"
@@ -101,13 +100,6 @@ export const moveAddressThenAddToLea: Rule = {
       message: "MOVEA plus immediate ADDA can be folded into one LEA",
       loc: line.mnemonic!.loc,
       suggestion: { description: "Fold the address copy and adjustment into LEA", replacement, applicability: "safe" },
-      notes: [
-        {
-          message:
-            "The .L source copy preserves the full base address, and the displacement is within the signed 16-bit LEA range.",
-        },
-        { message: "The combined sequence encodes in fewer words than the instructions it replaces." },
-      ],
       data: { secondInstructionIndex: next.index },
     });
   },

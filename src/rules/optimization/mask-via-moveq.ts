@@ -72,10 +72,6 @@ export const maskViaMoveq: Rule = {
         applicability: safety.applicability,
       },
       notes: [
-        {
-          message:
-            "MOVEQ encodes its value in the instruction word, so the mask costs nothing; the long immediate on the AND needs two extension words.",
-        },
         { message: "The final value and CCR are the same; only the state between the two instructions differs." },
       ],
       data: { mask: mask.value, sourceEndIndex: next.index },

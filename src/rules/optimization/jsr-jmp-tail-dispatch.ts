@@ -31,7 +31,6 @@ export const jsrJmpDispatch: Rule = {
         applicability: "conditional",
       },
       notes: [
-        { message: "For an ordinary RTS return this reaches the same continuation with the same stack depth." },
         {
           message:
             "The return-address value visible to the callee changes from the address of the original JMP instruction to the final continuation target; review code that inspects or edits its return address.",

@@ -35,7 +35,6 @@ export const preferSubq: Rule = {
         replacement: d ? `subq${suffix} #${written},${d}` : undefined,
         applicability: "safe",
       },
-      notes: [{ message: "SUBQ encodes its operand in three bits, covering 1 to 8." }],
     });
   },
 };

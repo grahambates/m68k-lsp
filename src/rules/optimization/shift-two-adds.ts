@@ -41,7 +41,6 @@ export const shiftTwoAdds: Rule = {
         applicability: safety.applicability,
       },
       notes: [
-        { message: "This trades code size for speed rather than improving both." },
         ...(safety.applicability === "safe"
           ? []
           : [

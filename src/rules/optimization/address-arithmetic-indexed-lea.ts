@@ -75,10 +75,7 @@ export const foldAddressArithmeticToIndexedLea: Rule = {
         replacement,
         applicability: "safe",
       },
-      notes: [
-        { message: "ADDA/SUBA and LEA all preserve CCR." },
-        { message: "The signed displacement fits the 68000 brief indexed addressing range (-128..127)." },
-      ],
+      notes: [{ message: "The signed displacement fits the 68000 brief indexed addressing range (-128..127)." }],
       data: { secondInstructionIndex: next.index },
     });
   },

@@ -39,7 +39,6 @@ export const pushImmediatePea: Rule = {
         applicability: safety.applicability,
       },
       notes: [
-        { message: "PEA pushes an effective address, so it can replace the push of a signed 16-bit constant." },
         ...(safety.applicability === "safe"
           ? []
           : [{ message: "MOVE updates N/Z/V/C while PEA preserves CCR; review later flag use." }]),

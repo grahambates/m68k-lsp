@@ -57,7 +57,6 @@ export const preferLeaQuick: Rule = {
         replacement: `${mnemonic}.w #${written},${register}`,
         applicability: "safe",
       },
-      notes: [{ message: "The quick forms cover +1..+8 and -1..-8, which is why the displacement range is checked." }],
     });
   },
 };

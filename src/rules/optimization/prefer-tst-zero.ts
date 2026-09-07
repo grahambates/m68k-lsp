@@ -42,7 +42,6 @@ export const preferTstZero: Rule = {
       message: "Comparison with zero can use TST",
       loc: line.mnemonic!.loc,
       suggestion: { description: "Use TST", replacement: d ? `tst${suffix} ${d}` : undefined, applicability: "safe" },
-      notes: [{ message: "Comparing against zero is what TST does, without the immediate operand." }],
     });
   },
 };

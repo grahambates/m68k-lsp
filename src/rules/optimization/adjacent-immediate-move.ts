@@ -79,10 +79,6 @@ function movePair(
         notes: [
           {
             message:
-              "The two addresses are adjacent, so one wider store covers both. 68k byte order places the first value in the high-order part.",
-          },
-          {
-            message:
               "Manual review required: wider memory accesses can change behaviour for memory-mapped I/O, device registers, or fault boundaries.",
           },
         ],

@@ -49,7 +49,6 @@ export const simplifyLongWordMasks: Rule = {
         impact: { sizeBytes: { delta: sizeDelta, confidence: "source" } },
       },
       notes: [
-        { message: "The resulting 32-bit register value is identical." },
         ...(safety.applicability === "safe"
           ? []
           : [{ message: "The condition codes differ from the original; review CCR use before applying." }]),

@@ -40,12 +40,6 @@ export const narrowMoveaImmediate: Rule = {
         applicability: "safe",
         impact: { sizeBytes: { delta: -2, confidence: "source" } },
       },
-      notes: [
-        {
-          message:
-            "MOVEA.W sign-extends its 16-bit source, so signed 16-bit constants produce exactly the same 32-bit address-register value.",
-        },
-      ],
     });
   },
 };
@@ -85,11 +79,7 @@ export const narrowAddaSubaImmediate: Rule = {
         applicability: "safe",
         impact: { sizeBytes: { delta: -2, confidence: "source" } },
       },
-      notes: [
-        {
-          message: `${op.toUpperCase()}.W sign-extends its word source before the 32-bit address-register operation, making signed 16-bit immediate values equivalent.`,
-        },
-      ],
+      notes: [],
     });
   },
 };
@@ -124,12 +114,6 @@ export const narrowCmpaImmediate: Rule = {
         applicability: "safe",
         impact: { sizeBytes: { delta: -2, confidence: "source" } },
       },
-      notes: [
-        {
-          message:
-            "CMPA.W sign-extends its 16-bit source before the 32-bit comparison, so signed 16-bit immediates are exactly equivalent to CMPA.L.",
-        },
-      ],
     });
   },
 };

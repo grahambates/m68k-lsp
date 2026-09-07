@@ -70,7 +70,6 @@ export const carryToMaskViaSubx: Rule = {
         applicability: "safe",
       },
       notes: [
-        { message: "SUBX.L Dn,Dn computes Dn minus Dn minus X, which is 0 or -1: the same mask." },
         {
           message:
             "SCS reads C while SUBX reads X, and those differ after a CMP, which leaves X untouched. Here one instruction sets both, so they agree.",

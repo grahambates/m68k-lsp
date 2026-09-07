@@ -32,11 +32,6 @@ export const zeroAddressRegister: Rule = {
         replacement: `suba.l ${dest.register},${dest.register}`,
         applicability: "safe",
       },
-      notes: [
-        {
-          message: "Subtracting a register from itself zeroes it, and address-register subtraction preserves CCR.",
-        },
-      ],
     });
   },
 };

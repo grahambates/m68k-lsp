@@ -88,12 +88,7 @@ export const redundantTst: Rule = {
         applicability: "safe",
       },
       notes: producer.exactTstFlags
-        ? [
-            {
-              message:
-                "The preceding instruction produces the same N/Z/V/C state as TST for this result; X is preserved by TST in either case.",
-            },
-          ]
+        ? []
         : [
             {
               message:

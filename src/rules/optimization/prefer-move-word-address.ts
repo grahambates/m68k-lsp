@@ -33,9 +33,6 @@ export const preferMoveWordAddress: Rule = {
         replacement: `movea.w #${written},${dest.register}`,
         applicability: "safe",
       },
-      notes: [
-        { message: "MOVEA.W sign-extends its source, so it reaches the same value for a signed 16-bit constant." },
-      ],
     });
   },
 };

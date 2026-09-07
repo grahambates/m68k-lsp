@@ -189,7 +189,6 @@ export const lslByteSeven: Rule = {
         applicability: safety.applicability,
       },
       notes: [
-        { message: "This trades four bytes of code size for speed." },
         ...(safety.applicability === "safe"
           ? []
           : [{ message: "X/C differ from the original LSL and must not be observed." }]),

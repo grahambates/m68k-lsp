@@ -67,10 +67,6 @@ export const preferLinkSequence: Rule = {
         applicability: manual ? "manual" : safety.applicability,
       },
       notes: [
-        {
-          message:
-            "LINK performs the same three steps: save the frame pointer, take the new one, and reserve the frame.",
-        },
         ...(safety.applicability === "safe"
           ? []
           : [

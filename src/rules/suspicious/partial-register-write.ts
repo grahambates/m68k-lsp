@@ -4,7 +4,6 @@ import { getRegisterSemantics, type Register } from "../../semantics/registers.j
 import type { RuleContext } from "../../core/context.js";
 import { dataRegisterOperand, instructionSize } from "../../util/ast.js";
 
-
 /**
  * The routine a line belongs to: from the nearest label that is not local, up
  * to the next one.

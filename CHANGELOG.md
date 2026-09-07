@@ -5,6 +5,18 @@ previously lived in `README.md`.
 
 ## Unreleased
 
+### Changed
+
+- Notes carry conditions rather than explanations. Restating the measurement
+  ("this trades code size for speed") duplicated the impact line, and narrating
+  the mechanism ("MOVEQ encodes the value in the instruction word") explained
+  what the before-and-after already shows. Seventy-one such notes are gone,
+  taking the notes shown across the audit corpus from 170 to 99 and leaving
+  roughly half the diagnostics with none at all. What remains states something
+  to check or something that was relied on: flags that differ, a register proven
+  dead, a stack depth the callee must not depend on, a constant the replacement
+  no longer mentions.
+
 ### Added
 
 - The stack-scratch shift rules explain the CLR.B they emit. `move.b dN,-(sp)`

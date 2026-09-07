@@ -79,13 +79,7 @@ export const foldAddressExpressionToLea: Rule = {
         replacement,
         applicability: "safe",
       },
-      notes: [
-        { message: "The full-width MOVEA copy, ADDA/SUBA immediate, indexed ADDA, and LEA all preserve CCR." },
-        {
-          message:
-            "The index size is kept explicitly (.W or .L), and the displacement is within the signed 16-bit brief-extension range.",
-        },
-      ],
+      notes: [],
       data: { secondInstructionIndex: second.index, thirdInstructionIndex: third.index },
     });
   },

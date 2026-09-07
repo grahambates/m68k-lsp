@@ -27,7 +27,6 @@ export const preferNot: Rule = {
       message: "EOR #-1 can be expressed as NOT",
       loc: line.mnemonic!.loc,
       suggestion: { description: "Use NOT", replacement: d ? `not${suffix} ${d}` : undefined, applicability: "safe" },
-      notes: [{ message: "Exclusive-OR with all ones inverts every bit, which is what NOT does." }],
     });
   },
 };

@@ -60,7 +60,6 @@ export const addsToShift: Rule = {
         applicability: safety.applicability,
       },
       notes: [
-        { message: "This trades speed for code size rather than improving both." },
         ...(safety.applicability === "safe"
           ? []
           : [

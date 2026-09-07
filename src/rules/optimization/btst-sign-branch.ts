@@ -84,11 +84,6 @@ export const btstSignBranch: Rule = {
         applicability: safety.applicability,
       },
       notes: [
-        {
-          message: dataDest
-            ? "Applies to the sign bits of a data register: 7, 15 and 31."
-            : "TST sets N from the sign bit, so testing bit 7 becomes a plain sign test with the branch condition adjusted.",
-        },
         ...(safety.applicability === "safe"
           ? []
           : [

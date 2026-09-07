@@ -50,7 +50,6 @@ export const preferUnlkSequence: Rule = {
         applicability: manual ? "manual" : "safe",
       },
       notes: [
-        { message: "UNLK performs the same two steps: release the frame and restore the frame pointer." },
         ...(manual
           ? [
               {

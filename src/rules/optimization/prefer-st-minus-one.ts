@@ -54,7 +54,6 @@ export const preferStMinusOne: Rule = {
         applicability: safety.applicability,
       },
       notes: [
-        { message: "ST sets every bit of the destination byte, which is the same result as storing -1." },
         ...(safety.applicability === "safe"
           ? []
           : [{ message: "ST preserves CCR while MOVE.B writes N/Z/V/C; review subsequent flag use." }]),

@@ -72,10 +72,6 @@ export const pushAddressPea: Rule = {
         applicability: changed.applicability,
       },
       notes: [
-        {
-          message:
-            "PEA computes the adjusted address directly, so the push and the arithmetic collapse into one instruction.",
-        },
         ...(changed.applicability === "safe"
           ? []
           : [{ message: "PEA preserves CCR, while the original arithmetic writes flags; review any later CCR use." }]),

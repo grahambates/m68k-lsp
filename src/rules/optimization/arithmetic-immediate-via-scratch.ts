@@ -64,9 +64,6 @@ export const arithmeticImmediateViaScratch: Rule = {
       },
       notes: [
         {
-          message: `MOVEQ encodes its value in the instruction word, where a long immediate needs two extension words.`,
-        },
-        {
           message: `${scratch.toUpperCase()} is proven dead here, and the condition codes after the pair are the same as the original sets.`,
         },
       ],

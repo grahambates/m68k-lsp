@@ -46,9 +46,6 @@ function makeRule(kind: "bset" | "bclr"): Rule {
           applicability: safety.applicability,
         },
         notes: [
-          {
-            message: `Bit numbers 0..15 lie in the low word, so the word-sized mask reaches the same bit.`,
-          },
           ...(safety.applicability === "safe"
             ? []
             : [

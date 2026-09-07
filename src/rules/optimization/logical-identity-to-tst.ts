@@ -65,12 +65,7 @@ function makeIdentityRule(
           applicability: registerOnly ? "safe" : "conditional",
         },
         notes: registerOnly
-          ? [
-              {
-                message:
-                  "The logical identity and TST produce the same value and N/Z/V/C state; X is preserved by both.",
-              },
-            ]
+          ? []
           : [
               {
                 message:

@@ -47,12 +47,6 @@ function makeAddressImmediateLea(mnemonic: "add" | "sub"): Rule {
           replacement: `lea ${displacementText}(${dest.register}),${dest.register}`,
           applicability: "safe",
         },
-        notes: [
-          {
-            message:
-              "Address-register ADD/SUB and LEA both preserve CCR. This covers signed 16-bit displacements outside the ADDQ/SUBQ range.",
-          },
-        ],
       });
     },
   };

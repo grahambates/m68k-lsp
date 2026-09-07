@@ -73,10 +73,6 @@ export const moveByteAndMaskViaMoveq: Rule = {
       },
       notes: [
         { message: `The analyser proves bits 8-31 of ${dst.register.toUpperCase()} are discarded before any read.` },
-        {
-          message:
-            "The replacement's final AND.B sets the same N/Z/V/C result flags and preserves X, so no CCR caveat is required.",
-        },
       ],
       data: { secondInstructionIndex: index, differingBits: "8-31", provenance: "flamewing" },
     });
