@@ -104,4 +104,9 @@ describe("bit-level liveness accounts for narrower writes", () => {
   test("bits a narrower write does not cover stay in the question", () => {
     expect(bitsAfter(["\tmove.w d4,d7", "\tmove.b d5,d7", "\tmove.l d7,(a0)", "\trts"], 0, "d7", 0xffff)).toBe("used");
   });
+
+  test("a long straight-line path does not overflow the JavaScript call stack", () => {
+    const lines = ["\tmove.w d0,d1", ...Array.from({ length: 6_000 }, () => "\tnop"), "\trts"];
+    expect(bitsAfter(lines, 0, "d1", 0xffff)).toBe("unknown");
+  });
 });

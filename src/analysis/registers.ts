@@ -407,94 +407,104 @@ export function analyzeRegisters(
       return undefined;
     };
 
-    const walk = (i: number, currentMask: number): RegisterBitsUse => {
-      const key = `${i}:${currentMask >>> 0}`;
-      const cached = memo.get(key);
-      if (cached) return cached;
-      if (visiting.has(i)) return "unknown";
-      visiting.add(i);
-      const line = file.lines[i];
-      if (!line?.mnemonic || line.mnemonic.type !== "instruction") {
-        visiting.delete(i);
-        return "unknown";
+    const walk = (start: number, startMask: number): RegisterBitsUse => {
+      interface Frame {
+        i: number;
+        currentMask: number;
+        key: string;
+        successors?: number[];
+        nextSuccessor?: number;
+        aggregate?: RegisterBitsUse;
+        childResult?: RegisterBitsUse;
       }
-      const sem = getRegisterSemantics(line);
-      if (swappedTarget(line)) {
-        const succ = [...cfg.successors[i]];
-        let aggregate: RegisterBitsUse = cfg.escapes[i] || succ.length === 0 ? "unknown" : "unused";
-        for (const next of succ) {
-          const state = walk(next, rotateHalves(currentMask));
-          if (state === "used") {
-            aggregate = "used";
-            break;
+
+      const frames: Frame[] = [];
+      let result: RegisterBitsUse | undefined;
+      const finish = (state: RegisterBitsUse) => {
+        const frame = frames.pop()!;
+        visiting.delete(frame.i);
+        memo.set(frame.key, state);
+        const parent = frames.at(-1);
+        if (parent) parent.childResult = state;
+        else result = state;
+      };
+      const push = (i: number, currentMask: number) => {
+        const key = `${i}:${currentMask >>> 0}`;
+        const cached = memo.get(key);
+        if (cached) {
+          frames.at(-1)!.childResult = cached;
+          return;
+        }
+        if (visiting.has(i)) {
+          frames.at(-1)!.childResult = "unknown";
+          return;
+        }
+        visiting.add(i);
+        frames.push({ i, currentMask, key });
+      };
+
+      push(start, startMask);
+      while (frames.length > 0) {
+        const frame = frames.at(-1)!;
+        if (frame.successors) {
+          if (frame.childResult) {
+            if (frame.childResult === "used") frame.aggregate = "used";
+            else if (frame.childResult === "unknown" && frame.aggregate !== "used") frame.aggregate = "unknown";
+            frame.childResult = undefined;
+            frame.nextSuccessor!++;
           }
-          if (state === "unknown") aggregate = "unknown";
+          if (frame.aggregate === "used" || frame.nextSuccessor === frame.successors.length) {
+            finish(frame.aggregate!);
+            continue;
+          }
+          push(frame.successors[frame.nextSuccessor!], frame.currentMask);
+          continue;
         }
-        visiting.delete(i);
-        memo.set(key, aggregate);
-        return aggregate;
+
+        const line = file.lines[frame.i];
+        if (!line?.mnemonic || line.mnemonic.type !== "instruction") {
+          finish("unknown");
+          continue;
+        }
+        const sem = getRegisterSemantics(line);
+        if (swappedTarget(line)) {
+          frame.currentMask = rotateHalves(frame.currentMask);
+        } else {
+          if (sem.reads.has(target)) {
+            const readMask = directReadMask(line);
+            if (readMask === undefined) {
+              finish("unknown");
+              continue;
+            }
+            if (((readMask >>> 0) & (frame.currentMask >>> 0)) !== 0) {
+              finish("used");
+              continue;
+            }
+          }
+          if (sem.writes.has(target)) {
+            if (isFullDataRegisterOverwriteWithoutUpperRead(line, target)) {
+              finish("unused");
+              continue;
+            }
+            const writeMask = directWriteMask(line);
+            if (writeMask === undefined) {
+              finish("unknown");
+              continue;
+            }
+            const remaining = (frame.currentMask & ~writeMask) >>> 0;
+            if (remaining === 0) {
+              finish("unused");
+              continue;
+            }
+            frame.currentMask = remaining;
+          }
+        }
+        const successors = [...cfg.successors[frame.i]];
+        frame.successors = successors;
+        frame.nextSuccessor = 0;
+        frame.aggregate = cfg.escapes[frame.i] || successors.length === 0 ? "unknown" : "unused";
       }
-      if (sem.reads.has(target)) {
-        const readMask = directReadMask(line);
-        if (readMask === undefined) {
-          visiting.delete(i);
-          memo.set(key, "unknown");
-          return "unknown";
-        }
-        if (((readMask >>> 0) & (currentMask >>> 0)) !== 0) {
-          visiting.delete(i);
-          memo.set(key, "used");
-          return "used";
-        }
-      }
-      if (sem.writes.has(target)) {
-        if (isFullDataRegisterOverwriteWithoutUpperRead(line, target)) {
-          visiting.delete(i);
-          memo.set(key, "unused");
-          return "unused";
-        }
-        // A narrower write still ends the life of the bits it covers. Removing
-        // them from the mask answers the question this walk exists for: whether
-        // any of the bits we started with survive to be read. Giving up here
-        // reported `move.w d0,d1 / move.w d2,d1` as unknowable, when the first
-        // write is plainly overwritten.
-        const writeMask = directWriteMask(line);
-        if (writeMask === undefined) {
-          visiting.delete(i);
-          memo.set(key, "unknown");
-          return "unknown";
-        }
-        const remaining = (currentMask & ~writeMask) >>> 0;
-        if (remaining === 0) {
-          visiting.delete(i);
-          memo.set(key, "unused");
-          return "unused";
-        }
-        currentMask = remaining;
-      }
-      if (cfg.escapes[i]) {
-        visiting.delete(i);
-        memo.set(key, "unknown");
-        return "unknown";
-      }
-      const succ = [...cfg.successors[i]];
-      if (succ.length === 0) {
-        visiting.delete(i);
-        memo.set(key, "unknown");
-        return "unknown";
-      }
-      let aggregate: RegisterBitsUse = "unused";
-      for (const next of succ) {
-        const state = walk(next, currentMask);
-        if (state === "used") {
-          aggregate = "used";
-          break;
-        }
-        if (state === "unknown") aggregate = "unknown";
-      }
-      visiting.delete(i);
-      memo.set(key, aggregate);
-      return aggregate;
+      return result!;
     };
     const starts = [...cfg.successors[index]];
     if (starts.length === 0) return cfg.escapes[index] ? "unknown" : "unused";
