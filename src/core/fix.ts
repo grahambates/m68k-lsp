@@ -1,4 +1,4 @@
-import type { Applicability, Diagnostic } from "./diagnostic.js";
+import type { Applicability, Diagnostic, OptimizationAssessment } from "./diagnostic.js";
 
 /**
  * Applying suggestions to source.
@@ -12,6 +12,20 @@ import type { Applicability, Diagnostic } from "./diagnostic.js";
 export interface FixOptions {
   /** Which suggestions to apply. `conditional` ones rest on a stated assumption. */
   accept: readonly Applicability[];
+  /**
+   * Which measured outcomes to apply, defaulting to improvements alone.
+   *
+   * Applicability and outcome answer different questions. `safe` says the
+   * rewrite means the same thing; it says nothing about whether it is worth
+   * making. A trade-off is equivalent and costs bytes to save cycles, which is
+   * a choice about what the code is for, and a neutral rewrite changes the file
+   * for no measured gain at all. Neither is a decision to take unattended.
+   *
+   * Suggestions with no measurement are always eligible: a dead write is a
+   * defect to remove whatever the timings say, and impact is only measured for
+   * optimization rules on a 68000.
+   */
+  acceptAssessments?: readonly OptimizationAssessment[];
   /** Upper bound on lint-and-apply rounds, in case two rules undo each other. */
   maxPasses?: number;
   /**
@@ -88,14 +102,18 @@ function annotated(original: readonly string[], replacement: string, indent: str
 }
 
 
-function eligible(diagnostic: Diagnostic, accept: readonly Applicability[]): boolean {
+const DEFAULT_ASSESSMENTS: readonly OptimizationAssessment[] = ["improvement"];
+
+function eligible(
+  diagnostic: Diagnostic,
+  accept: readonly Applicability[],
+  assessments: readonly OptimizationAssessment[],
+): boolean {
   const suggestion = diagnostic.suggestion;
-  return (
-    suggestion !== undefined &&
-    suggestion.replacement !== undefined &&
-    diagnostic.span !== undefined &&
-    accept.includes(suggestion.applicability)
-  );
+  if (suggestion === undefined || suggestion.replacement === undefined || diagnostic.span === undefined) return false;
+  if (!accept.includes(suggestion.applicability)) return false;
+  const assessment = suggestion.impact?.assessment;
+  return assessment === undefined || assessments.includes(assessment);
 }
 
 /**
@@ -111,10 +129,11 @@ export function applyOnce(
   diagnostics: readonly Diagnostic[],
   accept: readonly Applicability[],
   annotate = false,
+  assessments: readonly OptimizationAssessment[] = DEFAULT_ASSESSMENTS,
 ): { output: string; applied: FixResult["applied"]; deferred: number } {
   const lines = source.replace(/\r\n/g, "\n").replace(/\r/g, "\n").split("\n");
   const candidates = diagnostics
-    .filter((diagnostic) => eligible(diagnostic, accept))
+    .filter((diagnostic) => eligible(diagnostic, accept, assessments))
     .sort((a, b) => b.span!.startLine - a.span!.startLine);
 
   const applied: FixResult["applied"] = [];
@@ -166,7 +185,13 @@ export function applyFixes(
   let rejected = false;
 
   while (passes < maxPasses) {
-    const round = applyOnce(output, lint(output), options.accept, options.annotate);
+    const round = applyOnce(
+      output,
+      lint(output),
+      options.accept,
+      options.annotate,
+      options.acceptAssessments ?? DEFAULT_ASSESSMENTS,
+    );
     if (round.applied.length === 0) {
       deferred = round.deferred;
       break;

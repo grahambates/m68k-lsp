@@ -10,8 +10,13 @@ import { lintSource } from "../core/lint.js";
  * faithful rewrite declines instead.
  */
 const lint = (source: string) => lintSource(source, { processors: ["mc68000"] });
+/** Trade-offs are opted into here, since several fixtures below are trade-offs. */
 const fix = (source: string, accept: ("safe" | "conditional")[] = ["safe"]) =>
-  applyFixes(source, lint, { accept, verify: (candidate) => parseFile(candidate).errors.length === 0 });
+  applyFixes(source, lint, {
+    accept,
+    acceptAssessments: ["improvement", "tradeoff"],
+    verify: (candidate) => parseFile(candidate).errors.length === 0,
+  });
 
 describe("applying suggestions", () => {
   test("rewrites a line and keeps its label, spacing and comment", () => {
@@ -112,7 +117,11 @@ describe("overlapping suggestions", () => {
  */
 describe("keeping the original above an opaque rewrite", () => {
   const annotate = (source: string) =>
-    applyFixes(source, lint, { accept: ["safe", "conditional"], annotate: true }).output;
+    applyFixes(source, lint, {
+      accept: ["safe", "conditional"],
+      acceptAssessments: ["improvement", "tradeoff"],
+      annotate: true,
+    }).output;
 
   test("a rewrite that expands is annotated", () => {
     const output = annotate("start:\n\tasr.w\t#8,d0\n\tmove.l\td1,d2\n\trts");
@@ -134,7 +143,10 @@ describe("keeping the original above an opaque rewrite", () => {
 
   test("it does nothing unless asked", () => {
     const source = "start:\n\tasr.w\t#8,d0\n\tmove.l\td1,d2\n\trts";
-    expect(applyFixes(source, lint, { accept: ["safe", "conditional"] }).output).not.toContain("; was:");
+    expect(
+      applyFixes(source, lint, { accept: ["safe", "conditional"], acceptAssessments: ["improvement", "tradeoff"] })
+        .output,
+    ).not.toContain("; was:");
   });
 
   // The commented copy is documentation; the live label must stay live.
@@ -147,5 +159,45 @@ describe("keeping the original above an opaque rewrite", () => {
   test("the annotated result still parses", () => {
     const output = annotate("start:\n\tasr.w\t#8,d0\n\tmove.l\td1,d2\n\trts");
     expect(parseFile(output).errors).toHaveLength(0);
+  });
+});
+
+/**
+ * Applicability and outcome answer different questions. `safe` says the rewrite
+ * means the same thing; it says nothing about whether it is worth making. A
+ * trade-off is equivalent and costs bytes to save cycles, which is a choice
+ * about what the code is for, and a neutral rewrite changes the file for no
+ * measured gain at all.
+ */
+describe("what a fix is worth, not just whether it is equivalent", () => {
+  const apply = (source: string, acceptAssessments?: ("improvement" | "tradeoff" | "neutral")[]) =>
+    applyFixes(source, lint, { accept: ["safe"], ...(acceptAssessments ? { acceptAssessments } : {}) }).output;
+
+  // Safe, and still a decision: two bytes for thirty-two cycles.
+  const tradeoff = "\tmulu.w\t#1,d0\n\tmove.l\td1,d2\n\trts";
+
+  test("a safe trade-off is not applied by default", () => {
+    expect(apply(tradeoff)).toBe(tradeoff);
+  });
+
+  test("it is applied once trade-offs are asked for", () => {
+    expect(apply(tradeoff, ["improvement", "tradeoff"])).not.toBe(tradeoff);
+  });
+
+  // Changing the file for no measured gain is churn.
+  test("a neutral rewrite is not applied even when asked for trade-offs", () => {
+    const neutral = "\tmove.l\t#$12345,a0\n\tmoveq\t#0,d7\n\trts";
+    expect(apply(neutral, ["improvement", "tradeoff"])).toBe(neutral);
+  });
+
+  test("an outright improvement is applied by default", () => {
+    expect(apply("\tmove.l\t#100,d0\n\trts")).toBe("\tmoveq\t#100,d0\n\trts");
+  });
+
+  // A dead write is a defect to remove whatever the timings say, and impact is
+  // only measured for optimization rules on a 68000.
+  test("a suggestion with no measurement is applied", () => {
+    const result = apply("\tmove.w\t#100,d0\n\tmove.w\t#200,d0\n\tmove.l\td0,(a0)\n\trts");
+    expect(result).toBe("\tmove.w\t#200,d0\n\tmove.l\td0,(a0)\n\trts");
   });
 });

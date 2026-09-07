@@ -6,7 +6,13 @@ import { dirname, relative, resolve, sep } from "node:path";
 import { parseFile } from "m68k-parser";
 import { lintParsedFile } from "../core/lint.js";
 import { applyFixes, type FixResult } from "../core/fix.js";
-import type { Applicability, Diagnostic, RuleCategory, Severity } from "../core/diagnostic.js";
+import type {
+  Applicability,
+  Diagnostic,
+  OptimizationAssessment,
+  RuleCategory,
+  Severity,
+} from "../core/diagnostic.js";
 import { buildProjectSymbols, type ProjectSymbols } from "../analysis/project-symbols.js";
 import type { ExternalSymbols } from "../analysis/symbols.js";
 import {
@@ -403,11 +409,20 @@ async function lintOne(path: string, options: CliOptions, config: LintConfig, ex
 
   if (options.fix) {
     const accept: Applicability[] = options.fixConditional ? ["safe", "conditional"] : ["safe"];
+    // A trade-off is only a decision once you have said which resource matters.
+    // Under an explicit goal the filtering has already dropped the ones that
+    // hurt it, so what is left genuinely helps the axis asked for; under
+    // balanced it is a coin-flip the linter should not call. Neutral rewrites
+    // are never applied: changing the file for no measured gain is churn.
+    const goal = config.goal ?? "balanced";
+    const acceptAssessments: OptimizationAssessment[] =
+      goal === "balanced" ? ["improvement"] : ["improvement", "tradeoff"];
     // A rewrite that will not parse is worse than no rewrite, so a round whose
     // result reads worse than what went in is rolled back rather than written.
     const errorCount = parseFile(source).errors.length;
     fixed = applyFixes(source, (text) => lintParsedFile(parseFile(text), text, config, undefined, external), {
       accept,
+      acceptAssessments,
       annotate: options.fixAnnotate,
       verify: (candidate) => parseFile(candidate).errors.length <= errorCount,
     });

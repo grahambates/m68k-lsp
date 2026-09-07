@@ -235,6 +235,16 @@ changes. `--fix-conditional` also applies `conditional` ones — read their note
 first, since each rests on an assumption the linter has stated but cannot prove.
 `--fix-dry-run` reports what would change and writes nothing.
 
+Applicability and outcome are separate questions. `safe` says a rewrite means
+the same thing; it says nothing about whether it is worth making. So only
+measured improvements are applied by default. A trade-off — equivalent, but
+costing bytes to save cycles — is a choice about what the code is for, and
+becomes applicable once `--goal speed` or `--goal size` says which resource
+matters, since the goal filter has already dropped the ones that hurt it. A
+neutral rewrite is never applied: changing the file for no measured gain is
+churn. A suggestion with no measurement at all, such as removing a dead write,
+is always eligible.
+
 Only suggestions carrying replacement text are applied, and a rule declines to
 offer one wherever a faithful rewrite is impossible: a label in the middle of a
 matched run, or a directive inside it. The replacement already carries the

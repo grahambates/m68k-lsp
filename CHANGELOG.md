@@ -5,6 +5,16 @@ previously lived in `README.md`.
 
 ## Unreleased
 
+### Changed
+
+- `--fix` applies only measured improvements by default. Applicability and
+  outcome answer different questions: `safe` says a rewrite means the same
+  thing, not that it is worth making. A trade-off becomes applicable under
+  `--goal speed` or `--goal size`, where the goal filter has already dropped the
+  ones that hurt the chosen resource; under `balanced` it is a decision the
+  linter should not take. A neutral rewrite is never applied. Suggestions with
+  no measurement, such as removing a dead write, stay eligible.
+
 ### Added
 
 - `--fix-annotate` keeps the original above a rewrite that is hard to read back,
