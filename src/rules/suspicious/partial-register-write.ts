@@ -34,18 +34,36 @@ function enclosingBlock(ctx: RuleContext, index: number): { start: number; end: 
 /**
  * Whether the routine writes the whole register anywhere.
  *
- * Building a long out of its halves is ordinary: a word into the low half, a
- * SWAP, a word into the other. Every one of those writes is partial, so on its
- * own each looks like it inherited whatever was above it. What separates that
- * from an oversight is whether the routine ever takes charge of the full
- * register at all -- a MOVE.L, a CLR.L, a MOVEQ, a SWAP. Where it does, the
- * halves are being managed deliberately and there is nothing to report.
+ * Putting a long into the register somewhere in the routine -- a MOVE.L, a
+ * CLR.L, a MOVEQ -- means the author has decided what the upper half holds,
+ * whatever it is, and a later narrow write over part of it is construction
+ * rather than an oversight.
+ *
+ * It has to be a write that does not also read. DIVU takes a 32-bit dividend
+ * and writes a 32-bit result, so it both consumes the upper half and replaces
+ * it; counting that as establishing the register excused the exact bug this
+ * rule exists to catch, a divide after only the low word was set.
+ *
+ * SWAP counts, though it reads what it writes. It is how the upper half is
+ * addressed at all, so a routine containing one is working both halves on
+ * purpose: `move.w` / `swap` / `move.w` defines all 32 bits, the unknown half
+ * having been rotated down and overwritten. Seeing that from the second write
+ * would need a backward bit analysis; the presence of the SWAP is the same
+ * answer for far less.
  */
-function writesWholeRegisterInBlock(ctx: RuleContext, register: Register, block: { start: number; end: number }): boolean {
+function establishesWholeRegisterInBlock(
+  ctx: RuleContext,
+  register: Register,
+  block: { start: number; end: number },
+): boolean {
   for (let i = block.start; i < block.end; i++) {
     const line = ctx.line(i);
     if (!line || line.mnemonic?.type !== "instruction") continue;
+    if (semanticMnemonic(line) === "swap" && dataRegisterOperand(line, 0)?.register.toLowerCase() === register) {
+      return true;
+    }
     const semantics = getRegisterSemantics(line);
+    if (semantics.reads.has(register)) continue;
     if (semantics.writes.has(register) && !semantics.partialWrites.has(register)) return true;
   }
   return false;
@@ -87,10 +105,10 @@ export const partialRegisterWrite: Rule = {
 
     // Writing the halves separately is a common way to build a long, and every
     // write in that pattern is partial. The question is whether the routine
-    // ever writes the register whole; if it does, both halves are accounted for
-    // and this is construction rather than an accident.
+    // puts a whole value into the register anywhere, which settles what the
+    // upper half holds.
     const register = destination.register.toLowerCase() as Register;
-    if (writesWholeRegisterInBlock(ctx, register, enclosingBlock(ctx, index))) return;
+    if (establishesWholeRegisterInBlock(ctx, register, enclosingBlock(ctx, index))) return;
 
     const preserved = size === "b" ? "upper 24 bits" : "upper 16 bits";
     ctx.report({

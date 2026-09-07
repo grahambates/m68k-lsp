@@ -5,6 +5,19 @@ previously lived in `README.md`.
 
 ## Unreleased
 
+### Fixed
+
+- DIVU.W and DIVS.W are recorded as reading a 32-bit dividend. The `.w` names
+  the divisor and the quotient, not the operand taken from the register, but the
+  read was modelled at the operand's width. Dividing after setting only the low
+  word is the classic way to get a wrong answer, and it went unreported.
+  MULU.W and MULS.W do read only the low word, and were already right.
+- `suspicious/partial-register-write` no longer treats an instruction that
+  consumes the register as establishing it. A divide writes all 32 bits, but it
+  read them first, so it does not account for what was above the word that was
+  set — counting it excused exactly the bug above. A SWAP still counts, being
+  how the upper half is addressed at all.
+
 ### Changed
 
 - `suspicious/partial-register-write` reports only where the routine never

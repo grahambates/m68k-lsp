@@ -61,3 +61,55 @@ describe("bits nothing in the routine ever writes", () => {
     expect(fires(source)).toBe(true);
   });
 });
+
+/**
+ * The word forms of divide and multiply are not symmetric, and the difference
+ * is the whole point of this rule.
+ *
+ * DIVU.W and DIVS.W take a **32-bit** dividend: the `.w` names the divisor and
+ * the quotient. Dividing after setting only the low word reads whatever was
+ * above it, which is the classic way to get a wrong answer.
+ *
+ * MULU.W and MULS.W read only the low word and write all 32, so setting just
+ * the low word first is correct and says nothing.
+ */
+const divides = (lines: string[]) => fires(lines);
+
+describe("DIVU and DIVS read a long dividend", () => {
+  test("dividing after only the low word was set is reported", () => {
+    expect(divides(["Routine:", "\tmove.w\t#100,d0", "\tdivu.w\t#4,d0", "\tmove.w\td0,(a0)", "\trts"])).toBe(true);
+  });
+
+  test("the signed form too", () => {
+    expect(divides(["Routine:", "\tmove.w\td4,d0", "\tdivs.w\t#4,d0", "\tmove.w\td0,(a0)", "\trts"])).toBe(true);
+  });
+
+  test("establishing the long first is fine", () => {
+    const source = [
+      "Routine:",
+      "\tmove.l\td1,d0",
+      "\tmove.w\t#100,d0",
+      "\tdivu.w\t#4,d0",
+      "\tmove.w\td0,(a0)",
+      "\trts",
+    ];
+    expect(divides(source)).toBe(false);
+  });
+
+  // The divide writes all 32 bits, but it consumed them first, so it does not
+  // account for what was above the word that was set.
+  test("the divide itself does not count as establishing the register", () => {
+    const source = ["Routine:", "\tmove.w\t#100,d0", "\tdivu.w\t#4,d0", "\tmove.l\td0,(a0)", "\trts"];
+    expect(divides(source)).toBe(true);
+  });
+});
+
+describe("MULU and MULS read only the low word", () => {
+  test("multiplying after setting the low word says nothing", () => {
+    expect(divides(["Routine:", "\tmove.w\t#100,d0", "\tmulu.w\t#4,d0", "\tmove.l\td0,(a0)", "\trts"])).toBe(false);
+  });
+
+  test("the signed form too", () => {
+    expect(divides(["Routine:", "\tmove.w\td4,d0", "\tmuls.w\t#4,d0", "\tmove.l\td0,(a0)", "\trts"])).toBe(false);
+  });
+});

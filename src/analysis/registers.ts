@@ -320,12 +320,19 @@ export function analyzeRegisters(
     const memo = new Map<string, RegisterBitsUse>();
     const directReadMask = (line: ParsedLine): number | undefined => {
       const size = instructionSize(line);
+      const mnemonic = semanticMnemonic(line);
+      // DIVU and DIVS take a 32-bit dividend however the size is written: the
+      // `.w` names the divisor and the quotient, not the operand read out of
+      // the register. Dividing after writing only the low word is the classic
+      // way to get a wrong answer, and modelling the read as 16 bits hid it.
+      const longDividend = mnemonic === "divu" || mnemonic === "divs";
       let readMask = 0;
       let saw = false;
-      for (const op of line.operands ?? []) {
+      for (const [position, op] of (line.operands ?? []).entries()) {
         if (op.type === "data-register" && normalizeRegister(op.register) === target) {
           saw = true;
-          if (size === "b") readMask |= 0xff;
+          if (longDividend && position === 1) readMask = 0xffffffff;
+          else if (size === "b") readMask |= 0xff;
           else if (size === "w") readMask |= 0xffff;
           else if (size === "l") readMask = 0xffffffff;
           else return undefined;
