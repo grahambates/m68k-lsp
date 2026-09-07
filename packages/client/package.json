@@ -1,0 +1,162 @@
+{
+  "name": "m68k-lint-vscode",
+  "displayName": "M68k Lint",
+  "description": "Static analysis and optimization hints for Motorola 68k assembly",
+  "version": "0.1.0",
+  "publisher": "gigabates",
+  "license": "MIT",
+  "author": "Graham Bates",
+  "private": true,
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/grahambates/m68k-lint-lsp.git",
+    "directory": "packages/client"
+  },
+  "categories": [
+    "Linters",
+    "Programming Languages"
+  ],
+  "keywords": [
+    "m68k",
+    "68000",
+    "amiga",
+    "atari",
+    "assembly",
+    "lint"
+  ],
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "main": "./out/extension.js",
+  "activationEvents": [
+    "onLanguage:m68k",
+    "onLanguage:vasmmot",
+    "workspaceContains:**/m68k-lint.json",
+    "workspaceContains:**/.m68klintrc.json"
+  ],
+  "contributes": {
+    "languages": [
+      {
+        "id": "m68k",
+        "aliases": [
+          "M68k-Assembly",
+          "asm68k",
+          "m68k"
+        ],
+        "extensions": [
+          ".s",
+          ".i",
+          ".asm",
+          ".a68"
+        ]
+      }
+    ],
+    "jsonValidation": [
+      {
+        "fileMatch": [
+          "m68k-lint.json",
+          ".m68klintrc.json"
+        ],
+        "url": "https://raw.githubusercontent.com/grahambates/m68k-lint/main/m68k-lint.schema.json"
+      }
+    ],
+    "configuration": {
+      "title": "M68k Lint",
+      "properties": {
+        "m68kLint.enable": {
+          "type": "boolean",
+          "default": true,
+          "description": "Report m68k-lint findings."
+        },
+        "m68kLint.run": {
+          "type": "string",
+          "enum": [
+            "onType",
+            "onSave"
+          ],
+          "default": "onType",
+          "description": "When to re-check a file."
+        },
+        "m68kLint.quickFix.conditional": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "Also offer fixes marked `conditional`. These rest on an assumption stated in the finding's notes, so read them before applying."
+        },
+        "m68kLint.quickFix.annotate": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "Keep the original instructions, commented out, above a rewrite that is hard to read back. Matches `m68k-lint --fix-annotate`."
+        },
+        "m68kLint.defaults.platform": {
+          "type": "string",
+          "enum": [
+            "generic",
+            "amiga",
+            "atari"
+          ],
+          "default": "generic",
+          "markdownDescription": "Target platform, used when the workspace has no config file. A checked-in `m68k-lint.json` overrides this."
+        },
+        "m68kLint.defaults.processors": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "mc68000",
+              "mc68010",
+              "mc68020",
+              "mc68030",
+              "mc68040",
+              "mc68060",
+              "cpu32"
+            ]
+          },
+          "default": [
+            "mc68000"
+          ],
+          "markdownDescription": "Target CPUs, used when the workspace has no config file. A checked-in `m68k-lint.json` overrides this."
+        },
+        "m68kLint.defaults.goal": {
+          "type": "string",
+          "enum": [
+            "balanced",
+            "speed",
+            "size"
+          ],
+          "default": "balanced",
+          "markdownDescription": "How to filter optimization suggestions whose trade-off is known. Used when the workspace has no config file."
+        },
+        "m68kLint.defaults.presets": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "recommended",
+              "style"
+            ]
+          },
+          "default": [
+            "recommended"
+          ],
+          "markdownDescription": "Rule presets, used when the workspace has no config file. `style` enables subjective convention rules."
+        },
+        "m68kLint.defaults.measureImpact": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Measure 68000 size and cycle impact for suggested rewrites. Turn off if linting feels slow on large files."
+        },
+        "m68kLint.defaults.projectSymbols": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Resolve constants a file does not define by indexing the rest of the workspace. Turn off to analyse each file strictly alone."
+        }
+      }
+    }
+  },
+  "dependencies": {
+    "vscode-languageclient": "^9.0.1"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.85.0"
+  }
+}

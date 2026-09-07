@@ -1,0 +1,1 @@
+MYCONST	equ	1
