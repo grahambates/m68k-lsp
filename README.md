@@ -273,23 +273,29 @@ as it would be reported and asking what to do:
 | key |                                                            |
 | --- | ---------------------------------------------------------- |
 | `y` | apply the rewrite                                          |
-| `Y` | apply every remaining finding of this rule without asking  |
-| `n` | skip, leaving the finding to report again                  |
+| `Y` | apply every remaining finding of this rule                 |
+| `n` | skip                                                       |
+| `N` | skip every remaining finding of this rule                  |
 | `a` | allow here: write a directive beside this code             |
 | `d` | disable the rule for the whole project, in the config file |
 | `q` | stop; decisions already made still stand                   |
 
-`Y` and `d` are counterparts: one settles a rule as always wanted, the other as
-never. Both stop the session asking about it again, which is what keeps a review
-of forty near-identical findings readable.
+Two things vary: whether an answer covers one finding or the whole rule, and
+whether it lasts for this run or is written down.
 
-`a` and `d` differ in scope rather than in sentiment. One occurrence being fine
-is a comment on that line; a rule that does not suit the project is one entry in
-`m68k-lint.json`, which is written for you and leaves anything already there
-alone. Once a rule is disabled the session stops asking about it.
+|              | this occurrence | this rule |
+| ------------ | --------------- | --------- |
+| this run     | `y` / `n`       | `Y` / `N` |
+| written down | `a`             | `d`       |
 
-Both are the useful answers for a finding with no rewrite, where the question is
-whether the code is meant to be that way rather than how to change it.
+`Y` and `N` settle a rule for the rest of the session and leave nothing behind:
+the next run asks again. That is what separates `N` from `d`, which writes the
+rule off in `m68k-lint.json` for good, preserving anything already in the file.
+
+`a` and `d` are the answers that persist, one against a single line and one
+against everything. Both are the useful answers for a finding with no rewrite,
+where the question is whether the code is meant to be that way rather than how
+to change it.
 
 Questions come in file order, and edits are made afterwards from the bottom up,
 which is the only order in which line numbers stay valid.

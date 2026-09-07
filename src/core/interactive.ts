@@ -14,7 +14,7 @@ import type { Diagnostic } from "./diagnostic.js";
  * "I have applied this by hand", which is not a suppression at all -- a finding
  * you have actually fixed stops being reported on its own.
  */
-export type Decision = "apply" | "apply-rule" | "skip" | "allow" | "disable" | "quit";
+export type Decision = "apply" | "apply-rule" | "skip" | "skip-rule" | "allow" | "disable" | "quit";
 
 export interface InteractiveResult {
   output: string;
@@ -65,10 +65,12 @@ export async function runInteractive(
   const decisions: { diagnostic: Diagnostic; decision: "apply" | "allow" }[] = [];
   const disabledRules = new Set<string>();
   const acceptedRules = new Set<string>();
+  const skippedRules = new Set<string>();
   let quit = false;
   for (const diagnostic of reviewable) {
-    // Once a rule is off for the project there is nothing left to ask about it.
-    if (disabledRules.has(diagnostic.ruleId)) continue;
+    // Once a rule is off for the project, or set aside for this run, there is
+    // nothing left to ask about it.
+    if (disabledRules.has(diagnostic.ruleId) || skippedRules.has(diagnostic.ruleId)) continue;
 
     const fixable = diagnostic.suggestion?.replacement !== undefined;
     // A rule already accepted wholesale is not asked about again. A finding of
@@ -85,6 +87,10 @@ export async function runInteractive(
       break;
     }
     if (decision === "skip") continue;
+    if (decision === "skip-rule") {
+      skippedRules.add(diagnostic.ruleId);
+      continue;
+    }
     if (decision === "disable") {
       disabledRules.add(diagnostic.ruleId);
       continue;

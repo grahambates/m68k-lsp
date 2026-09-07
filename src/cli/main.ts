@@ -452,7 +452,7 @@ async function reviewFile(
   return runInteractive(source, diagnostics, async (diagnostic) => {
     console.log(`\n${formatDiagnostic(path, source, diagnostic, color)}`);
     const fixable = diagnostic.suggestion?.replacement !== undefined;
-    const choices = fixable ? "y/Y/n/a/d/q/?" : "n/a/d/q/?";
+    const choices = fixable ? "y/Y/n/N/a/d/q/?" : "n/N/a/d/q/?";
     for (;;) {
       // Case matters here, so the answer is not folded to lower case.
       const answer = (await ask(`  ${fixable ? "apply" : "no rewrite available"} [${choices}] `)).trim();
@@ -462,12 +462,14 @@ async function reviewFile(
           console.log(`  Y  apply every remaining ${diagnostic.ruleId} without asking`);
         }
         console.log("  n  skip, and report it again next time");
+        console.log(`  N  skip every remaining ${diagnostic.ruleId} in this run`);
         console.log("  a  allow here, adding a directive beside this code");
         console.log(`  d  disable ${diagnostic.ruleId} for the whole project`);
         console.log("  q  stop; what has been decided still stands");
         continue;
       }
       if (answer === "Y" && fixable) return "apply-rule";
+      if (answer === "N") return "skip-rule";
       const lowered = answer.toLowerCase();
       if (lowered === "q") return "quit";
       if (lowered === "a") return "allow";

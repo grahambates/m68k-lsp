@@ -162,3 +162,40 @@ describe("accepting a whole rule at once", () => {
     expect(applied).toHaveLength(1);
   });
 });
+
+/**
+ * Two things vary: whether an answer covers one finding or the whole rule, and
+ * whether it lasts for this run or is written down.
+ *
+ *     this run      y / n          Y / N
+ *     written down  a (comment)    d (config entry)
+ *
+ * `Y` and `N` leave nothing behind; the next run asks again. That is what makes
+ * them different from `d`, which is a config entry and permanent.
+ */
+describe("setting a rule aside for this run only", () => {
+  const MANY = ["start:", "\tmove.l\t#100,d0", "\tmove.l\t#5,d1", "\tmove.w\td4,d7", "\tmove.l\td7,(a0)", "\trts"].join(
+    "\n",
+  );
+
+  test("stops asking without changing anything", async () => {
+    const { output, applied, suppressed, disabledRules, asked } = await review(MANY, ["skip-rule"]);
+    expect(asked).toEqual(["optimization/prefer-moveq@2", "suspicious/partial-register-write@4"]);
+    expect(output).toBe(MANY);
+    expect(applied).toEqual([]);
+    expect(suppressed).toEqual([]);
+    // Nothing to write to the config: this was for now, not for good.
+    expect(disabledRules).toEqual([]);
+  });
+
+  test("disabling the same rule instead is reported for the config", async () => {
+    const { output, disabledRules } = await review(MANY, ["disable"]);
+    expect(disabledRules).toEqual(["optimization/prefer-moveq"]);
+    expect(output).toBe(MANY);
+  });
+
+  test("other rules are still asked about", async () => {
+    const { asked } = await review(MANY, ["skip-rule", "allow"]);
+    expect(asked).toContain("suspicious/partial-register-write@4");
+  });
+});
