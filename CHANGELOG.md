@@ -5,6 +5,13 @@ previously lived in `README.md`.
 
 ## Unreleased
 
+### Fixed
+
+- Findings from different files are separated by two blank lines rather than
+  one newline. Each file was printed with its own call, which put a blank line
+  between findings within a file and nothing at the boundary between two, so the
+  last finding of one ran straight into the first of the next.
+
 ### Added
 
 - `-i` / `--fix-interactive` reviews findings one at a time, showing each as it

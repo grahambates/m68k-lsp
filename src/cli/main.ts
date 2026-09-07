@@ -848,11 +848,17 @@ async function main(): Promise<number> {
       ),
     );
   } else {
-    for (const result of results) {
-      if (!("source" in result)) continue;
-      const entries = result.diagnostics.map((d) => formatDiagnostic(result.path, result.source, d, options.color));
-      if (entries.length) console.log(entries.join("\n\n"));
-    }
+    // One blank line between findings, two between files. Printing each file
+    // with its own console.log gave the opposite: a blank line inside a file
+    // and only a newline at the boundary between two, so the last finding of
+    // one ran straight into the first of the next.
+    const blocks = results
+      .filter((result): result is Extract<typeof result, { source: string }> => "source" in result)
+      .map((result) =>
+        result.diagnostics.map((d) => formatDiagnostic(result.path, result.source, d, options.color)).join("\n\n"),
+      )
+      .filter((block) => block.length > 0);
+    if (blocks.length) console.log(blocks.join("\n\n\n"));
 
     // Syntax belongs to the assembler, which reports it against its own grammar
     // rather than this parser's more permissive one. What is worth saying is
