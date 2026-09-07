@@ -5,6 +5,16 @@ previously lived in `README.md`.
 
 ## Unreleased
 
+### Fixed
+
+- `suspicious/condition-after-preserved-ccr` no longer reports a conditional
+  instruction that follows another one. The rule is about a condition surviving
+  across an instruction with nothing to do with it; an instruction reading the
+  condition codes is a second consumer of the same test, which is ordinary:
+  `move.l d0,handle` / `sne flag` / `bne.s ok`. Branches were already excluded
+  by not falling through, but SCC does fall through, so the branch after one was
+  reported.
+
 ### Changed
 
 - `optimization/redundant-zero-displacement` is off by default, available under

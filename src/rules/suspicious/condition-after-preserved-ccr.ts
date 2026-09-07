@@ -23,6 +23,19 @@ export const conditionAfterPreservedCcr: Rule = {
     const previousName = semanticMnemonic(previous.line);
     if (!previousName) return;
 
+    // A conditional instruction in between is reading the same condition, not
+    // sitting obliviously on top of it. Nothing says the flags are meant more
+    // clearly than another instruction already testing them, and consuming one
+    // test more than once is ordinary:
+    //
+    //   move.l d0,dosHandle
+    //   sne    isOS2
+    //   bne.s  .dosOk
+    //
+    // Branches are already excluded by the control-flow check below; Scc and
+    // the other conditionals that fall through were not.
+    if (flagsReadByCondition(previousName).size > 0) return;
+
     const previousSemantics = getFlagSemantics(previous.line);
     if (previousSemantics.controlFlow !== "fallthrough") return;
     if (previousSemantics.writes.size !== 0 || previousSemantics.undefined.size !== 0) return;
