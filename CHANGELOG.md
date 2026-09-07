@@ -8,13 +8,14 @@ previously lived in `README.md`.
 ### Added
 
 - `-i` / `--fix-interactive` reviews findings one at a time, showing each as it
-  would be reported and asking whether to apply it, skip it, acknowledge it as
-  intentional, ignore it, or stop. Acknowledging and ignoring both write a
-  `m68k-lint-disable-next-line` directive above the code and differ in the
-  reason recorded, which is what makes them useful for the findings that have no
-  rewrite: the question there is whether the code is intentional, not how to
-  change it. Questions come in file order; edits are made afterwards from the
-  bottom up.
+  would be reported and asking whether to apply it, skip it, allow it here,
+  disable the rule for the project, or stop. Allowing writes a
+  `m68k-lint-disable-next-line` directive beside the code; disabling writes the
+  rule off in `m68k-lint.json`, preserving anything already there, and the
+  session stops asking about it. Both are the useful answers for a finding with
+  no rewrite, where the question is whether the code is meant to be that way
+  rather than how to change it. Questions come in file order; edits are made
+  afterwards from the bottom up.
 
 ### Changed
 

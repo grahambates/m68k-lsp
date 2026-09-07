@@ -99,7 +99,7 @@ describe("reviewing findings one at a time", () => {
     expect(output.split("\n")[2]).toBe("\tmove.l\t#5,d1");
   });
 
-  test("a finding with no rewrite can still be acknowledged", async () => {
+  test("a finding with no rewrite can still be allowed", async () => {
     const source = "\tmove.w\td4,d7\n\tmove.l\td7,(a0)\n\trts";
     const { output, suppressed } = await review(source, ["allow"]);
     expect(suppressed).toHaveLength(1);

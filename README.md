@@ -270,18 +270,21 @@ one-for-one rewrites are left plain.
 `-i` / `--fix-interactive` reviews findings one at a time instead, showing each
 as it would be reported and asking what to do:
 
-| key |                                                                 |
-| --- | --------------------------------------------------------------- |
-| `y` | apply the rewrite                                               |
-| `n` | skip, leaving the finding to report again                       |
-| `a` | acknowledge: the code was looked at and is meant to be this way |
-| `i` | ignore: the finding is not wanted here                          |
-| `q` | stop; decisions already made still stand                        |
+| key |                                                            |
+| --- | ---------------------------------------------------------- |
+| `y` | apply the rewrite                                          |
+| `n` | skip, leaving the finding to report again                  |
+| `a` | allow here: write a directive beside this code             |
+| `d` | disable the rule for the whole project, in the config file |
+| `q` | stop; decisions already made still stand                   |
 
-`a` and `i` both write a `m68k-lint-disable-next-line` directive above the code,
-differing only in the reason recorded. They are the useful answers for a finding
-that has no rewrite, where the question is whether the code is intentional
-rather than how to change it.
+`a` and `d` differ in scope rather than in sentiment. One occurrence being fine
+is a comment on that line; a rule that does not suit the project is one entry in
+`m68k-lint.json`, which is written for you and leaves anything already there
+alone. Once a rule is disabled the session stops asking about it.
+
+Both are the useful answers for a finding with no rewrite, where the question is
+whether the code is meant to be that way rather than how to change it.
 
 Questions come in file order, and edits are made afterwards from the bottom up,
 which is the only order in which line numbers stay valid.

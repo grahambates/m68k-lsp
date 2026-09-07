@@ -439,8 +439,8 @@ async function disableRulesInConfig(configPath: string, ruleIds: readonly string
  *
  * Each is shown as it would be reported, followed by what applying it would
  * do, so the choice is made with the same information the report carries. A
- * finding with no rewrite can still be acknowledged or ignored: those are the
- * useful answers to "I have looked at this".
+ * finding with no rewrite can still be allowed here or turned off for the
+ * project: those are the useful answers to "I have looked at this".
  */
 async function reviewFile(
   path: string,
