@@ -5,6 +5,16 @@ previously lived in `README.md`.
 
 ## Unreleased
 
+### Added
+
+- The stack-scratch shift rules explain the CLR.B they emit. `move.b dN,-(sp)`
+  writes only the high byte of the word it reserves, so the low byte read back
+  comes from whatever was in that slot; the CLR.B zeroes that rather than
+  anything from the register. A slot already zero does not need it, and zeroing
+  one once serves any number of these shifts. Said rather than applied, since
+  nothing can know what is in memory below SP, and an interrupt pushes its frame
+  exactly there.
+
 ### Fixed
 
 - `suspicious/condition-after-preserved-ccr` no longer reports a conditional

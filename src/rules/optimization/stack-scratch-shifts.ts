@@ -36,9 +36,31 @@ function canRemoveCountSetup(
   return ctx.registers.knownConstantBefore(setupIndex, register) === count;
 }
 
-function stackNotes(flagSafe: boolean, countNote?: string) {
+/**
+ * The CLR.B in these sequences zeroes the half of the word that came back from
+ * the stack slot rather than from the register: `move.b dN,-(sp)` writes only
+ * the high byte of the word it reserves, so the low byte is whatever was in
+ * that slot before.
+ *
+ * Zeroing the slot once therefore removes the CLR.B from every shift after it.
+ * Not offered as a rewrite, because nothing here can prove what is in memory
+ * below SP -- and an interrupt or exception pushes its frame exactly there, so
+ * a zero left below SP survives only while nothing interrupts. That makes it a
+ * technique for a person who knows their interrupt state, not a substitution.
+ */
+const CLEARS_STACK_BYTE = "clr.b";
+
+function stackNotes(flagSafe: boolean, countNote?: string, replacement?: string) {
   return [
     ...(countNote ? [{ message: countNote }] : []),
+    ...(replacement?.includes(CLEARS_STACK_BYTE)
+      ? [
+          {
+            message:
+              "The CLR.B only clears what came back from the stack slot, so it can be dropped where that slot is already zero. Zeroing it once serves any number of these shifts, provided nothing between them can push a frame below SP.",
+          },
+        ]
+      : []),
     { message: "SP is restored exactly; the replacement temporarily uses 2 bytes of stack." },
     {
       message:
@@ -98,7 +120,7 @@ export const stackAlignedWordShiftByEight: Rule = {
         // Stack memory traffic is an observable side effect, but SP scratch itself is allowed.
         applicability: safety.applicability === "safe" ? "conditional" : safety.applicability,
       },
-      notes: stackNotes(safety.applicability === "safe"),
+      notes: stackNotes(safety.applicability === "safe", undefined, replacement),
       data: {
         provenance: "flamewing",
         stackScratch: true,
@@ -176,6 +198,7 @@ export const stackAlignedKnownRegisterShifts: Rule = {
       notes: stackNotes(
         safety.applicability === "safe",
         `${countOp.register.toUpperCase()} is dead afterwards or already held the same count before MOVEQ, so the count setup can be removed.`,
+        replacement,
       ),
       data: {
         secondInstructionIndex: index,
