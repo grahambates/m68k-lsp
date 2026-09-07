@@ -842,14 +842,14 @@ async function main(): Promise<number> {
       ),
     );
   } else {
-    // One blank line between findings, two between files. Printing each file
+    // Two blank line between findings, three between files. Printing each file
     // with its own console.log gave the opposite: a blank line inside a file
     // and only a newline at the boundary between two, so the last finding of
     // one ran straight into the first of the next.
     const blocks = results
       .filter((result): result is Extract<typeof result, { source: string }> => "source" in result)
       .map((result) =>
-        result.diagnostics.map((d) => formatDiagnostic(result.path, result.source, d, options.color)).join("\n\n"),
+        result.diagnostics.map((d) => formatDiagnostic(result.path, result.source, d, options.color)).join("\n\n\n"),
       )
       .filter((block) => block.length > 0);
     if (blocks.length) console.log(blocks.join("\n\n\n"));
