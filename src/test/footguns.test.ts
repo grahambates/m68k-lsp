@@ -96,8 +96,15 @@ describe("correctness and suspicious footgun rules", () => {
     }
   });
 
-  test("still flags a narrow write over bits of unknown provenance", () => {
+  // A long move into the register first is the author taking charge of the
+  // upper bits, whatever they hold, so it counts as accounting for them.
+  test("a long write in the routine accounts for the preserved bits", () => {
     const source = ["    move.l d5,d2", "    move.b (a2),d2", "    move.l d2,d3", "    rts"].join("\n");
+    expect(ids(source)).not.toContain("suspicious/partial-register-write");
+  });
+
+  test("still flags bits nothing in the routine ever writes", () => {
+    const source = ["Routine:", "    move.b (a2),d2", "    move.l d2,d3", "    rts"].join("\n");
     expect(ids(source)).toContain("suspicious/partial-register-write");
   });
 });

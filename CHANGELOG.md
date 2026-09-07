@@ -5,6 +5,17 @@ previously lived in `README.md`.
 
 ## Unreleased
 
+### Changed
+
+- `suspicious/partial-register-write` reports only where the routine never
+  writes the register whole. Building a long out of its halves — a word into the
+  low half, a SWAP, a word into the other — makes every write in the sequence
+  partial, so each looked like it had inherited whatever was above it and the
+  rule fired throughout ordinary source. A MOVE.L, CLR.L, MOVEQ or SWAP anywhere
+  between the surrounding non-local labels shows the halves are being managed
+  deliberately. What remains is the case the rule was for: upper bits that are
+  read but never established, so they hold whatever was there on entry.
+
 ### Fixed
 
 - Findings from different files are separated by two blank lines rather than
