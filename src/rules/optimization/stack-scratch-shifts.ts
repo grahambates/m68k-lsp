@@ -61,10 +61,9 @@ function stackNotes(flagSafe: boolean, countNote?: string, replacement?: string)
           },
         ]
       : []),
-    { message: "SP is restored exactly; the replacement temporarily uses 2 bytes of stack." },
     {
       message:
-        "The replacement writes stack memory and introduces memory/bus-fault observability that the original register shift did not have.",
+        "The replacement uses 2 bytes of stack and restores SP exactly, but a register shift needs no stack at all: SP must already point at writable memory here.",
     },
     ...(flagSafe ? [] : [{ message: "CCR results differ from the original shift; changed flags must be unobserved." }]),
   ];
