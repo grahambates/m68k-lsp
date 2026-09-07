@@ -8,8 +8,9 @@ previously lived in `README.md`.
 ### Added
 
 - `-i` / `--fix-interactive` reviews findings one at a time, showing each as it
-  would be reported and asking whether to apply it, skip it, allow it here,
-  disable the rule for the project, or stop. Allowing writes a
+  would be reported and asking whether to apply it, apply every remaining finding
+  of that rule, skip it, allow it here, disable the rule for the project, or
+  stop. Allowing writes a
   `m68k-lint-disable-next-line` directive beside the code; disabling writes the
   rule off in `m68k-lint.json`, preserving anything already there, and the
   session stops asking about it. Both are the useful answers for a finding with

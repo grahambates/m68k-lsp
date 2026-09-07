@@ -273,10 +273,15 @@ as it would be reported and asking what to do:
 | key |                                                            |
 | --- | ---------------------------------------------------------- |
 | `y` | apply the rewrite                                          |
+| `Y` | apply every remaining finding of this rule without asking  |
 | `n` | skip, leaving the finding to report again                  |
 | `a` | allow here: write a directive beside this code             |
 | `d` | disable the rule for the whole project, in the config file |
 | `q` | stop; decisions already made still stand                   |
+
+`Y` and `d` are counterparts: one settles a rule as always wanted, the other as
+never. Both stop the session asking about it again, which is what keeps a review
+of forty near-identical findings readable.
 
 `a` and `d` differ in scope rather than in sentiment. One occurrence being fine
 is a comment on that line; a rule that does not suit the project is one entry in

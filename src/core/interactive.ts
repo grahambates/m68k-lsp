@@ -14,7 +14,7 @@ import type { Diagnostic } from "./diagnostic.js";
  * "I have applied this by hand", which is not a suppression at all -- a finding
  * you have actually fixed stops being reported on its own.
  */
-export type Decision = "apply" | "skip" | "allow" | "disable" | "quit";
+export type Decision = "apply" | "apply-rule" | "skip" | "allow" | "disable" | "quit";
 
 export interface InteractiveResult {
   output: string;
@@ -64,10 +64,21 @@ export async function runInteractive(
 
   const decisions: { diagnostic: Diagnostic; decision: "apply" | "allow" }[] = [];
   const disabledRules = new Set<string>();
+  const acceptedRules = new Set<string>();
   let quit = false;
   for (const diagnostic of reviewable) {
     // Once a rule is off for the project there is nothing left to ask about it.
     if (disabledRules.has(diagnostic.ruleId)) continue;
+
+    const fixable = diagnostic.suggestion?.replacement !== undefined;
+    // A rule already accepted wholesale is not asked about again. A finding of
+    // it with no rewrite still is: there is nothing to apply, so the standing
+    // answer does not reach it.
+    if (acceptedRules.has(diagnostic.ruleId) && fixable) {
+      decisions.push({ diagnostic, decision: "apply" });
+      continue;
+    }
+
     const decision = await decide(diagnostic);
     if (decision === "quit") {
       quit = true;
@@ -76,6 +87,11 @@ export async function runInteractive(
     if (decision === "skip") continue;
     if (decision === "disable") {
       disabledRules.add(diagnostic.ruleId);
+      continue;
+    }
+    if (decision === "apply-rule") {
+      acceptedRules.add(diagnostic.ruleId);
+      if (fixable) decisions.push({ diagnostic, decision: "apply" });
       continue;
     }
     decisions.push({ diagnostic, decision });

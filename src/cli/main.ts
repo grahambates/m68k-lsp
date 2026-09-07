@@ -452,22 +452,28 @@ async function reviewFile(
   return runInteractive(source, diagnostics, async (diagnostic) => {
     console.log(`\n${formatDiagnostic(path, source, diagnostic, color)}`);
     const fixable = diagnostic.suggestion?.replacement !== undefined;
-    const choices = fixable ? "y/n/a/d/q/?" : "n/a/d/q/?";
+    const choices = fixable ? "y/Y/n/a/d/q/?" : "n/a/d/q/?";
     for (;;) {
-      const answer = (await ask(`  ${fixable ? "apply" : "no rewrite available"} [${choices}] `)).trim().toLowerCase();
+      // Case matters here, so the answer is not folded to lower case.
+      const answer = (await ask(`  ${fixable ? "apply" : "no rewrite available"} [${choices}] `)).trim();
       if (answer === "?" || answer === "h") {
-        if (fixable) console.log("  y  apply the rewrite");
+        if (fixable) {
+          console.log("  y  apply the rewrite");
+          console.log(`  Y  apply every remaining ${diagnostic.ruleId} without asking`);
+        }
         console.log("  n  skip, and report it again next time");
         console.log("  a  allow here, adding a directive beside this code");
         console.log(`  d  disable ${diagnostic.ruleId} for the whole project`);
         console.log("  q  stop; what has been decided still stands");
         continue;
       }
-      if (answer === "q") return "quit";
-      if (answer === "a") return "allow";
-      if (answer === "d") return "disable";
-      if (answer === "n" || answer === "") return "skip";
-      if (answer === "y" && fixable) return "apply";
+      if (answer === "Y" && fixable) return "apply-rule";
+      const lowered = answer.toLowerCase();
+      if (lowered === "q") return "quit";
+      if (lowered === "a") return "allow";
+      if (lowered === "d") return "disable";
+      if (lowered === "n" || lowered === "") return "skip";
+      if (lowered === "y" && fixable) return "apply";
       console.error(`  Expected one of: ${choices}`);
     }
   });

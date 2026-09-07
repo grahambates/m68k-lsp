@@ -113,3 +113,52 @@ describe("reviewing findings one at a time", () => {
     );
   });
 });
+
+/**
+ * Answering forty identical findings one at a time is how a review stops being
+ * read. `Y` settles a rule for the rest of the session, and is the counterpart
+ * to `d`: one says always, the other never.
+ */
+describe("accepting a whole rule at once", () => {
+  const MANY = [
+    "start:",
+    "\tmove.l\t#100,d0",
+    "\tmove.l\t#5,d1",
+    "\tmove.l\t#7,d2",
+    "\tmove.w\td4,d7",
+    "\tmove.l\td7,(a0)",
+    "\trts",
+  ].join("\n");
+
+  test("asks once and applies the rest", async () => {
+    const { output, applied, asked } = await review(MANY, ["apply-rule"]);
+    expect(asked).toEqual(["optimization/prefer-moveq@2", "suspicious/partial-register-write@5"]);
+    expect(applied).toHaveLength(3);
+    expect(output.split("\n").slice(1, 4)).toEqual(["\tmoveq\t#100,d0", "\tmoveq\t#5,d1", "\tmoveq\t#7,d2"]);
+  });
+
+  test("other rules are still put to the reader", async () => {
+    const { asked } = await review(MANY, ["apply-rule", "skip"]);
+    expect(asked).toContain("suspicious/partial-register-write@5");
+  });
+
+  // The standing answer is "apply", so it cannot reach a finding of that rule
+  // with nothing to apply.
+  test("a finding of the same rule with no rewrite is still asked about", async () => {
+    const source = [
+      "\tmove.l\ta6,-(sp)",
+      "\tmove.l\tsp,a6",
+      "\tadd.w\t#-32,sp",
+      "\tmoveq\t#0,d0",
+      "\tmove.l\ta6,-(sp)",
+      ".ret:\tmove.l\tsp,a6",
+      "\tadd.w\t#-16,sp",
+      "\tmoveq\t#0,d1",
+      "\trts",
+    ].join("\n");
+    const { asked, applied } = await review(source, ["apply-rule"]);
+    const link = asked.filter((a) => a.startsWith("optimization/prefer-link-sequence"));
+    expect(link).toHaveLength(2);
+    expect(applied).toHaveLength(1);
+  });
+});
