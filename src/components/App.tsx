@@ -1,5 +1,10 @@
-import { FC, useEffect, useCallback, useReducer } from "react";
-import { reducer, defaultState } from "../reducer";
+import { FC, useCallback, useEffect, useState } from "react";
+import {
+  calculateTotals,
+  Line as LineType,
+  Totals as TotalsType,
+} from "68kcounter";
+import { parse } from "../parse";
 import "./App.css";
 import { Form } from "./Form";
 import { Github } from "./icons/Github";
@@ -8,19 +13,35 @@ import { VsCode } from "./icons/VsCode";
 import { Line } from "./Line";
 import { Totals } from "./Totals";
 
+interface Selection {
+  start: number | null;
+  end: number | null;
+  hover: number | null;
+  totals: TotalsType | null;
+}
+
+const defaultSelection: Selection = {
+  start: null,
+  end: null,
+  hover: null,
+  totals: null,
+};
+
 export const App: FC = () => {
-  const [state, dispatch] = useReducer(reducer, defaultState);
-  const {
-    lines,
-    totals,
-    selectionStart,
-    selectionEnd,
-    selectionHover,
-    selectionTotals,
-  } = state;
+  const [lines, setLines] = useState<LineType[] | null>(null);
+  const [totals, setTotals] = useState<TotalsType | null>(null);
+  const [selection, setSelection] = useState<Selection>(defaultSelection);
 
   const handleSubmit = (code: string) => {
-    dispatch({ type: "code", payload: code });
+    if (code) {
+      const parsedLines = parse(code);
+      setLines(parsedLines);
+      setTotals(calculateTotals(parsedLines));
+    } else {
+      setLines(null);
+      setTotals(null);
+    }
+    setSelection(defaultSelection);
     setTimeout(() => {
       document
         .getElementById("results")
@@ -29,22 +50,39 @@ export const App: FC = () => {
   };
 
   const clearSelection = useCallback(() => {
-    dispatch({ type: "clear" });
-  }, [dispatch]);
+    setSelection((s) => ({ ...s, start: null, end: null, totals: null }));
+  }, []);
 
   const handleClick = useCallback(
     (i: number) => {
-      dispatch({ type: "click", payload: i });
+      setSelection((s) => {
+        if (s.start !== null && s.end === null) {
+          if (i === s.start) {
+            // Cancel selection if clicking the start row again
+            return { ...s, start: null, end: null, hover: null };
+          }
+          // Finish selection
+          const min = Math.min(i, s.start);
+          const max = Math.max(i, s.start);
+          const range = (lines as LineType[]).slice(min, max + 1);
+          return {
+            ...s,
+            start: min,
+            end: max,
+            hover: null,
+            totals: calculateTotals(range),
+          };
+        }
+        // Start new selection
+        return { start: i, end: null, hover: null, totals: null };
+      });
     },
-    [dispatch],
+    [lines],
   );
 
-  const handleHover = useCallback(
-    (i: number) => {
-      dispatch({ type: "hover", payload: i });
-    },
-    [dispatch],
-  );
+  const handleHover = useCallback((i: number) => {
+    setSelection((s) => ({ ...s, hover: i }));
+  }, []);
 
   // Clear selection on escape
   useEffect(() => {
@@ -109,8 +147,8 @@ export const App: FC = () => {
           </div>
 
           {lines.map((line, i) => {
-            const a = selectionStart;
-            const b = selectionEnd !== null ? selectionEnd : selectionHover;
+            const a = selection.start;
+            const b = selection.end !== null ? selection.end : selection.hover;
             const isSelected =
               a !== null &&
               b !== null &&
@@ -122,7 +160,7 @@ export const App: FC = () => {
                 key={i + line.statement.text}
                 line={line}
                 index={i}
-                totals={i === selectionStart ? selectionTotals : null}
+                totals={i === selection.start ? selection.totals : null}
                 isSelected={isSelected}
                 onHover={handleHover}
                 onClick={handleClick}
