@@ -230,6 +230,114 @@ export function getUnitFiles(
   return Array.from(result);
 }
 
+/**
+ * Files sharing a unit with a document, ordered by how far away they are.
+ *
+ * Distance is steps through the include graph, so a file's own includes come
+ * before its includers' other includes. Where a name is defined more than
+ * once in a unit, the nearest definition is the one the reader most likely
+ * means.
+ */
+export function getUnitFilesByDistance(
+  documentUri: string,
+  ctx: ResolveContext,
+): string[] {
+  const unit = new Set(getUnitFiles(documentUri, ctx));
+  const ordered: string[] = [];
+  const seen = new Set<string>([documentUri]);
+  let frontier = [documentUri];
+
+  while (frontier.length) {
+    const next: string[] = [];
+    for (const uri of frontier) {
+      const neighbours = [
+        ...(ctx.store.get(uri)?.referencedUris ?? []),
+        ...directIncluders(uri, ctx),
+      ];
+      for (const neighbour of neighbours) {
+        if (seen.has(neighbour) || !unit.has(neighbour)) {
+          continue;
+        }
+        seen.add(neighbour);
+        ordered.push(neighbour);
+        next.push(neighbour);
+      }
+    }
+    frontier = next;
+  }
+
+  // Anything in the unit the walk did not reach, for completeness.
+  for (const uri of unit) {
+    if (!seen.has(uri)) {
+      ordered.push(uri);
+    }
+  }
+  return ordered;
+}
+
+function directIncluders(uri: string, ctx: ResolveContext): string[] {
+  const result: string[] = [];
+  for (const [candidate, doc] of ctx.store) {
+    if (doc.referencedUris.includes(uri)) {
+      result.push(candidate);
+    }
+  }
+  return result;
+}
+
+/**
+ * Files that are assembled directly rather than included by something else.
+ *
+ * A root of the include graph that pulls in at least one other file. The
+ * second condition matters: a workspace holds plenty of files nothing
+ * includes - vendored headers, unused data - and those are orphans rather
+ * than programs.
+ *
+ * There is no formal marker for an entry point in assembly, so this is a
+ * reading of the include graph, not a fact about the project.
+ */
+export function getEntryPoints(ctx: ResolveContext): string[] {
+  const included = new Set<string>();
+  for (const doc of ctx.store.values()) {
+    for (const uri of doc.referencedUris) {
+      included.add(uri);
+    }
+  }
+
+  const entryPoints: string[] = [];
+  for (const [uri, doc] of ctx.store) {
+    if (!included.has(uri) && doc.referencedUris.length > 0) {
+      entryPoints.push(uri);
+    }
+  }
+  return entryPoints;
+}
+
+/**
+ * Entry points whose include tree contains a document, nearest first.
+ *
+ * A file included by several programs belongs to each of them. The document
+ * itself comes first when it is an entry point, so a program is its own
+ * primary unit rather than being attributed to something that includes it.
+ */
+export function getEntryPointsFor(
+  documentUri: string,
+  ctx: ResolveContext,
+): string[] {
+  const entryPoints = new Set(getEntryPoints(ctx));
+  const found: string[] = [];
+
+  if (entryPoints.has(documentUri)) {
+    found.push(documentUri);
+  }
+  for (const includer of getIncluders(documentUri, ctx)) {
+    if (entryPoints.has(includer)) {
+      found.push(includer);
+    }
+  }
+  return found;
+}
+
 export async function getAsmFilesInDir(uri: string): Promise<string[]> {
   const result: string[] = [];
   const url = new URL(uri);

@@ -7,6 +7,7 @@ import * as lsp from "vscode-languageserver";
 import { createContext } from "../src/context";
 import DocumentProcessor from "../src/DocumentProcessor";
 import { indexWorkspace } from "../src/workspace";
+import { getEntryPoints, getEntryPointsFor } from "../src/files";
 import { NullLogger } from "./helpers";
 
 describe("indexWorkspace", () => {
@@ -105,5 +106,54 @@ describe("indexWorkspace", () => {
 
     // Still the processed entry, with its tree intact.
     expect(ctx.store.get(uri)).toHaveProperty("parsed");
+  });
+
+  describe("entry points", () => {
+    it("finds files that are assembled rather than included", async () => {
+      await write("progA.s", ' include "hw.i"\nStart:\n rts\n');
+      await write("progB.s", ' include "hw.i"\nStart:\n rts\n');
+      await write("hw.i", "CUSTOM equ $dff000\n");
+
+      const ctx = await contextFor();
+      await indexWorkspace(ctx, new DocumentProcessor(ctx));
+
+      const entryPoints = getEntryPoints(ctx).map((u) => u.split("/").pop());
+      expect(entryPoints.sort()).toEqual(["progA.s", "progB.s"]);
+    });
+
+    it("does not count a file that includes nothing as an entry point", async () => {
+      // Vendored headers and data files are orphans, not programs.
+      await write("main.s", ' include "hw.i"\n rts\n');
+      await write("hw.i", "CUSTOM equ $dff000\n");
+      await write("orphan.i", "UNUSED equ 1\n");
+
+      const ctx = await contextFor();
+      await indexWorkspace(ctx, new DocumentProcessor(ctx));
+
+      const entryPoints = getEntryPoints(ctx).map((u) => u.split("/").pop());
+      expect(entryPoints).toEqual(["main.s"]);
+    });
+
+    it("attributes a shared include to every program using it", async () => {
+      const hw = await write("hw.i", "CUSTOM equ $dff000\n");
+      await write("progA.s", ' include "hw.i"\n rts\n');
+      await write("progB.s", ' include "hw.i"\n rts\n');
+
+      const ctx = await contextFor();
+      await indexWorkspace(ctx, new DocumentProcessor(ctx));
+
+      const owners = getEntryPointsFor(hw, ctx).map((u) => u.split("/").pop());
+      expect(owners.sort()).toEqual(["progA.s", "progB.s"]);
+    });
+
+    it("puts a program first among its own entry points", async () => {
+      const main = await write("main.s", ' include "hw.i"\n rts\n');
+      await write("hw.i", "CUSTOM equ $dff000\n");
+
+      const ctx = await contextFor();
+      await indexWorkspace(ctx, new DocumentProcessor(ctx));
+
+      expect(getEntryPointsFor(main, ctx)).toEqual([main]);
+    });
   });
 });

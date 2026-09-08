@@ -7,7 +7,7 @@ import type {
 import { blockAt } from "m68k-parser";
 import * as lsp from "vscode-languageserver";
 import { AstNode, childNodes } from "./ast";
-import { getUnitFiles } from "./files";
+import { getUnitFilesByDistance } from "./files";
 import { isProcessed } from "./DocumentProcessor";
 import { containsPosition, locationAsRange } from "./geometry";
 import { Context } from "./context";
@@ -535,10 +535,10 @@ export async function getReferences(
     // document's own includes instead would reach sibling entry points that
     // merely share a header, and a rename would then edit an unrelated file.
     const defs = await getDefinitions(uri, position, ctx);
-    const scope = new Set<string>(getUnitFiles(uri, ctx));
+    const scope = new Set<string>(getUnitFilesByDistance(uri, ctx));
     for (const def of defs) {
       scope.add(def.location.uri);
-      for (const unitFile of getUnitFiles(def.location.uri, ctx)) {
+      for (const unitFile of getUnitFilesByDistance(def.location.uri, ctx)) {
         scope.add(unitFile);
       }
     }
@@ -603,8 +603,10 @@ export async function getDefinitions(
   const defs: Definition[] = [];
 
   // Everything sharing an assembly unit with this document, which is where a
-  // symbol it uses can be defined.
-  for (const depUri of getUnitFiles(uri, ctx)) {
+  // symbol it uses can be defined. Nearest first, so that where a name is
+  // defined in more than one place the closest one is offered first rather
+  // than whichever happened to be indexed earliest.
+  for (const depUri of getUnitFilesByDistance(uri, ctx)) {
     const def = ctx.store.get(depUri)?.symbols.definitions.get(symbol.name);
     if (def) {
       defs.push(def);
