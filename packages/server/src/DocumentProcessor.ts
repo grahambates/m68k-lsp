@@ -49,7 +49,7 @@ export default class DocumentProcessor {
       document,
       tree,
       parsed,
-      symbols: processSymbols(document.uri, tree, this.ctx),
+      symbols: processSymbols(document.uri, parsed, text),
       referencedUris: [],
     };
 

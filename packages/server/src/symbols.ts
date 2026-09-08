@@ -1,8 +1,9 @@
+import type { ParsedFile, ParsedLine, SymbolNode } from "m68k-parser";
 import * as lsp from "vscode-languageserver";
 import { TextDocument } from "vscode-languageserver-textdocument";
-import Parser, { SyntaxNode, Query } from "web-tree-sitter";
+import { AstNode, childNodes } from "./ast";
 import { getDependencies } from "./files";
-import { containsPosition, nodeAsRange } from "./geometry";
+import { containsPosition, locationAsRange } from "./geometry";
 import { Context } from "./context";
 
 export interface NamedSymbol {
@@ -45,15 +46,141 @@ export interface Symbols {
   incDirs: Literal[];
 }
 
-let symbolsQuery: Query | undefined;
+type Directive = string;
+
+/** Definitions named by the line's label. */
+const labelDefinitions: Record<Directive, DefinitionType> = {
+  equ: DefinitionType.Constant,
+  fequ: DefinitionType.Constant,
+  "=": DefinitionType.Constant,
+  set: DefinitionType.Variable,
+  rs: DefinitionType.Offset,
+  equr: DefinitionType.Register,
+  fequr: DefinitionType.Register,
+  equrl: DefinitionType.RegisterList,
+  fequrl: DefinitionType.RegisterList,
+  reg: DefinitionType.RegisterList,
+  freg: DefinitionType.RegisterList,
+  macro: DefinitionType.Macro,
+};
+
+/** Directives whose operands name registers, not symbols to resolve. */
+const registerDefinitions = new Set([
+  "equr",
+  "fequr",
+  "equrl",
+  "fequrl",
+  "reg",
+  "freg",
+]);
+
+/** Directives that declare symbols defined elsewhere. */
+const externalDefinitions = new Set(["xref", "nref"]);
+
+function directiveOf(line: ParsedLine): Directive | undefined {
+  return line.mnemonic?.type === "directive"
+    ? line.mnemonic.directive.toLowerCase()
+    : undefined;
+}
+
+/**
+ * Column at which a line's definition ends.
+ *
+ * Trailing comments are excluded, and colons count as part of a label so that
+ * `foo:` covers the colon.
+ */
+function endOfDefinition(line: ParsedLine, lineText: string): number {
+  let end = 0;
+  if (line.label) {
+    end = line.label.loc.end;
+    while (lineText[end] === ":") {
+      end++;
+    }
+  }
+  for (const loc of [line.mnemonic?.loc, line.qualifier?.loc]) {
+    if (loc) {
+      end = Math.max(end, loc.end);
+    }
+  }
+  const last = line.operands?.[line.operands.length - 1];
+  if (last) {
+    end = Math.max(end, last.loc.end);
+  }
+  return end;
+}
+
+/**
+ * Documentation comment for a definition.
+ *
+ * A comment on the same line wins; failing that, the run of comment-only lines
+ * directly above it is used.
+ */
+function commentFor(
+  lines: ParsedLine[],
+  lineTexts: string[],
+  index: number,
+): string | undefined {
+  const commentLines: string[] = [];
+  // The comment node holds its content with the prefix stripped, but the
+  // markdown conversion below expects the raw text, so take it from the source.
+  const raw = (line: ParsedLine, at: number) => {
+    const { loc } = line.comment!;
+    return (lineTexts[at] ?? "").slice(loc.start, loc.end);
+  };
+
+  if (lines[index].comment) {
+    commentLines.push(raw(lines[index], index));
+  } else {
+    for (let i = index - 1; i >= 0; i--) {
+      const previous = lines[i];
+      if (
+        !previous.comment ||
+        previous.label !== undefined ||
+        previous.mnemonic !== undefined
+      ) {
+        break;
+      }
+      commentLines.unshift(raw(previous, i));
+    }
+  }
+
+  if (!commentLines.length) {
+    return undefined;
+  }
+
+  // Convert to markdown:
+  const horizontalRule = "***";
+  const processedLines = commentLines.map((l) =>
+    l
+      // Remove comment char and leading whitespace from each line
+      .replace(/^[;*]\s?/, "")
+      // Convert repeated punctuation lines to MD horizontal rules
+      // This looks better and avoids creating headings with --- or === underline style
+      // Use a tmp placeholder string until special chars are escaped
+      .replace(/^\s*[*-=]{3,}\s*$/, "~~~")
+      // Escape special chars
+      .replace(/([*_{}[\]()#+-.!`])/g, "\\$1")
+      // Replace placholder with actual rule
+      .replace(/^~~~$/, horizontalRule),
+  );
+  // Ensure no horizontal rules at start or end of block
+  while (processedLines[0] === horizontalRule) {
+    processedLines.shift();
+  }
+  while (processedLines[processedLines.length - 1] === horizontalRule) {
+    processedLines.pop();
+  }
+
+  return processedLines.join("  \n");
+}
 
 /**
  * Process symbols in document
  */
 export function processSymbols(
   uri: string,
-  tree: Parser.Tree,
-  ctx: Context,
+  parsed: ParsedFile,
+  text: string,
 ): Symbols {
   const symbols: Symbols = {
     definitions: new Map<string, Definition>(),
@@ -62,71 +189,32 @@ export function processSymbols(
     incDirs: [],
   };
 
+  const lineTexts = text.split(/\r?\n/g);
   let lastGlobalLabel: Definition | undefined;
 
-  function addDefinition(node: SyntaxNode, nameNode: SyntaxNode) {
-    const name = nameNode.text;
-
+  function addDefinition(
+    name: string,
+    type: DefinitionType,
+    selectionRange: lsp.Range,
+    range: lsp.Range,
+    index: number,
+  ) {
     // Already defined in this doc?
     // Ignore interpolated macro with macro args
     if (symbols.definitions.has(name) || name.includes("\\")) {
       return;
     }
 
-    const type = definitionNodeTypeMappings[node.type];
-
     const def: Definition = {
       name,
       type,
-      location: { uri, range: nodeAsRange(node) },
-      selectionRange: nodeAsRange(nameNode),
+      location: { uri, range },
+      selectionRange,
     };
 
-    // Comments:
-    const commentLines: string[] = [];
-
-    // Same line comment
-    const [descendantComment] = node.descendantsOfType("comment");
-    if (descendantComment?.startPosition.row === node.startPosition.row) {
-      commentLines.unshift(descendantComment.text);
-    } else {
-      // Preceding line comments
-      let current = node;
-      while (
-        current.previousNamedSibling?.type === "comment" &&
-        current.previousNamedSibling.startPosition.row ===
-          current.startPosition.row - 1
-      ) {
-        current = current.previousNamedSibling;
-        commentLines.unshift(current.text);
-      }
-    }
-
-    // Convert to markdown:
-    const horizontalRule = "***";
-    const processedLines = commentLines.map((l) =>
-      l
-        // Remove comment char and leading whitespace from each line
-        .replace(/^[;*]\s?/, "")
-        // Convert repeated punctuation lines to MD horizontal rules
-        // This looks better and avoids creating headings with --- or === underline style
-        // Use a tmp placeholder string until special chars are escaped
-        .replace(/^\s*[*-=]{3,}\s*$/, "~~~")
-        // Escape special chars
-        .replace(/([*_{}[\]()#+-.!`])/g, "\\$1")
-        // Replace placholder with actual rule
-        .replace(/^~~~$/, horizontalRule),
-    );
-    // Ensure no horizontal rules at start or end of block
-    while (processedLines[0] === horizontalRule) {
-      processedLines.shift();
-    }
-    while (processedLines[processedLines.length - 1] === horizontalRule) {
-      processedLines.pop();
-    }
-
-    if (commentLines.length) {
-      def.comment = processedLines.join("  \n");
+    const comment = commentFor(parsed.lines, lineTexts, index);
+    if (comment) {
+      def.comment = comment;
     }
 
     if (type === DefinitionType.Label) {
@@ -144,78 +232,132 @@ export function processSymbols(
     symbols.definitions.set(name, def);
   }
 
-  if (!symbolsQuery) {
-    symbolsQuery = ctx.language.query(`
-      (symbol) @symbol
-      (include) @include
-      (include_dir) @include_dir
-      (external_reference) @external_reference
-    `);
+  function addReference(name: string, range: lsp.Range) {
+    let refs = symbols.references.get(name);
+    if (!refs) {
+      refs = [];
+      symbols.references.set(name, refs);
+    }
+    refs.push({ name, location: { uri, range } });
   }
-  const captures = symbolsQuery.captures(tree.rootNode);
 
-  for (const { node, name } of captures) {
-    if (name === "include") {
-      const pathNode = node.childForFieldName("path");
-      if (pathNode) {
-        symbols.includes.push({
-          location: { uri, range: nodeAsRange(pathNode) },
-          text: processPath(pathNode.text),
-        });
-      }
-      continue;
-    }
+  for (const [index, line] of parsed.lines.entries()) {
+    const lineText = lineTexts[index] ?? "";
+    const directive = directiveOf(line);
 
-    if (name === "include_dir") {
-      const pathNode = node.childForFieldName("path");
-      if (pathNode) {
-        symbols.incDirs.push({
-          location: { uri, range: nodeAsRange(pathNode) },
-          text: processPath(pathNode.text),
-        });
-      }
-      continue;
-    }
-
-    if (name === "external_reference") {
-      const items = node.childForFieldName("symbols");
-      if (items?.namedChildren) {
-        for (const nameNode of items.namedChildren) {
-          addDefinition(node, nameNode);
+    // Whole-line extent of a definition on this line, which for a macro runs
+    // to its `endm`.
+    const start = line.label?.loc.start ?? line.mnemonic?.loc.start ?? 0;
+    let endLine = index;
+    let end = endOfDefinition(line, lineText);
+    if (directive === "macro") {
+      for (let i = index + 1; i < parsed.lines.length; i++) {
+        if (directiveOf(parsed.lines[i]) === "endm") {
+          endLine = i;
+          end = endOfDefinition(parsed.lines[i], lineTexts[i] ?? "");
+          break;
         }
       }
     }
+    const range = lsp.Range.create(index, start, endLine, end);
 
-    // Symbols:
-
-    if (!node.parent) {
+    // Include paths are recorded rather than treated as symbols.
+    if (directive === "include" || directive === "incdir") {
+      const operand = line.operands?.[0];
+      if (operand?.type === "string-literal") {
+        const literal = {
+          location: { uri, range: locationAsRange(operand.loc, index) },
+          text: processPath(lineText.slice(operand.loc.start, operand.loc.end)),
+        };
+        (directive === "include" ? symbols.includes : symbols.incDirs).push(
+          literal,
+        );
+      }
       continue;
     }
-    const defMapping = definitionNodeTypeMappings[node.parent.type];
 
-    if (defMapping) {
-      // Definition:
-      const nameNode =
-        node.parent.childForFieldName("name") || node.parent.firstNamedChild;
-      if (nameNode) {
-        addDefinition(node.parent, nameNode);
+    // `section name,type` names the section in its first operand.
+    if (directive === "section") {
+      const name = line.operands?.[0] && symbolIn(line.operands[0]);
+      if (name) {
+        addDefinition(
+          name.name,
+          DefinitionType.Section,
+          locationAsRange(name.loc, index),
+          range,
+          index,
+        );
       }
-    } else {
-      // Reference:
-      const name = node.text;
-      let refs = symbols.references.get(name);
-      if (!refs) {
-        refs = [];
-        symbols.references.set(name, refs);
+      continue;
+    }
+
+    // `xref`/`nref` declare each operand as defined elsewhere.
+    if (directive && externalDefinitions.has(directive)) {
+      for (const operand of line.operands ?? []) {
+        const name = symbolIn(operand);
+        if (name) {
+          addDefinition(
+            name.name,
+            DefinitionType.XRef,
+            locationAsRange(name.loc, index),
+            range,
+            index,
+          );
+        }
       }
-      refs.push({
-        name,
-        location: { uri, range: nodeAsRange(node) },
-      });
+      continue;
+    }
+
+    if (line.label) {
+      const type =
+        (directive !== undefined ? labelDefinitions[directive] : undefined) ??
+        DefinitionType.Label;
+      addDefinition(
+        line.label.label,
+        type,
+        locationAsRange(line.label.loc, index),
+        range,
+        index,
+      );
+    }
+
+    // Operands of a register equate name registers, not symbols.
+    if (directive && registerDefinitions.has(directive)) {
+      continue;
+    }
+
+    for (const operand of line.operands ?? []) {
+      for (const node of [operand, ...descendants(operand)]) {
+        if (node.type === "symbol") {
+          const { name } = node as unknown as SymbolNode;
+          addReference(name, locationAsRange(node.loc, index));
+        }
+      }
     }
   }
 
   return symbols;
+}
+
+/** The symbol a directive operand wraps, if it is one. */
+function symbolIn(operand: AstNode): SymbolNode | undefined {
+  if (operand.type === "symbol") {
+    return operand as unknown as SymbolNode;
+  }
+  for (const child of childNodes(operand)) {
+    if (child.type === "symbol") {
+      return child as unknown as SymbolNode;
+    }
+  }
+  return undefined;
+}
+
+function descendants(node: AstNode): AstNode[] {
+  const out: AstNode[] = [];
+  for (const child of childNodes(node)) {
+    out.push(child, ...descendants(child));
+  }
+  return out;
 }
 
 /**
@@ -471,19 +613,6 @@ function localContext(
   }
   return { range, startLabel, endLabel };
 }
-
-const definitionNodeTypeMappings: Record<string, DefinitionType> = {
-  section: DefinitionType.Section,
-  label: DefinitionType.Label,
-  external_label: DefinitionType.Label,
-  macro_definition: DefinitionType.Macro,
-  symbol_definition: DefinitionType.Constant,
-  symbol_assignment: DefinitionType.Variable,
-  offset_definition: DefinitionType.Offset,
-  register_definition: DefinitionType.Register,
-  register_list_definition: DefinitionType.RegisterList,
-  external_reference: DefinitionType.XRef,
-};
 
 export const symbolKindMappings: Record<DefinitionType, lsp.SymbolKind> = {
   [DefinitionType.Section]: lsp.SymbolKind.Module,
