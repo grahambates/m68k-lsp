@@ -1,52 +1,38 @@
-import type { ParsedFile } from "m68k-parser";
+import type { Block, BlockStructure } from "m68k-parser";
 import * as lsp from "vscode-languageserver";
 import { Provider } from ".";
 import { Context } from "../context";
 import { Definition, DefinitionType } from "../symbols";
-import { blockDividers, blockOpeners } from "../syntax";
 
 /**
- * Regions for macro, rept, rem and conditional blocks.
+ * Fold ranges for macro, repeat and conditional blocks.
  *
- * A block runs from its opening directive to the line before whatever closes
- * it, and `else`/`elseif` both close the section above and open the next. The
- * tree-sitter grammar produced these as nested body nodes; a line-oriented
- * tree needs the nesting tracked explicitly.
- *
- * Unbalanced blocks are common enough in sources that guard conditionals
- * around includes, so a closer only pops when it matches the innermost open
- * block, and anything left open at the end is discarded.
+ * A block folds from its opening directive to the line before whatever closes
+ * it, and each arm of a conditional folds separately. A block that never
+ * closes is left alone, since an unterminated one is the normal state while
+ * it is being typed.
  */
-function blockRegions(parsed: ParsedFile): Array<[number, number]> {
+function blockRegions(structure: BlockStructure): Array<[number, number]> {
   const regions: Array<[number, number]> = [];
-  const open: Array<{ line: number; closers: string[] }> = [];
 
-  for (const [index, line] of parsed.lines.entries()) {
-    if (line.mnemonic?.type !== "directive") {
-      continue;
-    }
-    const directive = line.mnemonic.directive.toLowerCase();
-
-    const innermost = open[open.length - 1];
-    const closes =
-      innermost &&
-      (innermost.closers.includes(directive) || blockDividers.has(directive));
-
-    if (closes) {
-      const { line: start } = open.pop()!;
-      // An empty body has nothing to fold.
-      if (index - 1 > start) {
-        regions.push([start, index - 1]);
+  const visit = (blocks: Block[]) => {
+    for (const block of blocks) {
+      if (block.end !== undefined) {
+        // Each arm runs to the line before the next divider, or the end.
+        const bounds = [block.start, ...block.alternatives, block.end];
+        for (let i = 0; i < bounds.length - 1; i++) {
+          const start = bounds[i];
+          const end = bounds[i + 1] - 1;
+          // An empty arm has nothing to fold.
+          if (end > start) {
+            regions.push([start, end]);
+          }
+        }
       }
+      visit(block.children);
     }
-
-    if (blockOpeners[directive]) {
-      open.push({ line: index, closers: blockOpeners[directive] });
-    } else if (closes && blockDividers.has(directive)) {
-      // `else` reopens with the same terminators as the branch it replaces.
-      open.push({ line: index, closers: innermost.closers });
-    }
-  }
+  };
+  visit(structure.blocks);
 
   return regions;
 }
@@ -70,7 +56,7 @@ export default class FoldingRangeProvider implements Provider {
       );
     }
 
-    for (const [start, end] of blockRegions(processed.parsed)) {
+    for (const [start, end] of blockRegions(processed.blocks)) {
       addRegion(start, end);
     }
 

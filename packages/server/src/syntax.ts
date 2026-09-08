@@ -98,34 +98,3 @@ export const controlMnemonics = new Set([
   "endr",
   "end",
 ]);
-
-/**
- * Directives that open a foldable block, mapped to the directives that close
- * it. Conditionals accept either spelling of their terminator.
- */
-export const blockOpeners: Record<string, string[]> = {
-  macro: ["endm"],
-  rept: ["endr"],
-  rem: ["erem"],
-  if: ["endc", "endif"],
-  ifeq: ["endc", "endif"],
-  ifne: ["endc", "endif"],
-  ifgt: ["endc", "endif"],
-  ifge: ["endc", "endif"],
-  iflt: ["endc", "endif"],
-  ifle: ["endc", "endif"],
-  ifb: ["endc", "endif"],
-  ifnb: ["endc", "endif"],
-  if1: ["endc", "endif"],
-  if2: ["endc", "endif"],
-  ifp1: ["endc", "endif"],
-  ifc: ["endc", "endif"],
-  ifnc: ["endc", "endif"],
-  ifd: ["endc", "endif"],
-  ifnd: ["endc", "endif"],
-  ifmacrod: ["endc", "endif"],
-  ifmacrond: ["endc", "endif"],
-};
-
-/** Directives that end one section of a conditional and begin the next. */
-export const blockDividers = new Set(["else", "elseif"]);

@@ -1,4 +1,4 @@
-import type { ParsedFile } from "m68k-parser";
+import type { BlockStructure, ParsedFile } from "m68k-parser";
 import { Diagnostic, DiagnosticSeverity } from "vscode-languageserver";
 import { URI } from "vscode-uri";
 import which from "which";
@@ -104,14 +104,18 @@ export default class DiagnosticProcessor {
   /**
    * Diagnostic messages generated from the parsed syntax tree
    */
-  parserDiagnostics(parsed: ParsedFile): Diagnostic[] {
-    const diagnostics = parsed.errors.map((error): Diagnostic => ({
-      range: locationAsRange(error.loc),
-      message: error.hint ? `${error.message}. ${error.hint}` : error.message,
-      severity: DiagnosticSeverity.Error,
-      source: "m68k",
-      code: error.code,
-    }));
+  parserDiagnostics(parsed: ParsedFile, blocks: BlockStructure): Diagnostic[] {
+    // Block errors sit alongside the line errors: an unterminated macro or a
+    // stray `endc` is only visible once nesting has been worked out.
+    const diagnostics = [...parsed.errors, ...blocks.errors].map(
+      (error): Diagnostic => ({
+        range: locationAsRange(error.loc),
+        message: error.hint ? `${error.message}. ${error.hint}` : error.message,
+        severity: DiagnosticSeverity.Error,
+        source: "m68k",
+        code: error.code,
+      }),
+    );
 
     // No need for this if vasm is configured
     if (!this.ctx.config.vasm.provideDiagnostics) {

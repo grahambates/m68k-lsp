@@ -1,4 +1,10 @@
-import type { ParsedFile, ParsedLine, SymbolNode } from "m68k-parser";
+import type {
+  BlockStructure,
+  ParsedFile,
+  ParsedLine,
+  SymbolNode,
+} from "m68k-parser";
+import { blockAt } from "m68k-parser";
 import * as lsp from "vscode-languageserver";
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { AstNode, childNodes } from "./ast";
@@ -180,6 +186,7 @@ function commentFor(
 export function processSymbols(
   uri: string,
   parsed: ParsedFile,
+  blocks: BlockStructure,
   text: string,
 ): Symbols {
   const symbols: Symbols = {
@@ -260,12 +267,11 @@ export function processSymbols(
     let endLine = index;
     let end = endOfDefinition(line, lineText);
     if (directive === "macro") {
-      for (let i = index + 1; i < parsed.lines.length; i++) {
-        if (directiveOf(parsed.lines[i]) === "endm") {
-          endLine = i;
-          end = endOfDefinition(parsed.lines[i], lineTexts[i] ?? "");
-          break;
-        }
+      // A macro definition covers its whole body, up to and including `endm`.
+      const block = blockAt(blocks, index);
+      if (block?.kind === "macro" && block.end !== undefined) {
+        endLine = block.end;
+        end = endOfDefinition(parsed.lines[endLine], lineTexts[endLine] ?? "");
       }
     }
     const range = lsp.Range.create(index, start, endLine, end);

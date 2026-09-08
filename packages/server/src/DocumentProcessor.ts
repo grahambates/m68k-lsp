@@ -1,5 +1,5 @@
-import { parseFile } from "m68k-parser";
-import type { ParsedFile } from "m68k-parser";
+import { parseBlocks, parseFile } from "m68k-parser";
+import type { BlockStructure, ParsedFile } from "m68k-parser";
 import { TextDocument } from "vscode-languageserver-textdocument";
 
 import { readDocumentFromUri, resolveReferencedUris } from "./files";
@@ -9,6 +9,8 @@ import { Context } from "./context";
 export interface ProcessedDocument {
   document: TextDocument;
   parsed: ParsedFile;
+  /** Macro, repeat and conditional nesting derived from `parsed`. */
+  blocks: BlockStructure;
   symbols: Symbols;
   referencedUris: string[];
 }
@@ -23,11 +25,13 @@ export default class DocumentProcessor {
 
     const text = document.getText();
     const parsed = parseFile(text);
+    const blocks = parseBlocks(parsed);
 
     const processed: ProcessedDocument = {
       document,
       parsed,
-      symbols: processSymbols(document.uri, parsed, text),
+      blocks,
+      symbols: processSymbols(document.uri, parsed, blocks, text),
       referencedUris: [],
     };
 

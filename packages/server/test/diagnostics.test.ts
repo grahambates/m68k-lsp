@@ -1,4 +1,4 @@
-import { parseFile } from "m68k-parser";
+import { parseBlocks, parseFile } from "m68k-parser";
 import { DiagnosticSeverity } from "vscode-languageserver";
 import DiagnosticProcessor, { parseVasmOutput } from "../src/diagnostics";
 import { createTestContext } from "./helpers";
@@ -112,8 +112,10 @@ error 2 in line 1 of "a.i": unknown mnemonic <sdsdffd>
     const build = async (config = {}) =>
       new DiagnosticProcessor(await createTestContext(config));
 
-    const diagnose = (processor: DiagnosticProcessor, src: string) =>
-      processor.parserDiagnostics(parseFile(src));
+    const diagnose = (processor: DiagnosticProcessor, src: string) => {
+      const parsed = parseFile(src);
+      return processor.parserDiagnostics(parsed, parseBlocks(parsed));
+    };
 
     it("reports a syntax error with its parser code and position", async () => {
       const processor = await build({ vasm: { provideDiagnostics: true } });
@@ -200,6 +202,32 @@ error 2 in line 1 of "a.i": unknown mnemonic <sdsdffd>
       expect(
         result.filter((d) => d.message.includes("Unsupported")),
       ).toHaveLength(0);
+    });
+
+    it("reports a block that is never terminated", async () => {
+      const processor = await build({ vasm: { provideDiagnostics: true } });
+      const result = diagnose(processor, "MyMacro macro\n  move.w d0,d1\n");
+
+      const unterminated = result.find((d) => d.code === "UNTERMINATED_BLOCK");
+      expect(unterminated).toBeTruthy();
+      expect(unterminated.range.start.line).toBe(0);
+    });
+
+    it("reports a terminator that closes nothing", async () => {
+      const processor = await build({ vasm: { provideDiagnostics: true } });
+      const result = diagnose(processor, "  move.w d0,d1\n  endm\n");
+      expect(result.some((d) => d.code === "UNEXPECTED_BLOCK_TERMINATOR")).toBe(
+        true,
+      );
+    });
+
+    it("reports nothing for a balanced file", async () => {
+      const processor = await build({ vasm: { provideDiagnostics: true } });
+      const result = diagnose(
+        processor,
+        "MyMacro macro\n  ifeq 1\n  move.w d0,d1\n  endc\n  endm\n",
+      );
+      expect(result).toHaveLength(0);
     });
   });
 });
