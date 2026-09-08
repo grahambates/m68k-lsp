@@ -4,7 +4,7 @@ import { Context } from "../context";
 import DocumentFormatter, {
   FormatContext,
 } from "../formatter/DocumentFormatter";
-import { ProcessedDocument } from "../DocumentProcessor";
+import { isProcessed, ProcessedDocument } from "../DocumentProcessor";
 
 export default class DocumentFormattingProvider implements Provider {
   constructor(protected readonly ctx: Context) {}
@@ -14,7 +14,7 @@ export default class DocumentFormattingProvider implements Provider {
     options,
   }: lsp.DocumentFormattingParams): Promise<lsp.TextEdit[] | null> {
     const processed = this.ctx.store.get(textDocument.uri);
-    if (!processed) {
+    if (!isProcessed(processed)) {
       return null;
     }
     const formatter = this.getFormatter(options);
@@ -27,7 +27,7 @@ export default class DocumentFormattingProvider implements Provider {
     range,
   }: lsp.DocumentRangeFormattingParams): Promise<lsp.TextEdit[] | null> {
     const processed = this.ctx.store.get(textDocument.uri);
-    if (!processed) {
+    if (!isProcessed(processed)) {
       return null;
     }
     const formatter = this.getFormatter(options);
@@ -41,7 +41,7 @@ export default class DocumentFormattingProvider implements Provider {
     ch,
   }: lsp.DocumentOnTypeFormattingParams) {
     const processed = this.ctx.store.get(textDocument.uri);
-    if (!processed) {
+    if (!isProcessed(processed)) {
       return null;
     }
     const formatter = this.getFormatter({

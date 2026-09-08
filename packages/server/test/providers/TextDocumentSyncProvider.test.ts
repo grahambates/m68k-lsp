@@ -3,6 +3,14 @@ import * as lsp from "vscode-languageserver";
 import { Context } from "../../src/context";
 import TextDocumentSyncProvider from "../../src/providers/TextDocumentSyncProvider";
 import { createTestContext, range } from "../helpers";
+import type {
+  IndexedDocument,
+  ProcessedDocument,
+} from "../../src/DocumentProcessor";
+
+/** Open documents keep their text; these tests always look at one of those. */
+const asProcessed = (doc: IndexedDocument | undefined) =>
+  doc as ProcessedDocument;
 
 describe("TextDocumentSyncProvider", () => {
   let provider: TextDocumentSyncProvider;
@@ -41,7 +49,7 @@ describe("TextDocumentSyncProvider", () => {
 
       const processed = ctx.store.get(uri);
       expect(processed).toBeTruthy();
-      expect(processed.document.getText()).toBe(" move d0,d1");
+      expect(asProcessed(processed).document.getText()).toBe(" move d0,d1");
     });
   });
 
@@ -66,7 +74,7 @@ describe("TextDocumentSyncProvider", () => {
       });
 
       const processed = ctx.store.get(uri);
-      expect(processed.document.getText()).toBe(" move d2,d1");
+      expect(asProcessed(processed).document.getText()).toBe(" move d2,d1");
     });
   });
 });

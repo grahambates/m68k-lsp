@@ -4,7 +4,7 @@ import { TextDocument } from "vscode-languageserver-textdocument";
 import { Provider } from ".";
 import { Context } from "../context";
 import DiagnosticProcessor from "../diagnostics";
-import DocumentProcessor from "../DocumentProcessor";
+import DocumentProcessor, { isProcessed } from "../DocumentProcessor";
 
 export default class TextDocumentSyncProvider implements Provider {
   private processor: DocumentProcessor;
@@ -31,7 +31,7 @@ export default class TextDocumentSyncProvider implements Provider {
     contentChanges,
   }: lsp.DidChangeTextDocumentParams) {
     const existing = this.ctx.store.get(uri);
-    if (!existing) {
+    if (!isProcessed(existing)) {
       return;
     }
     const { document } = existing;
@@ -59,7 +59,7 @@ export default class TextDocumentSyncProvider implements Provider {
    */
   async fileDiagnostics(uri: string) {
     const existing = this.ctx.store.get(uri);
-    if (!existing) {
+    if (!isProcessed(existing)) {
       return;
     }
     const vasmDiagnostics = await this.diagnostics.vasmDiagnostics(uri);

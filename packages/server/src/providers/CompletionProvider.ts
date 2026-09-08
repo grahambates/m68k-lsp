@@ -23,7 +23,7 @@ import { Context } from "../context";
 import { componentAtIndex, ComponentType, parseLine } from "../parse";
 import { parseSignature } from "../signature";
 import { formatMnemonicDoc } from "../formatting";
-import { ProcessedDocument } from "../DocumentProcessor";
+import { isProcessed, ProcessedDocument } from "../DocumentProcessor";
 
 export default class CompletionProvider implements Provider {
   private dataRegs: lsp.CompletionItem[] = [
@@ -62,7 +62,7 @@ export default class CompletionProvider implements Provider {
     textDocument,
   }: lsp.CompletionParams): Promise<lsp.CompletionItem[]> {
     const processed = this.ctx.store.get(textDocument.uri);
-    if (!processed) {
+    if (!isProcessed(processed)) {
       return [];
     }
 

@@ -4,6 +4,7 @@ import { basename } from "path";
 
 import { Provider } from ".";
 import { Context } from "../context";
+import { isProcessed } from "../DocumentProcessor";
 import { getAsmFilesInDir, isAsmExt, isDir } from "../files";
 import { TextDocument } from "vscode-languageserver-textdocument";
 
@@ -62,16 +63,19 @@ export default class FileOperationsProvider implements Provider {
       this.ctx.logger.info(`renaming ${file.oldUri} to ${file.newUri}`);
       const processed = this.ctx.store.get(file.oldUri);
       if (processed) {
+        processed.uri = file.newUri;
         this.ctx.store.set(file.newUri, processed);
         this.ctx.store.delete(file.oldUri);
         // Replace TextDocument with correct uri
-        const { languageId, version } = processed.document;
-        processed.document = TextDocument.create(
-          file.newUri,
-          languageId,
-          version,
-          processed.document.getText(),
-        );
+        if (isProcessed(processed)) {
+          const { languageId, version } = processed.document;
+          processed.document = TextDocument.create(
+            file.newUri,
+            languageId,
+            version,
+            processed.document.getText(),
+          );
+        }
       }
 
       // Update referenced URIs

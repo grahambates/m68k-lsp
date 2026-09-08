@@ -6,9 +6,9 @@ import type {
 } from "m68k-parser";
 import { blockAt } from "m68k-parser";
 import * as lsp from "vscode-languageserver";
-import { TextDocument } from "vscode-languageserver-textdocument";
 import { AstNode, childNodes } from "./ast";
 import { getUnitFiles } from "./files";
+import { isProcessed } from "./DocumentProcessor";
 import { containsPosition, locationAsRange } from "./geometry";
 import { Context } from "./context";
 
@@ -27,6 +27,14 @@ export interface Definition extends NamedSymbol {
   selectionRange: lsp.Range;
   locals?: Map<string, Definition>;
   comment?: string;
+  /**
+   * Source line of the definition, for the kinds hover shows as a code block.
+   *
+   * Captured here so hover does not depend on the defining file being open:
+   * most files in a workspace are indexed rather than processed, and have no
+   * text to read back.
+   */
+  declaration?: string;
 }
 
 export function isDefinition(symbol: NamedSymbol): symbol is Definition {
@@ -53,6 +61,14 @@ export interface Symbols {
 }
 
 type Directive = string;
+
+/** Definition kinds hover renders as a declaration. */
+const declarationTypes = new Set([
+  DefinitionType.Constant,
+  DefinitionType.Variable,
+  DefinitionType.Register,
+  DefinitionType.RegisterList,
+]);
 
 /** Definitions named by the line's label. */
 const labelDefinitions: Record<Directive, DefinitionType> = {
@@ -228,6 +244,10 @@ export function processSymbols(
     const comment = commentFor(parsed.lines, lineTexts, index);
     if (comment) {
       def.comment = comment;
+    }
+
+    if (declarationTypes.has(type)) {
+      def.declaration = lineTexts[index];
     }
 
     if (type === DefinitionType.Label) {
@@ -481,7 +501,7 @@ export async function getReferences(
     const { range, startLabel } = localContext(
       symbol,
       currentDoc.symbols,
-      currentDoc.document,
+      isProcessed(currentDoc) ? currentDoc.document.lineCount : Infinity,
     );
     const refs = currentDoc.symbols.references.get(symbol.name);
     if (refs) {
@@ -619,11 +639,11 @@ export function labelBeforePosition(
 function localContext(
   symbol: NamedSymbol,
   docSymbols: Symbols,
-  document: TextDocument,
+  lineCount: number,
 ): LocalContext {
   const range: lsp.Range = {
     start: { character: 0, line: 0 },
-    end: { character: 0, line: document.lineCount }, // todo
+    end: { character: 0, line: lineCount }, // todo
   };
 
   let startLabel: Definition | undefined;

@@ -2,6 +2,7 @@ import type { Block, BlockStructure } from "m68k-parser";
 import * as lsp from "vscode-languageserver";
 import { Provider } from ".";
 import { Context } from "../context";
+import { isProcessed } from "../DocumentProcessor";
 import { Definition, DefinitionType } from "../symbols";
 
 /**
@@ -44,7 +45,7 @@ export default class FoldingRangeProvider implements Provider {
     textDocument,
   }: lsp.FoldingRangeParams): Promise<lsp.FoldingRange[]> {
     const processed = this.ctx.store.get(textDocument.uri);
-    if (!processed) {
+    if (!isProcessed(processed)) {
       return [];
     }
 

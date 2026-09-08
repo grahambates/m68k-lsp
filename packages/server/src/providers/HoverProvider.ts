@@ -17,6 +17,7 @@ import { DefinitionType, getDefinitions } from "../symbols";
 import { mnemonicDocs, registerDocs, sizeDocs } from "../docs/index";
 import { RegisterName, Size } from "../syntax";
 import { Context } from "../context";
+import { isProcessed } from "../DocumentProcessor";
 import {
   formatDeclaration,
   formatMnemonicDoc,
@@ -32,7 +33,7 @@ export default class HoverProvider implements Provider {
     position,
   }: lsp.HoverParams): Promise<lsp.Hover | undefined> {
     const processed = this.ctx.store.get(textDocument.uri);
-    if (!processed) {
+    if (!isProcessed(processed)) {
       return;
     }
 
@@ -164,15 +165,12 @@ export default class HoverProvider implements Provider {
         case DefinitionType.RegisterList:
         case DefinitionType.Constant:
         case DefinitionType.Variable: {
-          // Find Declaration and add code block
-          const startLine = def.location.range.start.line;
-          const defDoc = this.ctx.store.get(def.location.uri)?.document;
-          if (defDoc) {
-            const lines = defDoc.getText().split(/\r?\n/g);
-            const definitionLine = lines[startLine];
+          // The declaration line is captured when the symbol is recorded, so
+          // this works whether or not the defining file is open.
+          if (def.declaration) {
             contents.push({
               language: document.languageId,
-              value: formatDeclaration(definitionLine),
+              value: formatDeclaration(def.declaration),
             });
           }
           break;

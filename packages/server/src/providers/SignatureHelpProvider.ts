@@ -2,6 +2,7 @@ import * as lsp from "vscode-languageserver";
 import { Provider } from ".";
 import { mnemonicDocs, isInstructionDoc } from "../docs/index";
 import { Context } from "../context";
+import { isProcessed } from "../DocumentProcessor";
 import { componentAtIndex, ComponentType, parseLine } from "../parse";
 import { parseSignature } from "../signature";
 import { MarkupKind } from "vscode-languageserver";
@@ -15,7 +16,7 @@ export default class SignatureHelpProvider implements Provider {
     position,
   }: lsp.SignatureHelpParams): Promise<lsp.SignatureHelp | null> {
     const processed = this.ctx.store.get(textDocument.uri);
-    if (!processed) {
+    if (!isProcessed(processed)) {
       return null;
     }
 
