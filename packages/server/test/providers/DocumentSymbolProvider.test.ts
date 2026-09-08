@@ -194,5 +194,26 @@ describe("DocumentSymbolProvider", () => {
       expect(symbols[0].range).toEqual(range(0, 1, 0, 9));
       expect(symbols[0].selectionRange).toEqual(range(0, 6, 0, 9));
     });
+
+    it("omits labels whose names are macro templates", async () => {
+      const textDocument = await createDoc(
+        "example.s",
+        `Real:
+MyMacro macro
+.loop\\@:
+\tdbf d0,.loop\\@
+BLTEN_\\1:
+\tendm`,
+      );
+
+      const symbols = await provider.onDocumentSymbol({ textDocument });
+      const names = symbols.map((s) => s.name);
+
+      // `.loop\@` and `BLTEN_\1` resolve per expansion, so they are not
+      // definitions in their own right.
+      expect(names).toContain("Real");
+      expect(names).toContain("MyMacro");
+      expect(names.join(",")).not.toContain("\\");
+    });
   });
 });

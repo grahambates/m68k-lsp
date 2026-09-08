@@ -194,14 +194,20 @@ export function processSymbols(
 
   function addDefinition(
     name: string,
+    interpolated: boolean,
     type: DefinitionType,
     selectionRange: lsp.Range,
     range: lsp.Range,
     index: number,
   ) {
     // Already defined in this doc?
-    // Ignore interpolated macro with macro args
-    if (symbols.definitions.has(name) || name.includes("\\")) {
+    if (symbols.definitions.has(name)) {
+      return;
+    }
+
+    // A name embedding a macro placeholder, such as `.loop\@`, is a template
+    // resolved per expansion rather than a symbol that exists as written.
+    if (interpolated) {
       return;
     }
 
@@ -232,7 +238,10 @@ export function processSymbols(
     symbols.definitions.set(name, def);
   }
 
-  function addReference(name: string, range: lsp.Range) {
+  function addReference(name: string, range: lsp.Range, interpolated: boolean) {
+    if (interpolated) {
+      return;
+    }
     let refs = symbols.references.get(name);
     if (!refs) {
       refs = [];
@@ -282,6 +291,7 @@ export function processSymbols(
       if (name) {
         addDefinition(
           name.name,
+          name.interpolated === true,
           DefinitionType.Section,
           locationAsRange(name.loc, index),
           range,
@@ -298,6 +308,7 @@ export function processSymbols(
         if (name) {
           addDefinition(
             name.name,
+            name.interpolated === true,
             DefinitionType.XRef,
             locationAsRange(name.loc, index),
             range,
@@ -314,6 +325,7 @@ export function processSymbols(
         DefinitionType.Label;
       addDefinition(
         line.label.label,
+        line.label.interpolated === true,
         type,
         locationAsRange(line.label.loc, index),
         range,
@@ -329,8 +341,12 @@ export function processSymbols(
     for (const operand of line.operands ?? []) {
       for (const node of [operand, ...descendants(operand)]) {
         if (node.type === "symbol") {
-          const { name } = node as unknown as SymbolNode;
-          addReference(name, locationAsRange(node.loc, index));
+          const { name, interpolated } = node as unknown as SymbolNode;
+          addReference(
+            name,
+            locationAsRange(node.loc, index),
+            interpolated === true,
+          );
         }
       }
     }
