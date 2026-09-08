@@ -20,12 +20,8 @@ import {
   processPath,
 } from "../symbols";
 import { Context } from "../context";
-import {
-  componentAtIndex,
-  ComponentType,
-  parseLine,
-  parseSignature,
-} from "../parse";
+import { componentAtIndex, ComponentType, parseLine } from "../parse";
+import { parseSignature } from "../signature";
 import { formatMnemonicDoc } from "../formatting";
 import { ProcessedDocument } from "../DocumentProcessor";
 

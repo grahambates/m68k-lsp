@@ -1,9 +1,5 @@
-import {
-  parseLine,
-  componentAtIndex,
-  ComponentType,
-  parseSignature,
-} from "../src/parse";
+import { parseLine, componentAtIndex, ComponentType } from "../src/parse";
+import { parseSignature } from "../src/signature";
 
 describe("parse", () => {
   describe("#parseLine()", () => {

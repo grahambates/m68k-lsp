@@ -1,4 +1,5 @@
-import { Size } from "./syntax";
+import type { Location } from "m68k-parser";
+import { parseLine as parseM68k } from "m68k-parser";
 
 export interface ParsedLine {
   label?: Component;
@@ -28,108 +29,49 @@ export interface ComponentInfo {
   index?: number;
 }
 
-// Regex to match line components:
-// ^
-// (?<label>                           Label:
-//   ([^:\s;*=]+:?:?)                  - anything at start of line - optional colon
-//   |                                   or...
-//   (\s+[^:\s;*=]+::?)                - can have leading whitespace with colon present
-// )?
-// (\s*                                Instruction or directive:
-//   (
-//                                     Need seprate case for instructions/directives without operands
-//                                     in order for position based comments to work
-//                                     i.e. any text following one of these mnemonics should be treated
-//                                     as a comment:
-//
-//     (                                 No-operand mnemonics:
-//       (?<mnemonic1>\.?(nop|reset|rte|rtr|rts|trapv|illegal|clrfo|clrso|comment|einline|even|inline|list|mexit|nolist|nopage|odd|page|popsection|pushsection|rsreset|endif|endc|else|elseif|endm|endr|erem))
-//       (?<size1>\.[a-z0-9_.]*)?          - Size qualifier
-//     )
-//     |
-//     (                                 Any other mnemonic:
-//       (?<mnemonic>([^\s.,;*=]+|=))               - Mnemonic
-//       (?<size>\.[^\s.,;*]*)?                     - Size qualifier
-//       (\s*(?<operands>                           - Operand list:
-//         (?<op1>                     First operand
-//          "([^"]*)"?|                 - double quoted
-//          '([^']*)'?|                 - singled quoted
-//          <([^>]*)>?|                 - chevron quoted
-//          [^\s;,]+                    - anything else
-//         )
-//         (?<op2>,\s*(                Additional comma separated operands
-//          "([^"]*)"?|
-//          '([^']*)'?|
-//          <([^>]*)>?|
-//          [^\s;,]*)
-//         )*))?
-//     )
-//   )
-// )?
-// (\s*(?<comment>.+))?                Comment (any trailing text)
-// $
-const pattern =
-  /^(?<label>([^:\s;*=]+:?:?)|(\s+[^:\s;*=]+::?))?(\s*(((?<mnemonic1>\.?(nop|reset|rte|rtr|rts|trapv|illegal|clrfo|clrso|comment|einline|even|inline|list|mexit|nolist|nopage|odd|page|popsection|pushsection|rsreset|endif|endc|else|elseif|endm|endr|erem))(?<size1>\.[a-z0-9_.]*)?)|((?<mnemonic>([^\s.,;*=]+|=))(?<size>\.[^\s.,;*]*)?(\s*(?<operands>(?<op1>"([^"]*)"?|'([^']*)'?|<([^>]*)>?|[^\s;,]+)(?<op2>,\s*("([^"]*)"?|'([^']*)'?|<([^>]*)>?|[^\s;,]*))*))?)))?(\s*(?<comment>.+))?$/i;
-
 /**
- * Parse a single line of source code into positional components
+ * Parse a single line of source code into positional components.
  *
- * This is much simpler than the syntax tree returned by Tree Sitter but is
- * also less strict and useful for parsing incomplete lines as you type.
+ * A flat, position-oriented view of a line, kept deliberately simpler than the
+ * full m68k-parser AST: consumers here only care where each element sits and
+ * what text it covers. The parser is resilient, so half-typed lines still come
+ * back usable, which is what completion and signature help rely on.
  */
 export function parseLine(text: string): ParsedLine {
+  const { value: ast } = parseM68k(text);
   const line: ParsedLine = {};
-  const groups = pattern.exec(text)?.groups;
-  if (groups) {
-    let end = 0;
 
-    if (groups.label) {
-      let value = groups.label.trim();
-      while (value.endsWith(":")) {
-        value = value.substring(0, value.length - 1);
-      }
-      const start = text.indexOf(value);
-      end = start + value.length;
-      line.label = { start, end, value };
+  const component = ({ start, end }: Location): Component => ({
+    start,
+    end,
+    value: text.slice(start, end),
+  });
+
+  if (ast.label) {
+    line.label = component(ast.label.loc);
+  }
+  if (ast.mnemonic) {
+    line.mnemonic = component(ast.mnemonic.loc);
+  }
+  if (ast.qualifier) {
+    line.size = component(ast.qualifier.loc);
+  } else if (line.mnemonic) {
+    // m68k-parser only emits a qualifier for a size it recognises, so a
+    // half-typed one ("move." or "move.z") produces no node at all. Completion
+    // needs to know the cursor is on a size there, so synthesise the component
+    // from the text following the dot.
+    const dot = line.mnemonic.end;
+    if (text[dot] === ".") {
+      const start = dot + 1;
+      const end = start + /^[^\s.,;*]*/.exec(text.slice(start))![0].length;
+      line.size = { start, end, value: text.slice(start, end) };
     }
-
-    if (groups.mnemonic || groups.mnemonic1) {
-      const value = groups.mnemonic || groups.mnemonic1;
-      const start = end + text.substring(end).indexOf(value);
-      end = start + value.length;
-      line.mnemonic = { start, end, value };
-    }
-
-    if (groups.size || groups.size1) {
-      let value = groups.size || groups.size1;
-      const start = end + text.substring(end).indexOf(value) + 1;
-      value = value.substring(1);
-      end = start + value.length;
-      line.size = { start, end, value };
-    }
-
-    if (groups.operands) {
-      // Split on comma, unless in parens
-      const values = groups.operands.split(/,\s*(?![^()<>]*[)>])/);
-
-      const operands: Component[] = [];
-      for (const value of values) {
-        const start = value
-          ? end + text.substring(end).indexOf(value)
-          : end + 1;
-        end = start + value.length;
-        operands.push({ start, end, value });
-      }
-
-      line.operands = operands;
-    }
-
-    if (groups.comment && groups.comment.trim()) {
-      const value = groups.comment;
-      const start = end + text.substring(end).indexOf(value);
-      end = start + value.length;
-      line.comment = { start, end, value };
-    }
+  }
+  if (ast.operands?.length) {
+    line.operands = ast.operands.map((operand) => component(operand.loc));
+  }
+  if (ast.comment) {
+    line.comment = component(ast.comment.loc);
   }
 
   return line;
@@ -184,40 +126,4 @@ export function componentAtIndex(
 
 function containsIndex(component: Component, index: number): boolean {
   return component.start <= index && component.end >= index;
-}
-
-export interface SignatureInfo {
-  label: string;
-  sizes: Size[];
-  size?: Component;
-  operands: Component[];
-}
-
-/**
- * Get components from syntax signature text
- */
-export function parseSignature(text: string): SignatureInfo {
-  const info: SignatureInfo = { label: text, sizes: [], operands: [] };
-  let end = 0;
-
-  const [inst, opList] = text.split(" ");
-  const [, size] = inst.split(".");
-  if (size) {
-    const value = size.replace(/[\]]/g, "");
-    const start = end + text.substring(end).indexOf(value);
-    end = start + value.length;
-    info.size = { start, end, value };
-    info.sizes = <Size[]>value.replace(/[().]/g, "").split("");
-  }
-
-  if (opList) {
-    for (const op of opList.split(",")) {
-      const value = op.replace(/[[\]]/g, "");
-      const start = end + text.substring(end).indexOf(value);
-      end = start + value.length;
-      info.operands.push({ start, end, value });
-    }
-  }
-
-  return info;
 }

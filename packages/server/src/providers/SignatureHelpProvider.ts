@@ -2,12 +2,8 @@ import * as lsp from "vscode-languageserver";
 import { Provider } from ".";
 import { mnemonicDocs, isInstructionDoc } from "../docs/index";
 import { Context } from "../context";
-import {
-  componentAtIndex,
-  ComponentType,
-  parseLine,
-  parseSignature,
-} from "../parse";
+import { componentAtIndex, ComponentType, parseLine } from "../parse";
+import { parseSignature } from "../signature";
 import { MarkupKind } from "vscode-languageserver";
 import { formatAddressingModes } from "../formatting";
 
