@@ -174,17 +174,18 @@ error 2 in line 3 of "defs.i": unknown mnemonic <x>
 
       const unclosed = result.find((d) => d.code === "UNCLOSED_PAREN");
       expect(unclosed).toBeTruthy();
-      expect(unclosed.severity).toBe(DiagnosticSeverity.Error);
-      expect(unclosed.source).toBe("m68k");
+      expect(unclosed!.severity).toBe(DiagnosticSeverity.Error);
+      expect(unclosed!.source).toBe("m68k");
       // Parser lines are 1-based, language-server lines are 0-based.
-      expect(unclosed.range.start.line).toBe(1);
+      expect(unclosed!.range.start.line).toBe(1);
     });
 
     it("appends the parser hint to the message when there is one", async () => {
       const processor = await build({ vasm: { provideDiagnostics: true } });
       const result = diagnose(processor, "  move.w  (a0,d0.w\n");
       const unclosed = result.find((d) => d.code === "UNCLOSED_PAREN");
-      expect(unclosed.message).toContain("Indirect addressing requires");
+      expect(unclosed).toBeTruthy();
+      expect(unclosed!.message).toContain("Indirect addressing requires");
     });
 
     it("reports nothing for valid source", async () => {
@@ -229,8 +230,8 @@ error 2 in line 3 of "defs.i": unknown mnemonic <x>
         d.message.includes("Unsupported on selected processor"),
       );
       expect(unsupported).toBeTruthy();
-      expect(unsupported.source).toBe("lsp");
-      expect(unsupported.range.start.line).toBe(0);
+      expect(unsupported!.source).toBe("lsp");
+      expect(unsupported!.range.start.line).toBe(0);
     });
 
     it("allows an instruction supported by the configured processor", async () => {
@@ -261,7 +262,7 @@ error 2 in line 3 of "defs.i": unknown mnemonic <x>
 
       const unterminated = result.find((d) => d.code === "UNTERMINATED_BLOCK");
       expect(unterminated).toBeTruthy();
-      expect(unterminated.range.start.line).toBe(0);
+      expect(unterminated!.range.start.line).toBe(0);
     });
 
     it("reports a terminator that closes nothing", async () => {

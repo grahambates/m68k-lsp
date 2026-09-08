@@ -21,7 +21,8 @@ describe("files", () => {
     it("reads a document", async () => {
       const url = pathToFileURL(__dirname + "/fixtures/example.i").href;
       const doc = await files.readDocumentFromUri(url);
-      expect(doc.getText()).toContain("move.w d0,d1");
+      expect(doc).toBeTruthy();
+      expect(doc!.getText()).toContain("move.w d0,d1");
     });
 
     it("returns null if file doesn't exist", async () => {

@@ -51,7 +51,7 @@ describe("DocumentLinkProvider", () => {
       });
 
       expect(links).toHaveLength(1);
-      expect(links[0].range).toEqual({
+      expect(links![0].range).toEqual({
         start: {
           line: 0,
           character: 9,
@@ -61,7 +61,7 @@ describe("DocumentLinkProvider", () => {
           character: 18,
         },
       });
-      expect(links[0].data.path).toEqual("example.i");
+      expect(links![0].data.path).toEqual("example.i");
     });
   });
 

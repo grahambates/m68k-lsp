@@ -45,7 +45,8 @@ describe("SignatureHelpProvider", () => {
         textDocument,
       });
 
-      expect(help.signatures).toContainEqual(
+      expect(help).toBeTruthy();
+      expect(help!.signatures).toContainEqual(
         expect.objectContaining({
           label: "move[.(bwl)] <source>,<destination>",
         }),
@@ -60,7 +61,8 @@ describe("SignatureHelpProvider", () => {
         textDocument,
       });
 
-      expect(help.signatures).toContainEqual(
+      expect(help).toBeTruthy();
+      expect(help!.signatures).toContainEqual(
         expect.objectContaining({
           label: "section <name>[,<sec_type>][,<mem_type>]",
         }),

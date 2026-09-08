@@ -50,8 +50,8 @@ describe("DocumentHighlightProvider", () => {
       });
 
       expect(hightlights).toHaveLength(2);
-      expect(hightlights[0].range).toEqual(range(1, 7, 1, 10));
-      expect(hightlights[1].range).toEqual(range(0, 0, 0, 3));
+      expect(hightlights![0].range).toEqual(range(1, 7, 1, 10));
+      expect(hightlights![1].range).toEqual(range(0, 0, 0, 3));
     });
   });
 
@@ -68,8 +68,8 @@ describe("DocumentHighlightProvider", () => {
     });
 
     expect(hightlights).toHaveLength(2);
-    expect(hightlights[0].range).toEqual(range(1, 7, 1, 10));
-    expect(hightlights[1].range).toEqual(range(0, 0, 0, 3));
+    expect(hightlights![0].range).toEqual(range(1, 7, 1, 10));
+    expect(hightlights![1].range).toEqual(range(0, 0, 0, 3));
   });
 
   it("returns no highlights if not in word", async () => {

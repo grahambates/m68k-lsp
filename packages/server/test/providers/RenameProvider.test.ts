@@ -78,7 +78,7 @@ describe("RenameProvider", () => {
         textDocument,
         newName: newText,
       });
-      const changes = op.changes[textDocument.uri];
+      const changes = op.changes![textDocument.uri];
 
       expect(changes).toContainEqual({
         newText,
@@ -109,7 +109,7 @@ describe("RenameProvider", () => {
         textDocument,
         newName: newText,
       });
-      const changes = op.changes[textDocument.uri];
+      const changes = op.changes![textDocument.uri];
 
       expect(changes).toContainEqual({
         newText,
@@ -141,7 +141,7 @@ describe("RenameProvider", () => {
         newName: newText,
       });
 
-      const currentDocChanges = op.changes[textDocument.uri];
+      const currentDocChanges = op.changes![textDocument.uri];
       expect(currentDocChanges).toContainEqual({
         newText,
         range: range(1, 6, 1, 9),
@@ -152,7 +152,7 @@ describe("RenameProvider", () => {
       });
 
       const includedDocChanges =
-        op.changes[ctx.workspaceFolders[0].uri + "/example.i"];
+        op.changes![ctx.workspaceFolders[0].uri + "/example.i"];
       expect(includedDocChanges).toContainEqual({
         newText,
         range: range(1, 0, 1, 3),

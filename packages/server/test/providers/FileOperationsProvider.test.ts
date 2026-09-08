@@ -81,9 +81,9 @@ describe("FileOperationsProvider", () => {
         files: [{ uri: referenced }],
       });
 
-      expect(ctx.store.get(referencing.uri).referencedUris).not.toContain(
-        referenced,
-      );
+      const stored = ctx.store.get(referencing.uri);
+      expect(stored).toBeTruthy();
+      expect(stored!.referencedUris).not.toContain(referenced);
     });
   });
 

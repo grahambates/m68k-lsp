@@ -157,7 +157,7 @@ Start:
       });
 
       expect(hover).toBeTruthy();
-      const contents = hover.contents as string[];
+      const contents = hover!.contents as string[];
       expect(contents[0]).toContain("Entry point");
       expect(contents).toContainEqual("(label) Start");
     });

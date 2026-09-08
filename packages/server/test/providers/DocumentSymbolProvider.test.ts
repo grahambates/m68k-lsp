@@ -93,7 +93,7 @@ describe("DocumentSymbolProvider", () => {
       expect(symbols).toHaveLength(1);
       expect(symbols[0].children).toHaveLength(1);
 
-      const child = symbols[0].children[0];
+      const child = symbols[0].children![0];
       expect(child.name).toBe(".bar");
       //       expect(child.detail).toBe("label");
       expect(child.kind).toBe(lsp.SymbolKind.Field);
