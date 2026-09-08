@@ -1,0 +1,18 @@
+.CpuSelect {
+  display: flex;
+  gap: 1rem;
+  padding: 1rem;
+  align-items: center;
+}
+
+.CpuSelect__field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.85rem;
+}
+
+.CpuSelect__field select {
+  font: inherit;
+  padding: 0.35rem 0.5rem;
+}

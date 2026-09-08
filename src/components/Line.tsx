@@ -147,5 +147,7 @@ const formatTiming = (timing: TimingType, multiplier?: TimingType) => {
     }
   }
 
-  return `${strVals[0]}(${strVals[1]}/${strVals[2]})`;
+  // 68000 timings are [clocks, reads, writes]; 68020 timings add a
+  // prefetch count: [clocks, reads, prefetches, writes].
+  return `${strVals[0]}(${strVals.slice(1).join("/")})`;
 };

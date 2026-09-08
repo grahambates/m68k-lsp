@@ -1,6 +1,11 @@
-import { FC, useCallback, useEffect, useState } from "react";
+import { FC, useCallback, useEffect, useMemo, useState } from "react";
 import {
+  CacheModel,
   calculateTotals,
+  Cpu,
+  Cpus,
+  defaultCacheModel,
+  defaultCpu,
   Line as LineType,
   Totals as TotalsType,
 } from "68kcounter";
@@ -12,6 +17,7 @@ import { Logo } from "./icons/Logo";
 import { VsCode } from "./icons/VsCode";
 import { Line } from "./Line";
 import { Totals } from "./Totals";
+import { CpuSelect } from "./CpuSelect";
 
 interface Selection {
   start: number | null;
@@ -28,25 +34,42 @@ const defaultSelection: Selection = {
 };
 
 export const App: FC = () => {
-  const [lines, setLines] = useState<LineType[] | null>(null);
-  const [totals, setTotals] = useState<TotalsType | null>(null);
+  const [code, setCode] = useState("");
+  const [cpu, setCpu] = useState<Cpu>(defaultCpu);
+  const [cacheModel, setCacheModel] = useState<CacheModel>(defaultCacheModel);
   const [selection, setSelection] = useState<Selection>(defaultSelection);
 
+  const lines = useMemo(
+    () => (code ? parse(code, { cpu, cacheModel }) : null),
+    [code, cpu, cacheModel],
+  );
+  const totals = useMemo(
+    () => (lines ? calculateTotals(lines) : null),
+    [lines],
+  );
+  // 68000 bus cycles are [reads, writes]; 68020 adds a prefetch count:
+  // [reads, prefetches, writes].
+  const busCycles =
+    cpu === Cpus.MC68020 ? "reads/prefetches/writes" : "reads/writes";
+
   const handleSubmit = (code: string) => {
-    if (code) {
-      const parsedLines = parse(code);
-      setLines(parsedLines);
-      setTotals(calculateTotals(parsedLines));
-    } else {
-      setLines(null);
-      setTotals(null);
-    }
+    setCode(code);
     setSelection(defaultSelection);
     setTimeout(() => {
       document
         .getElementById("results")
         ?.scrollIntoView({ behavior: "smooth" });
     }, 10);
+  };
+
+  const handleCpuChange = (value: Cpu) => {
+    setCpu(value);
+    setSelection(defaultSelection);
+  };
+
+  const handleCacheModelChange = (value: CacheModel) => {
+    setCacheModel(value);
+    setSelection(defaultSelection);
   };
 
   const clearSelection = useCallback(() => {
@@ -127,12 +150,18 @@ export const App: FC = () => {
         <div id="results">
           <div className="App__resultsHeader">
             {totals && <Totals totals={totals} />}
+            <CpuSelect
+              cpu={cpu}
+              cacheModel={cacheModel}
+              onCpuChange={handleCpuChange}
+              onCacheModelChange={handleCacheModelChange}
+            />
 
             <div className="App__help">
               <ul>
                 <li>
                   Data is shown in the format:{" "}
-                  <code>cycles(reads/writes) bytes</code>
+                  <code>cycles({busCycles}) bytes</code>
                 </li>
                 <li>
                   Some timings can be expanded to show how they&apos;re
