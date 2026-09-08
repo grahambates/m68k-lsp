@@ -1,14 +1,7 @@
-import type { OperandNode } from "m68k-parser";
 import type { Rule } from "../../core/rule.js";
 import { instructionSize, isInstruction, operand } from "../../util/ast.js";
+import { isAdjacentLocation, locationOf } from "./adjacent-location.js";
 import { sourceOperand } from "./helpers.js";
-
-function absoluteNumeric(ctx: Parameters<NonNullable<Rule["checkLine"]>>[0], op: unknown): number | undefined {
-  const value = op as OperandNode | undefined;
-  if (!value || value.type !== "absolute-address") return undefined;
-  const result = ctx.evaluate(value.address);
-  return result.known ? result.value : undefined;
-}
 
 function hasInterveningLabel(ctx: Parameters<NonNullable<Rule["checkLine"]>>[0], from: number, to: number): boolean {
   for (let i = from + 1; i <= to; i++) if (ctx.line(i)?.label) return true;
@@ -28,7 +21,7 @@ function clearPair(fromSize: "b" | "w", toSize: "w" | "l", delta: number, id: st
     checkLine(ctx, line, index) {
       if (!isInstruction(line, "clr") || instructionSize(line) !== fromSize) return;
       const first = operand(line, 0);
-      const a = absoluteNumeric(ctx, first);
+      const a = locationOf(ctx, first);
       if (a === undefined) return;
       const next = ctx.nextInstruction(index);
       if (
@@ -38,8 +31,8 @@ function clearPair(fromSize: "b" | "w", toSize: "w" | "l", delta: number, id: st
         instructionSize(next.line) !== fromSize
       )
         return;
-      const b = absoluteNumeric(ctx, operand(next.line, 0));
-      if (b !== a + delta) return;
+      const b = locationOf(ctx, operand(next.line, 0));
+      if (!b || !isAdjacentLocation(a, b, delta)) return;
       const rendered = sourceOperand(ctx, line, 0);
       if (!rendered) return;
 

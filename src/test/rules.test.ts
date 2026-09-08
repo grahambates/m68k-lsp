@@ -464,6 +464,28 @@ describe("v0.8 sequence rules", () => {
     );
     expect(words?.suggestion?.description).toContain("#$12345678");
   });
+
+  test("combines adjacent immediate stores through register-indirect displacement", () => {
+    const source = [
+      "bltafwm equ $44",
+      "bltalwm equ $46",
+      "move.w #$ffff,bltafwm(a6)",
+      "move.w #$ffff,bltalwm(a6)",
+    ].join("\n");
+    const diagnostic = lint(source).find((d) => d.ruleId === "optimization/combine-adjacent-move-words");
+    expect(diagnostic?.suggestion?.description).toContain("bltafwm(a6)");
+    expect(diagnostic?.suggestion?.description).toContain("#$ffffffff");
+  });
+
+  test("does not combine register-indirect displacement stores through different address registers", () => {
+    const source = [
+      "off1 equ $44",
+      "off2 equ $46",
+      "move.w #$1234,off1(a6)",
+      "move.w #$5678,off2(a5)",
+    ].join("\n");
+    expect(ids(source)).not.toContain("optimization/combine-adjacent-move-words");
+  });
 });
 
 describe("v0.9 local peepholes", () => {

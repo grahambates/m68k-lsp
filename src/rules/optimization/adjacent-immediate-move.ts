@@ -1,14 +1,7 @@
-import type { OperandNode } from "m68k-parser";
 import type { Rule } from "../../core/rule.js";
 import { immediateOperand, instructionSize, isInstruction, operand } from "../../util/ast.js";
+import { isAdjacentLocation, locationOf } from "./adjacent-location.js";
 import { sourceOperand } from "./helpers.js";
-
-function absoluteNumeric(ctx: Parameters<NonNullable<Rule["checkLine"]>>[0], op: unknown): number | undefined {
-  const value = op as OperandNode | undefined;
-  if (!value || value.type !== "absolute-address") return undefined;
-  const result = ctx.evaluate(value.address);
-  return result.known ? result.value : undefined;
-}
 
 function immediate(
   ctx: Parameters<NonNullable<Rule["checkLine"]>>[0],
@@ -44,7 +37,7 @@ function movePair(
     },
     checkLine(ctx, line, index) {
       if (!isInstruction(line, "move") || instructionSize(line) !== fromSize) return;
-      const a = absoluteNumeric(ctx, operand(line, 1));
+      const a = locationOf(ctx, operand(line, 1));
       const x = immediate(ctx, line);
       if (a === undefined || x === undefined) return;
       const next = ctx.nextInstruction(index);
@@ -55,9 +48,9 @@ function movePair(
         instructionSize(next.line) !== fromSize
       )
         return;
-      const b = absoluteNumeric(ctx, operand(next.line, 1));
+      const b = locationOf(ctx, operand(next.line, 1));
       const y = immediate(ctx, next.line);
-      if (b !== a + delta || y === undefined) return;
+      if (!b || !isAdjacentLocation(a, b, delta) || y === undefined) return;
       const dest = sourceOperand(ctx, line, 1);
       if (!dest) return;
       const combined = ((x & mask) * 2 ** shift + (y & mask)) >>> 0;
