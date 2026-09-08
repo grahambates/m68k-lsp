@@ -1,5 +1,7 @@
+import { parseFile } from "m68k-parser";
 import { DiagnosticSeverity } from "vscode-languageserver";
-import { parseVasmOutput } from "../src/diagnostics";
+import DiagnosticProcessor, { parseVasmOutput } from "../src/diagnostics";
+import { createTestContext } from "./helpers";
 
 describe("diagnostics", () => {
   describe("parseVasmOutput", () => {
@@ -103,6 +105,100 @@ error 2 in line 1 of "a.i": unknown mnemonic <sdsdffd>
       const output = `warning 2 in line 9 of "example.s": uh oh spaghettios`;
       const result = parseVasmOutput(output);
       expect(result[0].severity).toBe(DiagnosticSeverity.Warning);
+    });
+  });
+
+  describe("#parserDiagnostics()", () => {
+    const build = async (config = {}) =>
+      new DiagnosticProcessor(await createTestContext(config));
+
+    const diagnose = (processor: DiagnosticProcessor, src: string) =>
+      processor.parserDiagnostics(parseFile(src), src);
+
+    it("reports a syntax error with its parser code and position", async () => {
+      const processor = await build({ vasm: { provideDiagnostics: true } });
+      const result = diagnose(processor, "Start:\n  move.w  (a0,d0.w\n");
+
+      const unclosed = result.find((d) => d.code === "UNCLOSED_PAREN");
+      expect(unclosed).toBeTruthy();
+      expect(unclosed.severity).toBe(DiagnosticSeverity.Error);
+      expect(unclosed.source).toBe("m68k");
+      // Parser lines are 1-based, language-server lines are 0-based.
+      expect(unclosed.range.start.line).toBe(1);
+    });
+
+    it("appends the parser hint to the message when there is one", async () => {
+      const processor = await build({ vasm: { provideDiagnostics: true } });
+      const result = diagnose(processor, "  move.w  (a0,d0.w\n");
+      const unclosed = result.find((d) => d.code === "UNCLOSED_PAREN");
+      expect(unclosed.message).toContain("Indirect addressing requires");
+    });
+
+    it("reports nothing for valid source", async () => {
+      const processor = await build({ vasm: { provideDiagnostics: true } });
+      const result = diagnose(
+        processor,
+        "Start:\n  move.w  #$1234,d0\n  rts\n",
+      );
+      expect(result).toHaveLength(0);
+    });
+
+    it("does not report indexed addressing that uses equr register aliases", async () => {
+      const processor = await build({ vasm: { provideDiagnostics: true } });
+      // `sin equr a1` / `x equr d5` makes (sin,x) ordinary indexed addressing,
+      // but the parser has no symbol table and flags the index as malformed.
+      const result = diagnose(
+        processor,
+        "sin\tequr\ta1\nx\tequr\td5\n  move.w\t(sin,x),d2\n",
+      );
+      expect(
+        result.filter((d) => d.code === "MALFORMED_INDEXED_ADDRESSING"),
+      ).toHaveLength(0);
+    });
+
+    it("still reports an index that cannot be a register alias", async () => {
+      const processor = await build({ vasm: { provideDiagnostics: true } });
+      const result = diagnose(processor, "  move.w  (a0,#5),d2\n");
+      expect(
+        result.filter((d) => d.code === "MALFORMED_INDEXED_ADDRESSING"),
+      ).toHaveLength(1);
+    });
+
+    it("flags an instruction unsupported by the configured processor", async () => {
+      const processor = await build({
+        processors: ["mc68000"],
+        vasm: { provideDiagnostics: false },
+      });
+      const result = diagnose(processor, "  bfextu d0{4:8},d1\n");
+
+      const unsupported = result.find((d) =>
+        d.message.includes("Unsupported on selected processor"),
+      );
+      expect(unsupported).toBeTruthy();
+      expect(unsupported.source).toBe("lsp");
+      expect(unsupported.range.start.line).toBe(0);
+    });
+
+    it("allows an instruction supported by the configured processor", async () => {
+      const processor = await build({
+        processors: ["mc68020"],
+        vasm: { provideDiagnostics: false },
+      });
+      const result = diagnose(processor, "  bfextu d0{4:8},d1\n");
+      expect(
+        result.filter((d) => d.message.includes("Unsupported")),
+      ).toHaveLength(0);
+    });
+
+    it("leaves the processor check to vasm when vasm diagnostics are on", async () => {
+      const processor = await build({
+        processors: ["mc68000"],
+        vasm: { provideDiagnostics: true },
+      });
+      const result = diagnose(processor, "  bfextu d0{4:8},d1\n");
+      expect(
+        result.filter((d) => d.message.includes("Unsupported")),
+      ).toHaveLength(0);
     });
   });
 });
