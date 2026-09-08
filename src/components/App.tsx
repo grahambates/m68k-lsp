@@ -1,4 +1,4 @@
-import React, { FC, useEffect, useCallback, useReducer } from "react";
+import { FC, useEffect, useCallback, useReducer } from "react";
 import reducer, { defaultState } from "../reducer";
 import "./App.css";
 import Form from "./Form";
@@ -36,14 +36,14 @@ const App: FC = () => {
     (i: number) => {
       dispatch({ type: "click", payload: i });
     },
-    [dispatch]
+    [dispatch],
   );
 
   const handleHover = useCallback(
     (i: number) => {
       dispatch({ type: "hover", payload: i });
     },
-    [dispatch]
+    [dispatch],
   );
 
   // Clear selection on escape

@@ -22,11 +22,7 @@ interface HoverAction {
 }
 
 type Action =
-  | CodeAction
-  | TotalsAction
-  | ClickAction
-  | HoverAction
-  | ClearAction;
+  CodeAction | TotalsAction | ClickAction | HoverAction | ClearAction;
 
 interface State {
   code: string;

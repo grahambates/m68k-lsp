@@ -1,4 +1,4 @@
-import React, { FC } from "react";
+import { FC } from "react";
 import { Totals as TotalsType } from "68kcounter";
 import Timing from "./Timing";
 import Bytes from "./Bytes";

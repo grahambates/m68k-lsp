@@ -1,4 +1,4 @@
-import React, { memo, useState } from "react";
+import { memo, useState } from "react";
 import Timing from "./Timing";
 import LineTotals from "./LineTotals";
 import Bytes from "./Bytes";
@@ -77,7 +77,7 @@ const Line = memo<LineProps>(
                     <div>
                       {formatTiming(
                         line.timing.calculation!.base[0],
-                        line.timing.calculation!.multiplier
+                        line.timing.calculation!.multiplier,
                       )}
                     </div>
                   )}
@@ -106,16 +106,16 @@ const Line = memo<LineProps>(
         </div>
       </>
     );
-  }
+  },
 );
 
 Line.displayName = "Line";
 
 const mnemExp = new RegExp(
   `(?<![;*])(?<=\\s|:)((${Object.values(Mnemonics).join(
-    "|"
+    "|",
   )}|blo|dblo|dbra)(\\.(b|w|l|s))?)\\b`,
-  "i"
+  "i",
 );
 const labelExp = /^([^\s;*]+)/;
 const commentExp = /((;|\s\*|^\*).*)/;
