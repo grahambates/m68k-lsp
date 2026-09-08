@@ -186,5 +186,56 @@ bar = 123`,
 
       expect(references).toHaveLength(2);
     });
+
+    it("does not cross into a sibling that shares an include", async () => {
+      // Two entry points, each defining `shared`, both including example.i.
+      // They are separate assembly units, so neither can see the other.
+      await createDoc(
+        "unitB.s",
+        ` include "example.i"
+shared:
+ bsr shared`,
+      );
+      const unitA = await createDoc(
+        "unitA.s",
+        ` include "example.i"
+shared:
+ bsr shared`,
+      );
+
+      const references = await provider.onReferences({
+        position: lsp.Position.create(1, 2),
+        textDocument: unitA,
+        context: { includeDeclaration: true },
+      });
+
+      expect(references.every((r) => r.uri === unitA.uri)).toBe(true);
+      expect(references).toHaveLength(2);
+    });
+
+    it("spans every unit that includes the defining file", async () => {
+      // `foo` is defined in example.i, which both units include, so a use in
+      // either is a reference to it.
+      const unitA = await createDoc(
+        "incA.s",
+        ` include "example.i"
+ move #foo,d0`,
+      );
+      await createDoc(
+        "incB.s",
+        ` include "example.i"
+ move #foo,d1`,
+      );
+
+      const references = await provider.onReferences({
+        position: lsp.Position.create(1, 8),
+        textDocument: unitA,
+        context: { includeDeclaration: false },
+      });
+
+      const uris = new Set(references.map((r) => r.uri));
+      expect([...uris].some((u) => u.endsWith("incA.s"))).toBe(true);
+      expect([...uris].some((u) => u.endsWith("incB.s"))).toBe(true);
+    });
   });
 });

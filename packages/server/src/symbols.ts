@@ -8,7 +8,7 @@ import { blockAt } from "m68k-parser";
 import * as lsp from "vscode-languageserver";
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { AstNode, childNodes } from "./ast";
-import { getDependencies } from "./files";
+import { getUnitFiles } from "./files";
 import { containsPosition, locationAsRange } from "./geometry";
 import { Context } from "./context";
 
@@ -510,17 +510,29 @@ export async function getReferences(
       }
     }
 
-    // Dependent docs
-    const deps = await getDependencies(uri, ctx);
-    for (const depUri of deps) {
-      const depenedentDoc = ctx.store.get(depUri);
-      if (depenedentDoc) {
-        const refs = depenedentDoc.symbols.references.get(symbol.name);
+    // A symbol can be referenced anywhere its definition is visible, which is
+    // the defining file and everything that includes it. Taking the current
+    // document's own includes instead would reach sibling entry points that
+    // merely share a header, and a rename would then edit an unrelated file.
+    const defs = await getDefinitions(uri, position, ctx);
+    const scope = new Set<string>(getUnitFiles(uri, ctx));
+    for (const def of defs) {
+      scope.add(def.location.uri);
+      for (const unitFile of getUnitFiles(def.location.uri, ctx)) {
+        scope.add(unitFile);
+      }
+    }
+    scope.delete(uri); // Already collected above
+
+    for (const depUri of scope) {
+      const dependentDoc = ctx.store.get(depUri);
+      if (dependentDoc) {
+        const refs = dependentDoc.symbols.references.get(symbol.name);
         if (refs) {
           results.push(...refs);
         }
         if (includeDeclaration) {
-          const def = depenedentDoc.symbols.definitions.get(symbol.name);
+          const def = dependentDoc.symbols.definitions.get(symbol.name);
           if (def) {
             results.push(def);
           }
@@ -570,14 +582,12 @@ export async function getDefinitions(
 
   const defs: Definition[] = [];
 
-  const deps = await getDependencies(uri, ctx);
-  for (const depUri of deps) {
-    const processedDoc = ctx.store.get(depUri);
-    if (processedDoc) {
-      const def = processedDoc.symbols.definitions.get(symbol.name);
-      if (def) {
-        defs.push(def);
-      }
+  // Everything sharing an assembly unit with this document, which is where a
+  // symbol it uses can be defined.
+  for (const depUri of getUnitFiles(uri, ctx)) {
+    const def = ctx.store.get(depUri)?.symbols.definitions.get(symbol.name);
+    if (def) {
+      defs.push(def);
     }
   }
 

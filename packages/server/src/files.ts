@@ -58,8 +58,12 @@ export async function* resolveIncludesGen(
   const roots = ctx.workspaceFolders.map((f) => URI.parse(f.uri).fsPath);
   roots.push(dirname(URI.parse(documentUri).fsPath));
 
-  const incDirs = Array.from(ctx.store.values())
-    .flatMap((v) => v.symbols.incDirs)
+  // Only incdirs the document can actually see: its own and those of the
+  // files it includes. Pooling them across the whole store let an incdir in
+  // one part of a workspace change how another part resolves its includes.
+  const visible = [documentUri, ...getIncluded(documentUri, ctx)];
+  const incDirs = visible
+    .flatMap((uri) => ctx.store.get(uri)?.symbols.incDirs ?? [])
     .map((dir) => dir.text);
 
   if (ctx.config.includePaths) {
@@ -127,37 +131,103 @@ export async function getDirectory(path: string): Promise<string> {
 }
 
 /**
- * Get URIs of referenced source files.
+ * URIs a document includes, directly or through further includes.
+ *
+ * These are the files whose symbols are visible to it: including a file
+ * brings its text, and so its definitions, into the including one.
  */
-export async function getDependencies(
+export function getIncluded(
   documentUri: string,
   ctx: ResolveContext,
-): Promise<string[]> {
-  const deps = await addDependencies(documentUri, ctx, new Set());
-  deps.delete(documentUri);
-  return Array.from(deps);
+): string[] {
+  const result = new Set<string>();
+
+  const visit = (uri: string) => {
+    for (const next of ctx.store.get(uri)?.referencedUris ?? []) {
+      if (!result.has(next)) {
+        result.add(next);
+        visit(next);
+      }
+    }
+  };
+  visit(documentUri);
+
+  result.delete(documentUri);
+  return Array.from(result);
 }
 
-async function addDependencies(
+/**
+ * URIs that include a document, directly or through further includes.
+ *
+ * These are the files the document's own symbols are visible to, which is
+ * where references to something it defines can appear.
+ *
+ * Kept separate from `getIncluded` on purpose. Following both directions at
+ * once reaches every file sharing any include: two entry points that both
+ * include a hardware definitions file would see each other's symbols, and a
+ * rename in one would edit the other.
+ */
+export function getIncluders(
   documentUri: string,
   ctx: ResolveContext,
-  result: Set<string>,
-) {
-  const referenced = ctx.store.get(documentUri)?.referencedUris ?? [];
-  const referencing = [...ctx.store.keys()].filter((uri) =>
-    ctx.store.get(uri)?.referencedUris.includes(documentUri),
-  );
-
-  const newUris = [...referenced, ...referencing].filter(
-    (uri) => !result.has(uri),
-  );
-
-  for (const uri of newUris) {
-    result.add(uri);
-    await addDependencies(uri, ctx, result);
+): string[] {
+  const includers = new Map<string, string[]>();
+  for (const [uri, processed] of ctx.store) {
+    for (const included of processed.referencedUris) {
+      const list = includers.get(included);
+      if (list) {
+        list.push(uri);
+      } else {
+        includers.set(included, [uri]);
+      }
+    }
   }
 
-  return result;
+  const result = new Set<string>();
+  const visit = (uri: string) => {
+    for (const next of includers.get(uri) ?? []) {
+      if (!result.has(next)) {
+        result.add(next);
+        visit(next);
+      }
+    }
+  };
+  visit(documentUri);
+
+  result.delete(documentUri);
+  return Array.from(result);
+}
+
+/**
+ * URIs sharing an assembly unit with a document.
+ *
+ * An assembler splices includes into the file that pulls them in, so every
+ * file in one of those trees shares a single namespace: a symbol defined in
+ * any of them is visible in all of them, including in a file the definition's
+ * own file includes.
+ *
+ * The trees a document belongs to are found from the files that include it,
+ * and the rest of each tree from what those files include in turn. Only the
+ * document itself is followed upwards. Following the upward edge from files
+ * reached on the way down is what used to merge separate entry points that
+ * happened to share a header, since it climbed out of one tree and back down
+ * into another.
+ */
+export function getUnitFiles(
+  documentUri: string,
+  ctx: ResolveContext,
+): string[] {
+  const result = new Set<string>([documentUri]);
+
+  for (const root of [documentUri, ...getIncluders(documentUri, ctx)]) {
+    result.add(root);
+    for (const included of getIncluded(root, ctx)) {
+      result.add(included);
+    }
+  }
+
+  result.delete(documentUri);
+  return Array.from(result);
 }
 
 export async function getAsmFilesInDir(uri: string): Promise<string[]> {

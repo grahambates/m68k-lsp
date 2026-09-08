@@ -108,7 +108,7 @@ describe("files", () => {
     });
   });
 
-  describe("#getDependencies()", () => {
+  describe("#getUnitFiles()", () => {
     it("returns referenced and referencing files", async () => {
       const ctx = await createTestContext();
       const processor = new DocumentProcessor(ctx);
@@ -128,7 +128,7 @@ describe("files", () => {
         ),
       );
 
-      const result = await files.getDependencies(currentUri, ctx);
+      const result = files.getUnitFiles(currentUri, ctx);
 
       expect(result).toContain(ctx.workspaceFolders[0].uri + "/example.i");
       expect(result).toContain(ctx.workspaceFolders[0].uri + "/referencing.s");
