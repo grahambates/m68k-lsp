@@ -403,6 +403,26 @@ describe("CCR analysis", () => {
     expect(diagnostic?.suggestion?.applicability).toBe("safe");
   });
 
+  test("prefers BCLR for a one-bit AND mask", () => {
+    // ~8 is all bits set except bit 3, so ANDing it out is equivalent to
+    // clearing just that bit.
+    const diagnostic = lint("and.l #~8,d0").find((d) => d.ruleId === "optimization/prefer-bclr");
+    expect(diagnostic).toBeDefined();
+    expect(diagnostic?.suggestion?.replacement).toBe("\tbclr.l #3,d0");
+  });
+
+  test("BCLR mask preference is narrower than BSET: not offered on mc68030", () => {
+    // BSET.L supports mc68000/010/030; BCLR.L only mc68000/010, so a mask that
+    // would trigger BSET on 68030 must not also trigger BCLR there.
+    const diagnostics = lint("and.l #~8,d0", { processors: ["mc68030"] });
+    expect(diagnostics.some((d) => d.ruleId === "optimization/prefer-bclr")).toBe(false);
+  });
+
+  test("BCLR mask preference does not apply to non-power-of-two masks", () => {
+    const diagnostics = lint("and.l #~9,d0");
+    expect(diagnostics.some((d) => d.ruleId === "optimization/prefer-bclr")).toBe(false);
+  });
+
   test("large logical shifts can collapse to zero, respecting CCR liveness", () => {
     const source = ["lsl.w #16,d0", "move.l d1,d2", "rts"].join("\n");
     const diagnostic = lint(source).find((d) => d.ruleId === "optimization/shift-to-clear");
@@ -1975,5 +1995,243 @@ describe("Amiga suspicious absolute-address footguns", () => {
         measureImpact: false,
       }).some((x) => x.ruleId === "suspicious/unexpected-absolute-address"),
     ).toBe(false);
+  });
+});
+
+describe("previously untested rules (coverage audit)", () => {
+  test("compares a small long immediate through a dead scratch register", () => {
+    const source = ["cmp.l #42,d1", "moveq #0,d0", "rts"].join("\n");
+    const diagnostic = lint(source).find((d) => d.ruleId === "optimization/compare-long-immediate-via-moveq");
+    expect(diagnostic).toBeDefined();
+    // The scratch register is loaded with the compared value (42), not the
+    // value used in the fixture to prove d0 dead.
+    expect(diagnostic?.suggestion?.replacement).toBe("\tmoveq #42,d0\n\tcmp.l d0,d1");
+  });
+
+  test("does not offer the scratch-register compare when the constant is out of MOVEQ range", () => {
+    const source = ["cmp.l #200,d1", "moveq #0,d0", "rts"].join("\n");
+    expect(ids(source)).not.toContain("optimization/compare-long-immediate-via-moveq");
+  });
+
+  test("collapses a small compare-and-branch into a destructive SUBQ when the register is dead", () => {
+    // Both paths converge immediately at `target`, so the overwrite there
+    // proves d0 and X dead on every path out of the branch. Merely reaching
+    // RTS unmodified leaves flags "unknown" rather than "dead" (see CCR
+    // analysis above), which is not enough for this rule.
+    const source = ["cmp.w #4,d0", "beq target", "target:", "moveq #0,d0", "add.l d1,d2", "rts"].join("\n");
+    const diagnostic = lint(source).find((d) => d.ruleId === "optimization/destructive-small-compare-branch");
+    expect(diagnostic).toBeDefined();
+    expect(diagnostic?.suggestion?.replacement).toBe("\tsubq.w #4,d0\n\tbeq target");
+  });
+
+  test("does not use destructive SUBQ when the compared register is read afterwards", () => {
+    const source = ["cmp.w #4,d0", "beq target", "target:", "move.w d0,d1", "rts"].join("\n");
+    expect(ids(source)).not.toContain("optimization/destructive-small-compare-branch");
+  });
+
+  test("turns JSR followed by JMP into a pre-pushed continuation", () => {
+    const source = ["jsr Sub", "jmp Cont", "Sub:", "rts", "Cont:", "rts"].join("\n");
+    const diagnostic = lint(source).find((d) => d.ruleId === "optimization/jsr-jmp-tail-dispatch");
+    expect(diagnostic).toBeDefined();
+    expect(diagnostic?.suggestion?.replacement).toBe("\tpea Cont\n\tjmp Sub");
+  });
+
+  test("does not combine JSR/JMP across an intervening label", () => {
+    const source = ["jsr Sub", "mid:", "jmp Cont", "Sub:", "rts", "Cont:", "rts"].join("\n");
+    expect(ids(source)).not.toContain("optimization/jsr-jmp-tail-dispatch");
+  });
+
+  test("narrows a signed-16-bit MOVEA.L immediate to MOVEA.W on 68000", () => {
+    const diagnostic = lint("movea.l #1234,a0").find((d) => d.ruleId === "optimization/narrow-movea-immediate-word");
+    expect(diagnostic).toBeDefined();
+    expect(diagnostic?.suggestion?.replacement).toBe("\tmovea.w #1234,a0");
+  });
+
+  test("does not narrow MOVEA.L immediates outside the 68000-only scope", () => {
+    expect(ids("movea.l #1234,a0", { processors: ["mc68020"] })).not.toContain(
+      "optimization/narrow-movea-immediate-word",
+    );
+  });
+
+  test("narrows a signed-16-bit ADDA.L immediate to ADDA.W on 68000", () => {
+    const diagnostic = lint("adda.l #1234,a0").find((d) => d.ruleId === "optimization/narrow-address-immediate-word");
+    expect(diagnostic).toBeDefined();
+    expect(diagnostic?.suggestion?.replacement).toBe("\tadda.w #1234,a0");
+  });
+
+  test("narrows a signed-16-bit SUBA.L immediate to SUBA.W on 68000", () => {
+    const diagnostic = lint("suba.l #1234,a0").find((d) => d.ruleId === "optimization/narrow-address-immediate-word");
+    expect(diagnostic?.suggestion?.replacement).toBe("\tsuba.w #1234,a0");
+  });
+
+  test("does not narrow an ADDA.L immediate that does not fit a signed word", () => {
+    expect(ids("adda.l #32768,a0")).not.toContain("optimization/narrow-address-immediate-word");
+  });
+
+  test("simplifies AND.L #$FFFF,Dn to a word clear without a long immediate", () => {
+    // Reaching RTS unmodified leaves NZVC merely "unknown"; an explicit
+    // overwrite on another register is what proves them dead (see CCR
+    // analysis above).
+    const source = ["and.l #$ffff,d0", "move.l d1,d2", "rts"].join("\n");
+    const diagnostic = lint(source).find((d) => d.ruleId === "optimization/simplify-long-word-mask");
+    expect(diagnostic).toBeDefined();
+    expect(diagnostic?.suggestion?.replacement).toBe("\tswap d0\n\tclr.w d0\n\tswap d0");
+    expect(diagnostic?.suggestion?.applicability).toBe("safe");
+  });
+
+  test("simplifies AND.L #$FFFF0000,Dn to a plain word clear", () => {
+    const source = ["and.l #$ffff0000,d0", "rts"].join("\n");
+    const diagnostic = lint(source).find((d) => d.ruleId === "optimization/simplify-long-word-mask");
+    expect(diagnostic?.suggestion?.replacement).toBe("\tclr.w d0");
+  });
+
+  test("does not simplify an AND.L mask that is not one of the two known word masks", () => {
+    expect(ids("and.l #$00ff00ff,d0")).not.toContain("optimization/simplify-long-word-mask");
+  });
+
+  test("normalizes a long-direction byte rotate to the shorter opposite direction", () => {
+    const diagnostic = lint("rol.b #5,d0").find((d) => d.ruleId === "optimization/normalize-byte-rotate-direction");
+    expect(diagnostic).toBeDefined();
+    expect(diagnostic?.suggestion?.replacement).toBe("\tror.b #3,d0");
+  });
+
+  test("does not normalize a byte rotate count that is already the shorter direction", () => {
+    expect(ids("rol.b #3,d0")).not.toContain("optimization/normalize-byte-rotate-direction");
+  });
+
+  test("replaces DIVU.L by a power of two with an immediate LSR on 68020+", () => {
+    const diagnostic = lint("divu.l #4,d0", { processors: ["mc68020"] }).find(
+      (d) => d.ruleId === "optimization/divu-long-power-of-two",
+    );
+    expect(diagnostic).toBeDefined();
+    expect(diagnostic?.suggestion?.replacement).toBe("\tlsr.l #2,d0");
+  });
+
+  test("uses a dead scratch register for a large DIVU.L shift count", () => {
+    const source = ["divu.l #512,d0", "moveq #0,d1", "rts"].join("\n");
+    const diagnostic = lint(source, { processors: ["mc68020"] }).find(
+      (d) => d.ruleId === "optimization/divu-long-power-of-two",
+    );
+    expect(diagnostic?.suggestion?.replacement).toBe("\tmoveq #9,d1\n\tlsr.l d1,d0");
+  });
+
+  test("does not offer DIVU.L shift replacement on 68000/68010, which lack DIVU.L", () => {
+    expect(ids("divu.l #4,d0", { processors: ["mc68000"] })).not.toContain("optimization/divu-long-power-of-two");
+  });
+
+  test("uses TST.L An in place of CMPA.L #0,An on 68030", () => {
+    const diagnostic = lint("cmpa.l #0,a0", { processors: ["mc68030"] }).find(
+      (d) => d.ruleId === "optimization/cmpa-zero-to-tst-030",
+    );
+    expect(diagnostic).toBeDefined();
+    expect(diagnostic?.suggestion?.replacement).toBe("\ttst.l a0");
+  });
+
+  test("does not offer the CMPA-to-TST substitution off 68030", () => {
+    expect(ids("cmpa.l #0,a0", { processors: ["mc68000"] })).not.toContain("optimization/cmpa-zero-to-tst-030");
+  });
+
+  test("uses MOVEQ #0 for MULS.L by zero on 68060", () => {
+    const diagnostic = lint("muls.l #0,d0", { processors: ["mc68060"] }).find(
+      (d) => d.ruleId === "optimization/muls-long-060-simple",
+    );
+    expect(diagnostic).toBeDefined();
+    expect(diagnostic?.suggestion?.replacement).toBe("\tmoveq #0,d0");
+  });
+
+  test("uses an immediate ASL for a power-of-two MULS.L on 68060", () => {
+    const diagnostic = lint("muls.l #8,d0", { processors: ["mc68060"] }).find(
+      (d) => d.ruleId === "optimization/muls-long-060-simple",
+    );
+    expect(diagnostic?.suggestion?.replacement).toBe("\tasl.l #3,d0");
+  });
+
+  test("does not offer the MULS.L 68060 simplification off 68060", () => {
+    expect(ids("muls.l #8,d0", { processors: ["mc68000"] })).not.toContain("optimization/muls-long-060-simple");
+  });
+
+  test("uses a register-count ASL for a large power-of-two long multiply", () => {
+    const source = ["muls.l #1024,d0", "moveq #0,d1", "rts"].join("\n");
+    const diagnostic = lint(source).find((d) => d.ruleId === "optimization/multiply-long-large-power-of-two");
+    expect(diagnostic).toBeDefined();
+    expect(diagnostic?.suggestion?.replacement).toBe("\tmoveq #10,d1\n\tasl.l d1,d0");
+  });
+
+  test("does not use the large-power-of-two recipe for a shift the rule does not cover", () => {
+    // 2^9 = 512 is at the boundary (shift must be strictly greater than 9).
+    const source = ["muls.l #512,d0", "moveq #0,d1", "rts"].join("\n");
+    expect(ids(source)).not.toContain("optimization/multiply-long-large-power-of-two");
+  });
+
+  test("replaces a small-constant long multiply with a shift/add recipe", () => {
+    const source = ["muls.l #3,d0", "moveq #0,d1", "rts"].join("\n");
+    const diagnostic = lint(source).find((d) => d.ruleId === "optimization/multiply-long-small-constant");
+    expect(diagnostic).toBeDefined();
+    expect(diagnostic?.suggestion?.replacement).toBe("\tmove.l d0,d1\n\tadd.l d0,d0\n\tadd.l d1,d0");
+  });
+
+  test("does not offer a shift/add recipe for a constant with none defined", () => {
+    const source = ["muls.l #11,d0", "moveq #0,d1", "rts"].join("\n");
+    expect(ids(source)).not.toContain("optimization/multiply-long-small-constant");
+  });
+
+  test("combines EXT.W plus EXT.L on the same register into EXTB.L on 68040/68060", () => {
+    const source = ["ext.w d0", "ext.l d0"].join("\n");
+    const diagnostic = lint(source, { processors: ["mc68040"] }).find(
+      (d) => d.ruleId === "optimization/combine-ext-byte",
+    );
+    expect(diagnostic).toBeDefined();
+    expect(diagnostic?.suggestion?.replacement).toBe("\textb.l d0");
+  });
+
+  test("does not combine EXT.W/EXT.L across different registers", () => {
+    const source = ["ext.w d0", "ext.l d1"].join("\n");
+    expect(ids(source, { processors: ["mc68040"] })).not.toContain("optimization/combine-ext-byte");
+  });
+
+  test("does not combine EXT.W/EXT.L outside the 68040/68060 scope", () => {
+    const source = ["ext.w d0", "ext.l d0"].join("\n");
+    expect(ids(source, { processors: ["mc68020"] })).not.toContain("optimization/combine-ext-byte");
+  });
+
+  test("uses TST in place of adding zero", () => {
+    const source = ["add.w #0,d0", "rts"].join("\n");
+    const diagnostic = lint(source).find((d) => d.ruleId === "optimization/zero-arithmetic-to-tst");
+    expect(diagnostic).toBeDefined();
+    expect(diagnostic?.suggestion?.replacement).toBe("\ttst.w d0");
+  });
+
+  test("uses TST in place of subtracting zero", () => {
+    const source = ["sub.l #0,d0", "rts"].join("\n");
+    const diagnostic = lint(source).find((d) => d.ruleId === "optimization/zero-arithmetic-to-tst");
+    expect(diagnostic?.suggestion?.replacement).toBe("\ttst.l d0");
+  });
+
+  test("does not replace adding a non-zero immediate with TST", () => {
+    expect(ids("add.w #1,d0")).not.toContain("optimization/zero-arithmetic-to-tst");
+  });
+
+  test("does not replace ADD #0 with TST on 68040, where it is not a win", () => {
+    expect(ids("add.w #0,d0", { processors: ["mc68040"] })).not.toContain("optimization/zero-arithmetic-to-tst");
+  });
+
+  test("synthesizes an immediate just below the MOVEQ range with MOVEQ plus SUBQ", () => {
+    const diagnostic = lint("move.l #-130,d0").find((d) => d.ruleId === "optimization/move-immediate-below-moveq");
+    expect(diagnostic).toBeDefined();
+    expect(diagnostic?.suggestion?.replacement).toBe("\tmoveq #-128,d0\n\tsubq.l #2,d0");
+  });
+
+  test("does not use the below-MOVEQ synthesis for a value already in MOVEQ range", () => {
+    expect(ids("move.l #-128,d0")).not.toContain("optimization/move-immediate-below-moveq");
+  });
+
+  test("synthesizes a value in 128..255 with MOVEQ plus NOT.B", () => {
+    const diagnostic = lint("move.l #200,d0").find((d) => d.ruleId === "optimization/move-immediate-byte-complement");
+    expect(diagnostic).toBeDefined();
+    expect(diagnostic?.suggestion?.replacement).toBe("\tmoveq #55,d0\n\tnot.b d0");
+  });
+
+  test("does not use the byte-complement synthesis outside 128..255", () => {
+    expect(ids("move.l #100,d0")).not.toContain("optimization/move-immediate-byte-complement");
   });
 });

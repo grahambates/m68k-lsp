@@ -66,4 +66,24 @@ describe("semantic mnemonic style rules", () => {
       diagnostics.find((d) => d.ruleId === "style/prefer-unsigned-condition-aliases")?.suggestion?.replacement,
     ).toContain("bhs target");
   });
+
+  test("DBF preference is the opposite direction from DBRA and is also opt-in", () => {
+    const defaultDiagnostics = lintSource("    dbra d0,loop\nloop:\n    nop\n", { ...base, presets: ["style"] });
+    expect(defaultDiagnostics.some((d) => d.ruleId === "style/prefer-dbf")).toBe(false);
+    const diagnostics = lintSource("    dbra d0,loop\nloop:\n    nop\n", {
+      ...base,
+      rules: { "style/prefer-dbf": "info" },
+    });
+    expect(diagnostics.find((d) => d.ruleId === "style/prefer-dbf")?.suggestion?.replacement).toContain("dbf d0,loop");
+  });
+
+  test("carry condition alias preference is the opposite direction from HS/LO and is also opt-in", () => {
+    const diagnostics = lintSource("    bhs target\ntarget:\n    nop\n", {
+      ...base,
+      rules: { "style/prefer-carry-condition-aliases": "info" },
+    });
+    expect(
+      diagnostics.find((d) => d.ruleId === "style/prefer-carry-condition-aliases")?.suggestion?.replacement,
+    ).toContain("bcc target");
+  });
 });
