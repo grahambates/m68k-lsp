@@ -1,38 +1,28 @@
 import { TextEdit } from "vscode-languageserver";
-import Parser from "web-tree-sitter";
-import { nodeAsRange } from "../../geometry";
-import { Formatter } from "../DocumentFormatter";
+import { walkLine } from "../../ast";
+import { locationAsRange } from "../../geometry";
+import { controlMnemonics, sectionTypes } from "../../syntax";
+import { FormatContext, Formatter } from "../DocumentFormatter";
 
 export type CaseOptions = Case | Partial<Record<CaseType, Case>>;
 type Case = "upper" | "lower" | "any";
 type CaseType =
   "instruction" | "directive" | "control" | "register" | "sectionType" | "hex";
 
+const registerTypes = new Set([
+  "data-register",
+  "address-register",
+  "special-register",
+  "fpu-data-register",
+  "fpu-control-register",
+]);
+
 class CaseFormatter implements Formatter {
-  private query: Parser.Query;
+  constructor(private options: CaseOptions) {}
 
-  constructor(
-    language: Parser.Language,
-    private options: CaseOptions,
-  ) {
-    this.query = language.query(`
-        (instruction_mnemonic) @instruction
-        (directive_mnemonic) @directive
-        (control_mnemonic) @control
-        (address_register) @register
-        (data_register) @register
-        (named_register) @register
-        (float_register) @register
-        (section_type) @sectionType
-        (hexadecimal_literal) @hex
-      `);
-  }
-
-  format(tree: Parser.Tree): TextEdit[] {
+  format({ parsed, text }: FormatContext): TextEdit[] {
     const edits: TextEdit[] = [];
     const options = this.options;
-
-    const captures = this.query.captures(tree.rootNode);
 
     const defaultCase = typeof options === "string" ? options : "any";
 
@@ -54,29 +44,75 @@ class CaseFormatter implements Formatter {
       }
     }
 
-    for (const { node, name } of captures) {
-      const typeCase = typeCases[name as CaseType];
+    const lines = text.split(/\r\n?|\n/);
+
+    const apply = (
+      loc: { start: number; end: number; line?: number },
+      typeCase: Case,
+      line: number,
+    ) => {
       if (typeCase === "any") {
-        continue;
+        return;
       }
-
+      const current = lines[line]?.slice(loc.start, loc.end);
+      if (current === undefined) {
+        return;
+      }
       const newText =
-        typeCase === "lower"
-          ? node.text.toLowerCase()
-          : node.text.toUpperCase();
-      if (node.text !== newText) {
-        edits.push({ range: nodeAsRange(node), newText });
+        typeCase === "lower" ? current.toLowerCase() : current.toUpperCase();
+      if (current !== newText) {
+        edits.push({ range: locationAsRange(loc, line), newText });
+      }
+    };
+
+    for (const [index, parsedLine] of parsed.lines.entries()) {
+      const { mnemonic, qualifier } = parsedLine;
+
+      if (mnemonic) {
+        let mnemonicCase: Case | undefined;
+        if (mnemonic.type === "instruction") {
+          mnemonicCase = typeCases.instruction;
+        } else if (mnemonic.type === "directive") {
+          // m68k-parser makes no distinction between assembly-flow directives
+          // and the rest, but the formatter offers a separate option for them.
+          mnemonicCase = controlMnemonics.has(mnemonic.directive.toLowerCase())
+            ? typeCases.control
+            : typeCases.directive;
+        }
+
+        if (mnemonicCase) {
+          apply(mnemonic.loc, mnemonicCase, index);
+          // A size qualifier takes the case of the mnemonic it belongs to.
+          if (qualifier) {
+            apply(qualifier.loc, mnemonicCase, index);
+          }
+        }
       }
 
-      // If next sibling is a size qualifier change the case of that too
-      const nextNode = node.nextNamedSibling;
-      if (nextNode && nextNode.type === "size") {
-        const newText =
-          typeCase === "lower"
-            ? nextNode.text.toLowerCase()
-            : nextNode.text.toUpperCase();
-        if (nextNode.text !== newText) {
-          edits.push({ range: nodeAsRange(nextNode), newText });
+      for (const node of walkLine(parsedLine)) {
+        if (registerTypes.has(node.type)) {
+          apply(node.loc, typeCases.register, index);
+        } else if (node.type === "section-type") {
+          apply(node.loc, typeCases.sectionType, index);
+        } else if (
+          node.type === "numeric-literal" &&
+          (node as { format?: string }).format === "hex"
+        ) {
+          apply(node.loc, typeCases.hex, index);
+        } else if (
+          node.type === "symbol" &&
+          mnemonic?.type === "directive" &&
+          mnemonic.directive.toLowerCase() === "section" &&
+          parsedLine.operands?.length === 1 &&
+          sectionTypes.includes(
+            ((node as { name?: string }).name ?? "").toLowerCase(),
+          )
+        ) {
+          // `section bss` names the type directly. With only one operand the
+          // parser cannot tell a type from a section name, so it reports a
+          // plain symbol; the two-operand `section name,bss` form does give a
+          // section-type node.
+          apply(node.loc, typeCases.sectionType, index);
         }
       }
     }

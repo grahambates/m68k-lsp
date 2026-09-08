@@ -1,12 +1,11 @@
 import QuotesFormatter, {
   QuotesOptions,
 } from "../../../src/formatter/formatters/QuotesFormatter";
-import { applyEdits, parseTree } from "../../helpers";
+import { applyEdits, formatContext } from "../../helpers";
 
 async function doFormat(src: string, options: QuotesOptions) {
-  const { tree, language } = await parseTree(src);
-  const formatter = new QuotesFormatter(language, options);
-  const edits = formatter.format(tree);
+  const formatter = new QuotesFormatter(options);
+  const edits = formatter.format(formatContext(src));
   return applyEdits(src, edits);
 }
 

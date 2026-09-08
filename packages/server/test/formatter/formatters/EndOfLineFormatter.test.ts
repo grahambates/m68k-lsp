@@ -1,12 +1,11 @@
 import EndOfLineFormatter, {
   EOL,
 } from "../../../src/formatter/formatters/EndOfLineFormatter";
-import { applyEdits, parseTree } from "../../helpers";
+import { applyEdits, formatContext } from "../../helpers";
 
 async function doFormat(src: string, type: EOL, finalNewLine?: boolean) {
   const formatter = new EndOfLineFormatter(type, finalNewLine);
-  const { tree } = await parseTree(src);
-  const edits = formatter.format(tree);
+  const edits = formatter.format(formatContext(src));
   return applyEdits(src, edits);
 }
 

@@ -1,12 +1,11 @@
 import DocumentFormatter, {
   FormatterOptions,
 } from "../../src/formatter/DocumentFormatter";
-import { applyEdits, parseTree } from "../helpers";
+import { applyEdits, formatContext } from "../helpers";
 
 async function doFormat(src: string, options: FormatterOptions) {
-  const { tree, language } = await parseTree(src);
-  const formatter = new DocumentFormatter(language, options);
-  const edits = formatter.format(tree);
+  const formatter = new DocumentFormatter(options);
+  const edits = formatter.format(formatContext(src));
   return applyEdits(src, edits);
 }
 

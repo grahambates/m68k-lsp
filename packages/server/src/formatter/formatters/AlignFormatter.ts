@@ -1,10 +1,9 @@
 import { TextEdit } from "vscode-languageserver";
 
 import { TextDocument } from "vscode-languageserver-textdocument";
-import Parser from "web-tree-sitter";
 
 import { ParsedLine, parseLine } from "../../parse";
-import { Formatter } from "../DocumentFormatter";
+import { FormatContext, Formatter } from "../DocumentFormatter";
 
 export type AlignOptions = {
   mnemonic?: number;
@@ -62,7 +61,7 @@ class AlignFormatter implements Formatter {
     this.char = useTab ? "\t" : " ";
   }
 
-  format(tree: Parser.Tree, prevEdits: TextEdit[] = []): TextEdit[] {
+  format({ text }: FormatContext, prevEdits: TextEdit[] = []): TextEdit[] {
     const edits: TextEdit[] = [];
     this.block = 0;
 
@@ -74,7 +73,7 @@ class AlignFormatter implements Formatter {
     let valuePosition = this.options.value ?? 0;
     const standaloneComment = this.options.standaloneComment ?? "nearest";
 
-    const lineText = tree.rootNode.text.split(/\r\n?|\n/);
+    const lineText = text.split(/\r\n?|\n/);
     const lines = lineText.map((text, i) =>
       this.processLine(text, i, prevEdits),
     );

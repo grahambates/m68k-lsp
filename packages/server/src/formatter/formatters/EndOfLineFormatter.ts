@@ -1,6 +1,5 @@
 import { TextEdit } from "vscode-languageserver";
-import Parser from "web-tree-sitter";
-import { Formatter } from "../DocumentFormatter";
+import { FormatContext, Formatter } from "../DocumentFormatter";
 
 const chars = {
   lf: "\n",
@@ -16,11 +15,11 @@ class EndOfLineFormatter implements Formatter {
     private finalNewLine?: boolean,
   ) {}
 
-  format(tree: Parser.Tree): TextEdit[] {
+  format({ text }: FormatContext): TextEdit[] {
     const edits: TextEdit[] = [];
     const newText = chars[this.type];
-    const matches = [...tree.rootNode.text.matchAll(/\r\n?|\n/g)];
-    const lines = tree.rootNode.text.split(/\r\n?|\n/);
+    const matches = [...text.matchAll(/\r\n?|\n/g)];
+    const lines = text.split(/\r\n?|\n/);
 
     for (let i = 0; i < matches.length; i++) {
       const match = matches[i];

@@ -1,41 +1,44 @@
 import { TextEdit } from "vscode-languageserver";
-import Parser from "web-tree-sitter";
-import { nodeAsRange } from "../../geometry";
-import { Formatter } from "../DocumentFormatter";
+import { walkLine } from "../../ast";
+import { locationAsRange } from "../../geometry";
+import { FormatContext, Formatter } from "../DocumentFormatter";
 
 export type QuotesOptions = "double" | "single" | "any";
 
 class QuotesFormatter implements Formatter {
-  private query: Parser.Query;
+  constructor(private options: QuotesOptions) {}
 
-  constructor(
-    language: Parser.Language,
-    private options: QuotesOptions,
-  ) {
-    this.query = language.query(`(string_literal) @string`);
-  }
-
-  format(tree: Parser.Tree): TextEdit[] {
+  format({ parsed, text }: FormatContext): TextEdit[] {
     const edits: TextEdit[] = [];
     const options = this.options;
     if (options === "any") {
       return edits;
     }
 
-    const captures = this.query.captures(tree.rootNode);
-
     // TODO: handle escaping, preferred based on quotes in string
+    const wanted = options === "single" ? "'" : '"';
+    const lines = text.split(/\r\n?|\n/);
 
-    for (const { node } of captures) {
-      if (node.text.startsWith('"') && options === "single") {
+    for (const [index, parsedLine] of parsed.lines.entries()) {
+      for (const node of walkLine(parsedLine)) {
+        if (node.type !== "string-literal") {
+          continue;
+        }
+        const quote = (node as { quote?: string }).quote;
+        // Chevron-quoted strings are a different construct, left alone.
+        if (quote !== "'" && quote !== '"') {
+          continue;
+        }
+        if (quote === wanted) {
+          continue;
+        }
+        const raw = lines[index]?.slice(node.loc.start, node.loc.end);
+        if (raw === undefined) {
+          continue;
+        }
         edits.push({
-          range: nodeAsRange(node),
-          newText: "'" + node.text.substring(1, node.text.length - 1) + "'",
-        });
-      } else if (node.text.startsWith("'") && options === "double") {
-        edits.push({
-          range: nodeAsRange(node),
-          newText: '"' + node.text.substring(1, node.text.length - 1) + '"',
+          range: locationAsRange(node.loc, index),
+          newText: wanted + raw.slice(1, raw.length - 1) + wanted,
         });
       }
     }

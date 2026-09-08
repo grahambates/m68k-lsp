@@ -1,5 +1,5 @@
+import type { ParsedFile } from "m68k-parser";
 import { TextEdit, Range } from "vscode-languageserver";
-import Parser from "web-tree-sitter";
 import { containsRange } from "../geometry";
 import AlignFormatter, { AlignOptions } from "./formatters/AlignFormatter";
 import CaseFormatter, { CaseOptions } from "./formatters/CaseFormatter";
@@ -33,29 +33,31 @@ export interface FormatterOptions {
   // label position if fits
 }
 
+/** The document being formatted, in both the forms formatters need. */
+export interface FormatContext {
+  parsed: ParsedFile;
+  text: string;
+}
+
 export interface Formatter {
-  format(tree: Parser.Tree, prevEdits: TextEdit[]): TextEdit[];
+  format(ctx: FormatContext, prevEdits: TextEdit[]): TextEdit[];
 }
 
 class DocumentFormatter {
   private formatters: Formatter[] = [];
 
-  constructor(language: Parser.Language, options: Partial<FormatterOptions>) {
+  constructor(options: Partial<FormatterOptions>) {
     if (options.case) {
-      this.formatters.push(new CaseFormatter(language, options.case));
+      this.formatters.push(new CaseFormatter(options.case));
     }
     if (options.labelColon) {
-      this.formatters.push(
-        new LabelColonFormatter(language, options.labelColon),
-      );
+      this.formatters.push(new LabelColonFormatter(options.labelColon));
     }
     if (options.quotes) {
-      this.formatters.push(new QuotesFormatter(language, options.quotes));
+      this.formatters.push(new QuotesFormatter(options.quotes));
     }
     if (options.operandSpace) {
-      this.formatters.push(
-        new OperandSpaceFormatter(language, options.operandSpace),
-      );
+      this.formatters.push(new OperandSpaceFormatter(options.operandSpace));
     }
     if (options.align) {
       this.formatters.push(new AlignFormatter(options.align));
@@ -70,18 +72,18 @@ class DocumentFormatter {
     }
   }
 
-  format(tree: Parser.Tree): TextEdit[] {
+  format(ctx: FormatContext): TextEdit[] {
     const edits: TextEdit[] = [];
 
     for (const formatter of this.formatters) {
-      edits.push(...formatter.format(tree, edits));
+      edits.push(...formatter.format(ctx, edits));
     }
 
     return edits;
   }
 
-  formatRange(tree: Parser.Tree, range: Range) {
-    const edits = this.format(tree);
+  formatRange(ctx: FormatContext, range: Range) {
+    const edits = this.format(ctx);
     return edits.filter((e) => containsRange(range, e.range));
   }
 }

@@ -1,10 +1,9 @@
 import TrimWhitespaceFormatter from "../../../src/formatter/formatters/TrimWhitespaceFormatter";
-import { applyEdits, parseTree } from "../../helpers";
+import { applyEdits, formatContext } from "../../helpers";
 
 async function doFormat(src: string) {
   const formatter = new TrimWhitespaceFormatter();
-  const { tree } = await parseTree(src);
-  const edits = formatter.format(tree);
+  const edits = formatter.format(formatContext(src));
   return applyEdits(src, edits);
 }
 

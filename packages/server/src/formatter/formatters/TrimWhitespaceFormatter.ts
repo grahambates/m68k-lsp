@@ -1,12 +1,11 @@
 import { TextEdit } from "vscode-languageserver";
-import Parser from "web-tree-sitter";
-import { Formatter } from "../DocumentFormatter";
+import { FormatContext, Formatter } from "../DocumentFormatter";
 
 class TrimWhitespaceFormatter implements Formatter {
-  format(tree: Parser.Tree): TextEdit[] {
+  format({ text }: FormatContext): TextEdit[] {
     const edits: TextEdit[] = [];
 
-    const lines = tree.rootNode.text.split(/\r\n?|\n/);
+    const lines = text.split(/\r\n?|\n/);
 
     for (let i = 0; i < lines.length; i++) {
       const match = lines[i].match(/\s+$/);

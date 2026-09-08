@@ -1,8 +1,6 @@
 import { TextEdit } from "vscode-languageserver";
-import Parser from "web-tree-sitter";
-import { nodeAsRange } from "../../geometry";
-import { isLocalLabel } from "../../symbols";
-import { Formatter } from "../DocumentFormatter";
+import { locationAsRange } from "../../geometry";
+import { FormatContext, Formatter } from "../DocumentFormatter";
 
 type UseColon = "on" | "off" | "notInline" | "onlyInline" | "any";
 
@@ -14,60 +12,61 @@ export type LabelColonOptions =
     };
 
 class LabelColonFormatter implements Formatter {
-  private query: Parser.Query;
+  constructor(private options: LabelColonOptions) {}
 
-  constructor(
-    language: Parser.Language,
-    private options: LabelColonOptions,
-  ) {
-    this.query = language.query(`(label name: (_) @label)`);
-  }
-
-  format(tree: Parser.Tree): TextEdit[] {
+  format({ parsed, text }: FormatContext): TextEdit[] {
     const edits: TextEdit[] = [];
     const options = this.options;
+    const lines = text.split(/\r\n?|\n/);
 
-    const captures = this.query.captures(tree.rootNode);
+    for (const [index, parsedLine] of parsed.lines.entries()) {
+      const { label } = parsedLine;
+      if (!label) {
+        continue;
+      }
 
-    for (const { node } of captures) {
-      const scope = isLocalLabel(node.text) ? "local" : "global";
+      // A double colon exports the label, and the colons are part of that
+      // meaning rather than a style choice, so those are left alone.
+      if (label.scope === "external") {
+        continue;
+      }
 
+      // A label node carries its own scope, so there is no need to work it out
+      // from the name here.
+      const scope = label.scope;
       const option = typeof options === "string" ? options : options[scope];
       if (!option || option === "any") {
         continue;
       }
 
-      // Detect inline - any named nodes on same line, other than comments?
-      const next = node.parent?.nextNamedSibling;
-      const isInline =
-        next?.startPosition.row === node.startPosition.row &&
-        next.type !== "comment";
+      // Inline means something other than a comment follows on the same line.
+      const isInline = parsedLine.mnemonic !== undefined;
+      const lineText = lines[index] ?? "";
+      const hasColon = lineText[label.loc.end] === ":";
 
-      const hasColon = node.nextSibling?.text === ":";
       if (
         (option === "on" ||
           (isInline && option === "onlyInline") ||
           (!isInline && option === "notInline")) &&
         !hasColon
       ) {
-        // Add colon:
-        const { end } = nodeAsRange(node);
-        edits.push({
-          range: { start: end, end },
-          newText: ":",
-        });
+        const { end } = locationAsRange(label.loc, index);
+        edits.push({ range: { start: end, end }, newText: ":" });
       }
+
       if (
         (option === "off" ||
           (isInline && option === "notInline") ||
           (!isInline && option === "onlyInline")) &&
         hasColon &&
         // Can't remove if label is not at position 0
-        node.startPosition.column === 0
+        label.loc.start === 0
       ) {
-        // Remove colon:
         edits.push({
-          range: nodeAsRange(node.nextSibling as Parser.SyntaxNode),
+          range: locationAsRange(
+            { start: label.loc.end, end: label.loc.end + 1 },
+            index,
+          ),
           newText: "",
         });
       }

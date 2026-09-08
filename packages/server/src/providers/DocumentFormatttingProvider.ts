@@ -1,7 +1,10 @@
 import * as lsp from "vscode-languageserver";
 import { Provider } from ".";
 import { Context } from "../context";
-import DocumentFormatter from "../formatter/DocumentFormatter";
+import DocumentFormatter, {
+  FormatContext,
+} from "../formatter/DocumentFormatter";
+import { ProcessedDocument } from "../DocumentProcessor";
 
 export default class DocumentFormattingProvider implements Provider {
   constructor(protected readonly ctx: Context) {}
@@ -15,7 +18,7 @@ export default class DocumentFormattingProvider implements Provider {
       return null;
     }
     const formatter = this.getFormatter(options);
-    return formatter.format(processed.tree);
+    return formatter.format(toContext(processed));
   }
 
   async onDocumentRangeFormatting({
@@ -28,7 +31,7 @@ export default class DocumentFormattingProvider implements Provider {
       return null;
     }
     const formatter = this.getFormatter(options);
-    return formatter.formatRange(processed.tree, range);
+    return formatter.formatRange(toContext(processed), range);
   }
 
   async onDocumentOnTypeFormatting({
@@ -52,7 +55,7 @@ export default class DocumentFormattingProvider implements Provider {
       start: { line, character: 0 },
       end: { line: line + 1, character: 0 },
     };
-    return formatter.formatRange(processed.tree, range);
+    return formatter.formatRange(toContext(processed), range);
   }
 
   private getFormatter(options: lsp.FormattingOptions): DocumentFormatter {
@@ -79,7 +82,7 @@ export default class DocumentFormattingProvider implements Provider {
       config.align.tabSize = options.tabSize;
     }
 
-    return new DocumentFormatter(this.ctx.language, config);
+    return new DocumentFormatter(config);
   }
 
   register(connection: lsp.Connection): lsp.ServerCapabilities {
@@ -99,4 +102,8 @@ export default class DocumentFormattingProvider implements Provider {
       },
     };
   }
+}
+
+function toContext(processed: ProcessedDocument): FormatContext {
+  return { parsed: processed.parsed, text: processed.document.getText() };
 }

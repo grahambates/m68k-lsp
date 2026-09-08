@@ -1,54 +1,39 @@
 import { TextEdit } from "vscode-languageserver";
-import Parser from "web-tree-sitter";
-import { Formatter } from "../DocumentFormatter";
-import { nodeAsRange } from "../../geometry";
+import { locationAsRange } from "../../geometry";
+import { FormatContext, Formatter } from "../DocumentFormatter";
 
 export type OperandSpaceOptions = "on" | "off" | "any";
 
 class OperandSpaceFormatter implements Formatter {
-  private query: Parser.Query;
+  constructor(private options: OperandSpaceOptions) {}
 
-  constructor(
-    language: Parser.Language,
-    private options: OperandSpaceOptions,
-  ) {
-    this.query = language.query(`(operand_list) @operand_list`);
-  }
-
-  format(tree: Parser.Tree): TextEdit[] {
-    if (this.options === "any") return []; // No changes
+  format({ parsed, text }: FormatContext): TextEdit[] {
+    if (this.options === "any") {
+      return []; // No changes
+    }
 
     const edits: TextEdit[] = [];
-    const useSpace = this.options === "on";
-    const operandLists = this.query.captures(tree.rootNode);
+    const expected = this.options === "on" ? ", " : ",";
+    const lines = text.split(/\r\n?|\n/);
 
-    for (const {
-      node: { namedChildren: operands },
-    } of operandLists) {
+    for (const [index, parsedLine] of parsed.lines.entries()) {
+      const operands = parsedLine.operands;
+      if (!operands || operands.length < 2) {
+        continue;
+      }
+      const lineText = lines[index] ?? "";
+
       // Iterate over operands in list, excluding last:
       for (let i = 0; i < operands.length - 1; i++) {
-        const currentOperand = operands[i];
-        const nextOperand = currentOperand.nextNamedSibling;
-
-        if (nextOperand) {
-          const sep = tree.rootNode.text.substring(
-            currentOperand.endIndex,
-            nextOperand.startIndex,
-          );
-
-          const expected = useSpace ? ", " : ",";
-
-          // Apply changes if needed:
-          if (sep !== expected) {
-            edits.push({
-              range: {
-                start: nodeAsRange(operands[i]).end,
-                end: nodeAsRange(nextOperand).start,
-              },
-              newText: expected,
-            });
-          }
+        const { end } = operands[i].loc;
+        const { start } = operands[i + 1].loc;
+        if (lineText.slice(end, start) === expected) {
+          continue;
         }
+        edits.push({
+          range: locationAsRange({ start: end, end: start }, index),
+          newText: expected,
+        });
       }
     }
 

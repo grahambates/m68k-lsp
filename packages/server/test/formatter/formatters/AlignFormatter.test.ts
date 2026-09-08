@@ -1,12 +1,11 @@
 import AlignFormatter, {
   AlignOptions,
 } from "../../../src/formatter/formatters/AlignFormatter";
-import { applyEdits, parseTree } from "../../helpers";
+import { applyEdits, formatContext } from "../../helpers";
 
 async function doFormat(src: string, options: AlignOptions) {
   const formatter = new AlignFormatter(options);
-  const { tree } = await parseTree(src);
-  const edits = formatter.format(tree);
+  const edits = formatter.format(formatContext(src));
   return applyEdits(src, edits);
 }
 

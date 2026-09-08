@@ -1,12 +1,11 @@
 import LabelColonFormatter, {
   LabelColonOptions,
 } from "../../../src/formatter/formatters/LabelColonFormatter";
-import { applyEdits, parseTree } from "../../helpers";
+import { applyEdits, formatContext } from "../../helpers";
 
 async function doFormat(src: string, options: LabelColonOptions) {
-  const { tree, language } = await parseTree(src);
-  const formatter = new LabelColonFormatter(language, options);
-  const edits = formatter.format(tree);
+  const formatter = new LabelColonFormatter(options);
+  const edits = formatter.format(formatContext(src));
   return applyEdits(src, edits);
 }
 
