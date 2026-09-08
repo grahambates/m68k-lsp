@@ -1,4 +1,6 @@
-import type { ParsedFile, ParsedLine } from "m68k-parser";
+import { blockRole, parseBlocks, type Block, type ParsedFile, type ParsedLine } from "m68k-parser";
+
+export { directiveName } from "m68k-parser";
 
 /**
  * Assembler block structure: which lines belong to a macro definition, and
@@ -9,6 +11,9 @@ import type { ParsedFile, ParsedLine } from "m68k-parser";
  * neither join the flow of the surrounding code nor define file-global
  * constants. A REPT body is assembled more than once, so its last line is
  * followed by its first.
+ *
+ * The nesting itself comes from m68k-parser; this reshapes it into the flat
+ * views the analyses want.
  */
 export interface BlockStructure {
   /** Flow region per line. 0 is the file itself; each macro definition gets its own. */
@@ -35,18 +40,6 @@ export interface ConditionalBlock {
   end: number;
 }
 
-const CONDITIONAL_ALTERNATIVES = new Set(["else", "elseif"]);
-const CONDITIONAL_ENDS = new Set(["endc", "endif"]);
-
-/** Every conditional opener is spelled IF something: IFNE, IFD, IFC and the rest. */
-function isConditionalOpener(directive: string): boolean {
-  return directive.startsWith("if");
-}
-
-export function directiveName(line: ParsedLine | undefined): string | undefined {
-  return line?.mnemonic?.type === "directive" ? line.mnemonic.directive.toLowerCase() : undefined;
-}
-
 /** Whether a line sits inside a macro definition rather than at file level. */
 export function isInMacroDefinition(blocks: BlockStructure, index: number): boolean {
   return (blocks.region[index] ?? 0) !== 0;
@@ -62,57 +55,41 @@ export function isInMacroDefinition(blocks: BlockStructure, index: number): bool
  * does not exist, and a replacement spanning one would delete it.
  */
 export function isBlockBoundary(line: ParsedLine | undefined): boolean {
-  const directive = directiveName(line);
-  if (!directive) return false;
-  return (
-    isConditionalOpener(directive) ||
-    CONDITIONAL_ALTERNATIVES.has(directive) ||
-    CONDITIONAL_ENDS.has(directive) ||
-    directive === "rept" ||
-    directive === "endr" ||
-    directive === "macro" ||
-    directive === "endm"
-  );
+  return blockRole(line) !== undefined;
 }
 
 export function scanBlocks(file: ParsedFile): BlockStructure {
   const region = new Array<number>(file.lines.length).fill(0);
   const repeats: { start: number; end: number }[] = [];
-  const repeatStack: number[] = [];
   const conditionals: ConditionalBlock[] = [];
-  const conditionalStack: ConditionalBlock[] = [];
-  let current = 0;
   let nextRegion = 0;
-  let depth = 0;
 
-  for (let i = 0; i < file.lines.length; i++) {
-    const directive = directiveName(file.lines[i]);
-    if (directive === "macro") {
-      if (depth === 0) current = ++nextRegion;
-      depth++;
-      region[i] = current;
-      continue;
+  /**
+   * Only a macro definition at file level opens a new region: one nested in
+   * another belongs to the same run of source, and an unterminated one runs to
+   * the end of the file.
+   */
+  const visit = (blocks: Block[], current: number): void => {
+    for (const block of blocks) {
+      const inner = block.kind === "macro" && current === 0 ? ++nextRegion : current;
+      if (inner !== 0) {
+        const last = block.end ?? file.lines.length - 1;
+        for (let i = block.start; i <= last; i++) region[i] = inner;
+      }
+
+      // Only blocks that actually close describe a span of source.
+      if (block.end !== undefined) {
+        if (block.kind === "repeat") {
+          repeats.push({ start: block.start, end: block.end });
+        } else if (block.kind === "conditional") {
+          conditionals.push({ start: block.start, alternatives: block.alternatives, end: block.end });
+        }
+      }
+
+      visit(block.children, inner);
     }
-    if (directive === "endm") {
-      region[i] = current;
-      depth = Math.max(0, depth - 1);
-      if (depth === 0) current = 0;
-      continue;
-    }
-    region[i] = current;
-    if (directive === "rept") repeatStack.push(i);
-    else if (directive === "endr") {
-      const start = repeatStack.pop();
-      if (start !== undefined) repeats.push({ start, end: i });
-    } else if (directive && isConditionalOpener(directive)) {
-      conditionalStack.push({ start: i, alternatives: [], end: i });
-    } else if (directive && CONDITIONAL_ALTERNATIVES.has(directive)) {
-      conditionalStack[conditionalStack.length - 1]?.alternatives.push(i);
-    } else if (directive && CONDITIONAL_ENDS.has(directive)) {
-      const block = conditionalStack.pop();
-      if (block) conditionals.push({ ...block, end: i });
-    }
-  }
+  };
+  visit(parseBlocks(file).blocks, 0);
 
   return { region, repeats, conditionals };
 }
