@@ -5,6 +5,11 @@ import { VasmOptions } from "./diagnostics";
 
 export interface Config {
   format: FormatterOptions;
+  /**
+   * Glob patterns to leave out of the workspace index, on top of the built-in
+   * ones for build output and dependency directories.
+   */
+  exclude: string[];
   includePaths: string[];
   processors: Processor[];
   vasm: VasmOptions;
@@ -30,6 +35,7 @@ export const defaultConfig: Config = {
     finalNewLine: true,
     endOfLine: "lf",
   },
+  exclude: [],
   includePaths: [],
   processors: ["mc68000"],
   vasm: {
