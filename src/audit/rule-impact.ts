@@ -178,7 +178,7 @@ export const ruleImpactAuditCases: readonly RuleImpactAuditCase[] = [
   },
 
   // No 68000 measurement is meaningful/available for these target-specific rules.
-  { ruleId: "optimization/combine-ext-byte", exempt: "68040/68060-only" },
+  { ruleId: "optimization/combine-ext-byte", exempt: "68020+-only; 68kcounter is 68000-only" },
   { ruleId: "optimization/cmpa-zero-to-tst-030", exempt: "68030-only" },
   { ruleId: "optimization/multiply-long-by-one", exempt: "68060-only" },
   { ruleId: "optimization/muls-long-060-simple", exempt: "68060-only" },

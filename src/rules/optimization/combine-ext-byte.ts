@@ -1,19 +1,19 @@
 import type { Rule } from "../../core/rule.js";
 import { dataRegisterOperand, instructionSize, isInstruction } from "../../util/ast.js";
 
-/** ASP68K: EXT.W Dn + EXT.L Dn -> EXTB.L Dn on 68040/68060. */
+/** ASP68K: EXT.W Dn + EXT.L Dn -> EXTB.L Dn, available from the 68020 on. */
 export const combineExtByte: Rule = {
   meta: {
     id: "optimization/combine-ext-byte",
     category: "optimization",
     defaultSeverity: "suggestion",
     description: "Combine EXT.W + EXT.L into EXTB.L",
-    tags: ["asp68k", "sequence"],
+    tags: ["asp68k", "sequence", "68020+"],
     docs: { source: "ASP68K" },
   },
 
   checkLine(ctx, line, index) {
-    if (!ctx.config.processors.every((cpu) => ["mc68040", "mc68060"].includes(cpu))) return;
+    if (!ctx.config.processors.every((cpu) => ["mc68020", "mc68030", "mc68040", "mc68060"].includes(cpu))) return;
     if (!isInstruction(line, "ext") || instructionSize(line) !== "w") return;
     const first = dataRegisterOperand(line, 0);
     if (!first) return;

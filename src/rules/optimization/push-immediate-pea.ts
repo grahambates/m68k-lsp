@@ -20,7 +20,7 @@ export const pushImmediatePea: Rule = {
     if (dest.register.type !== "address-register" || !["a7", "sp"].includes(dest.register.register.toLowerCase()))
       return;
     const value = ctx.evaluate(source.value);
-    if (!value.known || value.value < -32767 || value.value > 32767) return;
+    if (!value.known || value.value < -32768 || value.value > 32767) return;
     if (!ctx.config.processors.every((cpu) => cpu === "mc68000" || cpu === "mc68010")) return;
 
     const safety = changedFlagsApplicability(ctx, index, ["N", "Z", "V", "C"]);

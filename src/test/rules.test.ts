@@ -149,6 +149,13 @@ describe("optimization rules", () => {
     expect(ids("move.l #40000,a2")).not.toContain("optimization/prefer-move-word-address");
   });
 
+  test("accepts -32768 as a sign-extending word immediate for address registers", () => {
+    // $8000 sign-extends to -32768, the same value a .l load would carry -- the
+    // full signed 16-bit range is -32768..32767, not -32767..32767.
+    expect(ids("move.l #-32768,a2")).toContain("optimization/prefer-move-word-address");
+    expect(ids("move.l #-32769,a2")).not.toContain("optimization/prefer-move-word-address");
+  });
+
   test("zeros an address register with SUBA.L", () => {
     const diagnostic = lint("move.l #0,a3").find((d) => d.ruleId === "optimization/zero-address-register");
     expect(diagnostic?.suggestion?.replacement).toBe("\tsuba.l a3,a3");
@@ -612,6 +619,11 @@ describe("v0.9 local peepholes", () => {
       (d) => d.ruleId === "optimization/push-immediate-pea",
     );
     expect(escaping?.suggestion?.applicability).toBe("conditional");
+  });
+
+  test("accepts -32768 as a sign-extending word immediate for PEA", () => {
+    expect(ids("move.l #-32768,-(sp)")).toContain("optimization/push-immediate-pea");
+    expect(ids("move.l #-32769,-(sp)")).not.toContain("optimization/push-immediate-pea");
   });
 
   test("reduces single-register MOVEM but rejects MOVEM.W to Dn", () => {
@@ -2259,13 +2271,13 @@ describe("previously untested rules (coverage audit)", () => {
     expect(ids(source)).not.toContain("optimization/multiply-long-small-constant");
   });
 
-  test("combines EXT.W plus EXT.L on the same register into EXTB.L on 68040/68060", () => {
+  test("combines EXT.W plus EXT.L on the same register into EXTB.L from the 68020 on", () => {
     const source = ["ext.w d0", "ext.l d0"].join("\n");
-    const diagnostic = lint(source, { processors: ["mc68040"] }).find(
-      (d) => d.ruleId === "optimization/combine-ext-byte",
-    );
-    expect(diagnostic).toBeDefined();
-    expect(diagnostic?.suggestion?.replacement).toBe("\textb.l d0");
+    for (const cpu of ["mc68020", "mc68030", "mc68040", "mc68060"] as const) {
+      const diagnostic = lint(source, { processors: [cpu] }).find((d) => d.ruleId === "optimization/combine-ext-byte");
+      expect(diagnostic).toBeDefined();
+      expect(diagnostic?.suggestion?.replacement).toBe("\textb.l d0");
+    }
   });
 
   test("does not combine EXT.W/EXT.L across different registers", () => {
@@ -2273,9 +2285,12 @@ describe("previously untested rules (coverage audit)", () => {
     expect(ids(source, { processors: ["mc68040"] })).not.toContain("optimization/combine-ext-byte");
   });
 
-  test("does not combine EXT.W/EXT.L outside the 68040/68060 scope", () => {
+  test("does not combine EXT.W/EXT.L outside the 68020+ scope", () => {
+    // EXTB.L doesn't exist before the 68020, and CPU32 is left out deliberately
+    // (see negative-signed-multiply.ts for the same "68020-and-up, not CPU32" list).
     const source = ["ext.w d0", "ext.l d0"].join("\n");
-    expect(ids(source, { processors: ["mc68020"] })).not.toContain("optimization/combine-ext-byte");
+    expect(ids(source, { processors: ["mc68010"] })).not.toContain("optimization/combine-ext-byte");
+    expect(ids(source, { processors: ["cpu32"] })).not.toContain("optimization/combine-ext-byte");
   });
 
   test("uses TST in place of adding zero", () => {
