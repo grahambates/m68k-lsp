@@ -49,7 +49,7 @@ aborting...
 
       expect(result[1].code).toBe(2001);
       expect(result[1].message).toBe(
-        "instruction not supported on selected architecture"
+        "instruction not supported on selected architecture",
       );
       expect(result[1].source).toBe("vasm");
       expect(result[1].severity).toBe(DiagnosticSeverity.Error);
@@ -77,7 +77,7 @@ error 2 in line 1 of "a.i": unknown mnemonic <sdsdffd>
 
       expect(result[0].code).toBe(9);
       expect(result[0].message).toBe(
-        `error 9 in line 1 of "STAT_SVZC": instruction not supported on selected architecture`
+        `error 9 in line 1 of "STAT_SVZC": instruction not supported on selected architecture`,
       );
       expect(result[0].source).toBe("vasm");
       expect(result[0].severity).toBe(DiagnosticSeverity.Error);
@@ -89,7 +89,7 @@ error 2 in line 1 of "a.i": unknown mnemonic <sdsdffd>
       expect(result[1].code).toBe(2);
       expect(result[1].message).toBe(
         `error 2 in line 1 of "a.i": unknown mnemonic <sdsdffd>
-	included from line 1 of "b.i"`
+	included from line 1 of "b.i"`,
       );
       expect(result[1].source).toBe("vasm");
       expect(result[1].severity).toBe(DiagnosticSeverity.Error);

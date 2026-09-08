@@ -44,5 +44,5 @@ module.exports = tseslint.config(
       globals: { ...globals.jest },
     },
   },
-  prettier
+  prettier,
 );

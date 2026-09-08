@@ -41,7 +41,7 @@ describe("DefinitionProvider", () => {
       const textDocument = await createDoc(
         "example.s",
         `foo = 123
- move #foo,d0`
+ move #foo,d0`,
       );
 
       const definitions = await provider.onDefinition({
@@ -59,7 +59,7 @@ describe("DefinitionProvider", () => {
         "example.s",
         `global:
 .local:
- bra .local`
+ bra .local`,
       );
 
       const definitions = await provider.onDefinition({
@@ -76,7 +76,7 @@ describe("DefinitionProvider", () => {
       const textDocument = await createDoc(
         "example123.s",
         ` include example.i
- move #foo,d0`
+ move #foo,d0`,
       );
 
       const definitions = await provider.onDefinition({

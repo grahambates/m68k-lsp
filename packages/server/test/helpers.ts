@@ -35,7 +35,7 @@ export function createTestContext(config: Partial<Config> = {}) {
     [{ uri: workspaceUri, name: "fixtures" }],
     logger,
     connection,
-    config
+    config,
   );
 }
 
@@ -43,7 +43,7 @@ export const range = (
   startLine: number,
   startChar: number,
   endLine: number,
-  endChar: number
+  endChar: number,
 ): lsp.Range => ({
   start: { line: startLine, character: startChar },
   end: { line: endLine, character: endChar },
@@ -52,7 +52,7 @@ export const range = (
 export async function parseTree(src: string) {
   await Parser.init();
   const language = await Parser.Language.load(
-    path.join(__dirname, "..", "wasm", "tree-sitter-m68k.wasm")
+    path.join(__dirname, "..", "wasm", "tree-sitter-m68k.wasm"),
   );
   const parser = new Parser();
   parser.setLanguage(language);

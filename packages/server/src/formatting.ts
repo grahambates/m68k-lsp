@@ -16,7 +16,7 @@ export function formatDeclaration(definitionLine: string) {
 
 export function formatNumeric(text: string): string {
   const value = Number(
-    text.replace("$", "0x").replace("%", "0b").replace("@", "0o")
+    text.replace("$", "0x").replace("%", "0b").replace("@", "0o"),
   );
   const hex = value.toString(16);
   const oct = value.toString(8);
@@ -40,7 +40,7 @@ export function asciiValue(num: number) {
     .map((byte) =>
       byte < 32 || (byte > 127 && byte < 161) || byte > 255
         ? "."
-        : String.fromCharCode(byte)
+        : String.fromCharCode(byte),
     )
     .join("");
 }
@@ -58,7 +58,7 @@ export function formatMnemonicDoc(doc: MnemonicDoc): MarkupContent {
     if (doc.ccr) {
       const cols = Object.values(doc.ccr);
       value += `\n\n| X | N | Z | V | C |\n|---|---|---|---|---|\n| ${cols.join(
-        " | "
+        " | ",
       )} |`;
     }
 
@@ -74,13 +74,13 @@ export function formatMnemonicDoc(doc: MnemonicDoc): MarkupContent {
       value += `\n|:----|-----|-----|-----|-----|-----|-----|--------|-----|-----|-----|--------|-----|`;
       if (doc.src) {
         const srcCols = Object.values(doc.src).map((v, i) =>
-          (v ? "  ✓" : "  -").padEnd(widths[i], " ")
+          (v ? "  ✓" : "  -").padEnd(widths[i], " "),
         );
         value += `\n|**src**  |${srcCols.join("|")}|`;
       }
       if (doc.dest) {
         const destCols = Object.values(doc.dest).map((v, i) =>
-          (v ? "  ✓" : "  -").padEnd(widths[i], " ")
+          (v ? "  ✓" : "  -").padEnd(widths[i], " "),
         );
         value += `\n|**dest** |${destCols.join("|")}|`;
       }
@@ -96,7 +96,7 @@ export function formatMnemonicDoc(doc: MnemonicDoc): MarkupContent {
 export function formatAddressingModes(addressing: AddressingModes): string {
   return Object.entries(addressing)
     .map(([key, allowed]) =>
-      allowed ? addressingModeDocs[key as AddressingMode] : ""
+      allowed ? addressingModeDocs[key as AddressingMode] : "",
     )
     .filter(Boolean)
     .join(", ");

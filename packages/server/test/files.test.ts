@@ -71,7 +71,7 @@ describe("files", () => {
 
     it("returns the directory for non-existent file", async () => {
       const result = await files.getDirectory(
-        __dirname + "/fixtures/a/non-existent.s"
+        __dirname + "/fixtures/a/non-existent.s",
       );
       expect(result).toBe(__dirname + "/fixtures/a");
     });
@@ -83,7 +83,7 @@ describe("files", () => {
       const result = await files.resolveInclude(
         ctx.workspaceFolders[0].uri + "/example.s",
         "example.i",
-        ctx
+        ctx,
       );
       expect(result).toBe(__dirname + "/fixtures/example.i");
     });
@@ -93,7 +93,7 @@ describe("files", () => {
       const processor = new DocumentProcessor(ctx);
       const uri = ctx.workspaceFolders[0].uri + "/example.s";
       await processor.process(
-        TextDocument.create(uri, "vasmmot", 1, ` incdir "a"`)
+        TextDocument.create(uri, "vasmmot", 1, ` incdir "a"`),
       );
 
       const result = await files.resolveInclude(uri, "b.s", ctx);
@@ -115,7 +115,7 @@ describe("files", () => {
 
       const currentUri = ctx.workspaceFolders[0].uri + "/example.s";
       await processor.process(
-        TextDocument.create(currentUri, "vasmmot", 1, ` include "example.i"`)
+        TextDocument.create(currentUri, "vasmmot", 1, ` include "example.i"`),
       );
 
       const referencingUri = ctx.workspaceFolders[0].uri + "/referencing.s";
@@ -124,8 +124,8 @@ describe("files", () => {
           referencingUri,
           "vasmmot",
           1,
-          ` include "example.s"`
-        )
+          ` include "example.s"`,
+        ),
       );
 
       const result = await files.getDependencies(currentUri, ctx);

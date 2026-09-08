@@ -83,7 +83,7 @@ describe("DocumentSymbolProvider", () => {
       const textDocument = await createDoc(
         "example.s",
         `foo:
-.bar:`
+.bar:`,
       );
 
       const symbols = await provider.onDocumentSymbol({
@@ -165,7 +165,7 @@ describe("DocumentSymbolProvider", () => {
         "example.s",
         `foo macro
       move d0,d1
-      endm`
+      endm`,
       );
 
       const symbols = await provider.onDocumentSymbol({

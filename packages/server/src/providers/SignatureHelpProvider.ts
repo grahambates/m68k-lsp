@@ -105,7 +105,7 @@ export default class SignatureHelpProvider implements Provider {
                 def.documentation = { value, kind: MarkupKind.Markdown };
               }
               return def;
-            })
+            }),
           );
         }
         return {

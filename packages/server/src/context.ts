@@ -20,7 +20,7 @@ export async function createContext(
   workspaceFolders: lsp.WorkspaceFolder[],
   logger: lsp.Logger,
   connection: lsp.Connection,
-  config: Partial<Config>
+  config: Partial<Config>,
 ): Promise<Context> {
   if (!language) {
     // Workaround for web-tree-sitter node 18 compatibility issue:
@@ -35,7 +35,7 @@ export async function createContext(
 
     await Parser.init();
     language = await Parser.Language.load(
-      path.join(__dirname, "..", "wasm", "tree-sitter-m68k.wasm")
+      path.join(__dirname, "..", "wasm", "tree-sitter-m68k.wasm"),
     );
   }
 

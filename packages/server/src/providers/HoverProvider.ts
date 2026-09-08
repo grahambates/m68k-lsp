@@ -28,7 +28,7 @@ export default class HoverProvider implements Provider {
     }
 
     const node = processed.tree.rootNode.descendantForPosition(
-      positionToPoint(position)
+      positionToPoint(position),
     );
 
     switch (node.type) {
@@ -101,7 +101,7 @@ export default class HoverProvider implements Provider {
   private async hoverSymbol(
     node: SyntaxNode,
     document: TextDocument,
-    position: lsp.Position
+    position: lsp.Position,
   ) {
     const [def] = await getDefinitions(document.uri, position, this.ctx);
     const contents: lsp.MarkedString[] = [];

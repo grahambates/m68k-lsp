@@ -84,7 +84,7 @@ export default class TextDocumentSyncProvider implements Provider {
     }
     const vasmDiagnostics = await this.diagnostics.vasmDiagnostics(uri);
     const captureDiagnostics = this.diagnostics.parserDiagnostics(
-      existing.tree
+      existing.tree,
     );
     this.connection.sendDiagnostics({
       uri,
@@ -94,7 +94,7 @@ export default class TextDocumentSyncProvider implements Provider {
 
   changeToEdit(
     document: TextDocument,
-    change: lsp.TextDocumentContentChangeEvent
+    change: lsp.TextDocumentContentChangeEvent,
   ): Parser.Edit {
     if (!lsp.TextDocumentContentChangeEvent.isIncremental(change)) {
       throw new Error("Not incremental");
@@ -105,7 +105,7 @@ export default class TextDocumentSyncProvider implements Provider {
       startPosition: positionToPoint(change.range.start),
       oldEndPosition: positionToPoint(change.range.end),
       newEndPosition: positionToPoint(
-        document.positionAt(rangeOffset + change.text.length)
+        document.positionAt(rangeOffset + change.text.length),
       ),
       startIndex: rangeOffset,
       oldEndIndex: rangeOffset + rangeLength,

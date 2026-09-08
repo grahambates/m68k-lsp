@@ -68,7 +68,7 @@ describe("RenameProvider", () => {
         "example.s",
         `foo = 123
  move foo,d0
- move #foo,d1`
+ move #foo,d1`,
       );
 
       const newText = "example";
@@ -99,7 +99,7 @@ describe("RenameProvider", () => {
         "example.s",
         `foo = 123
  move foo,d0
- move #foo,d1`
+ move #foo,d1`,
       );
 
       const newText = "example";
@@ -130,7 +130,7 @@ describe("RenameProvider", () => {
         "example.s",
         ` include 'example.i'
  move foo,d0
- move #foo,d1`
+ move #foo,d1`,
       );
 
       const newText = "example";

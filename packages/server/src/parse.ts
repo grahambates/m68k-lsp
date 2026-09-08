@@ -140,7 +140,7 @@ export function parseLine(text: string): ParsedLine {
  */
 export function componentAtIndex(
   { label, mnemonic, size, operands, comment }: ParsedLine,
-  index: number
+  index: number,
 ): ComponentInfo | undefined {
   if (label && containsIndex(label, index)) {
     return {

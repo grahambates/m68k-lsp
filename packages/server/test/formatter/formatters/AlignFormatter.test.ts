@@ -69,7 +69,7 @@ describe("AlignFormatter", () => {
         operands: 20,
         comment: 30,
         standaloneComment: "nearest",
-      }
+      },
     );
     expect(result).toBe(`
 ; foo
@@ -100,7 +100,7 @@ describe("AlignFormatter", () => {
         operands: 20,
         comment: 30,
         standaloneComment: "mnemonic",
-      }
+      },
     );
     expect(result).toBe(`
           ; foo
@@ -121,7 +121,7 @@ describe("AlignFormatter", () => {
         operands: 20,
         comment: 30,
         standaloneComment: 10,
-      }
+      },
     );
     expect(result).toBe(`
           ; foo
@@ -197,12 +197,12 @@ label: rts`,
         {
           mnemonic: 12,
           autoExtend: "file",
-        }
+        },
       );
       expect(result).toBe(
         `
 reallyreallylonglabel: rts
-label:                 rts`
+label:                 rts`,
       );
     });
 
@@ -216,13 +216,13 @@ label: rts`,
           mnemonic: 12,
           operands: 24,
           autoExtend: "file",
-        }
+        },
       );
       expect(result).toBe(
         `
 reallyreallylonglabel:
             rts
-label:      rts`
+label:      rts`,
       );
     });
 
@@ -235,12 +235,12 @@ label: move.w d0,d1`,
           mnemonic: 12,
           operands: 24,
           autoExtend: "file",
-        }
+        },
       );
       expect(result).toBe(
         `
 label:      reallylongmnemonic d0,d1
-label:      move.w             d0,d1`
+label:      move.w             d0,d1`,
       );
     });
 
@@ -253,12 +253,12 @@ label: move.w d0,d1`,
           mnemonic: 12,
           operands: 24,
           autoExtend: "file",
-        }
+        },
       );
       expect(result).toBe(
         `
 reallyreallylonglabel: reallylongmnemonic d0,d1
-label:                 move.w             d0,d1`
+label:                 move.w             d0,d1`,
       );
     });
 
@@ -271,12 +271,12 @@ reallyreallylonglabel = 2`,
           operator: 12,
           value: 0,
           autoExtend: "file",
-        }
+        },
       );
       expect(result).toBe(
         `
 foo                   = 1
-reallyreallylonglabel = 2`
+reallyreallylonglabel = 2`,
       );
     });
 
@@ -290,12 +290,12 @@ label: move.w d0,d1 ; comment`,
           operands: 24,
           comment: 32,
           autoExtend: "file",
-        }
+        },
       );
       expect(result).toBe(
         `
 label:      move.w      #reallylongeroperand,d1 ; comment
-label:      move.w      d0,d1                   ; comment`
+label:      move.w      d0,d1                   ; comment`,
       );
     });
 
@@ -309,12 +309,12 @@ label: move.w d0,d1 ; comment`,
           operands: 24,
           comment: 32,
           autoExtend: "file",
-        }
+        },
       );
       expect(result).toBe(
         `
 label:      reallylongmnemonic #reallylongeroperand,d1 ; comment
-label:      move.w             d0,d1                   ; comment`
+label:      move.w             d0,d1                   ; comment`,
       );
     });
 
@@ -328,12 +328,12 @@ label: move.w d0,d1 ; comment`,
           operands: 24,
           comment: 32,
           autoExtend: "file",
-        }
+        },
       );
       expect(result).toBe(
         `
 label:      reallyreallyreallylongmnemonic ; comment
-label:      move.w      d0,d1              ; comment`
+label:      move.w      d0,d1              ; comment`,
       );
     });
 
@@ -347,12 +347,12 @@ label: move.w d0,d1 ; comment`,
           operands: 24,
           comment: 32,
           autoExtend: "file",
-        }
+        },
       );
       expect(result).toBe(
         `
 reallyreallyreallyreallyreallyreallylonglabel ; comment
-label:      move.w      d0,d1                 ; comment`
+label:      move.w      d0,d1                 ; comment`,
       );
     });
 
@@ -366,12 +366,12 @@ label: move.w d0,d1 ; comment`,
           operands: 24,
           comment: 32,
           autoExtend: "file",
-        }
+        },
       );
       expect(result).toBe(
         `
 reallyreallyreallyreallyreallyreallylonglabel = 1 ; comment
-label:      move.w      d0,d1                     ; comment`
+label:      move.w      d0,d1                     ; comment`,
       );
     });
 
@@ -385,12 +385,12 @@ label: rts`,
           indentStyle: "tab",
           tabSize: 8,
           autoExtend: "file",
-        }
+        },
       );
       expect(result).toBe(
         `
 reallyreallylonglabel:\trts
-label:\t\t\trts`
+label:\t\t\trts`,
       );
     });
   });
@@ -408,14 +408,14 @@ label: move.w d0,d1 ; comment`,
           operands: 24,
           comment: 32,
           autoExtend: "block",
-        }
+        },
       );
       expect(result).toBe(
         `
 label:      reallylongmnemonic d0,d1
 label:      move.w             d0,d1
 
-label:      move.w      d0,d1   ; comment`
+label:      move.w      d0,d1   ; comment`,
       );
     });
   });
@@ -435,7 +435,7 @@ foo:  move d1,d2
         mnemonic: 10,
         operands: 20,
         comment: 35,
-      }
+      },
     );
     expect(result).toBe(`
 foo:      move      d1,d2
@@ -461,7 +461,7 @@ Curabitur aliquet non velit sit amet condimentum.
         mnemonic: 10,
         operands: 20,
         comment: 35,
-      }
+      },
     );
     expect(result).toBe(`
 foo:      move      d1,d2

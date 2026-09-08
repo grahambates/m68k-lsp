@@ -45,16 +45,15 @@ export default class ConfiguratonProvider implements Provider {
 
   async onDidChangeConfiguration() {
     const oldConfig = this.clientConfig;
-    const newConfig = await this.ctx.connection.workspace.getConfiguration(
-      "m68k"
-    );
+    const newConfig =
+      await this.ctx.connection.workspace.getConfiguration("m68k");
     this.clientConfig = mergeConfig(newConfig, oldConfig);
     this.updateConfig();
   }
 
   register(connection: lsp.Connection, capabilities: lsp.ClientCapabilities) {
     connection.onDidChangeConfiguration(
-      this.onDidChangeConfiguration.bind(this)
+      this.onDidChangeConfiguration.bind(this),
     );
     const supportsDynamic =
       capabilities.workspace?.didChangeConfiguration?.dynamicRegistration;
@@ -62,7 +61,7 @@ export default class ConfiguratonProvider implements Provider {
       connection.onInitialized(() => {
         connection.client.register(
           DidChangeConfigurationNotification.type,
-          undefined
+          undefined,
         );
       });
     }

@@ -45,7 +45,7 @@ describe("DefinitionProvider", () => {
 	rts
 example2:
 	add d0,d1
-	rts`
+	rts`,
       );
 
       const ranges = await provider.onFoldingRanges({
@@ -76,7 +76,7 @@ example2:
 	dbf d0,.l0
 .l1
 	dbf d0,.l1
-	rts`
+	rts`,
       );
 
       const ranges = await provider.onFoldingRanges({
@@ -107,7 +107,7 @@ example2:
         ` ifeq foo
 	move d0,d1
 	add d0,d1
-	endc`
+	endc`,
       );
 
       const ranges = await provider.onFoldingRanges({

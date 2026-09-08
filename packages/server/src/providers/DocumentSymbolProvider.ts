@@ -22,7 +22,7 @@ export default class DocumentSymbolProvider implements Provider {
         typeDetails[def.type],
         symbolKindMappings[def.type],
         def.location.range,
-        def.selectionRange
+        def.selectionRange,
       );
 
       if (def.locals) {
@@ -33,8 +33,8 @@ export default class DocumentSymbolProvider implements Provider {
             undefined,
             symbolKindMappings[local.type],
             local.location.range,
-            local.selectionRange
-          )
+            local.selectionRange,
+          ),
         );
       }
 

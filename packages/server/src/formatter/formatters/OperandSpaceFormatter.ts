@@ -8,7 +8,10 @@ export type OperandSpaceOptions = "on" | "off" | "any";
 class OperandSpaceFormatter implements Formatter {
   private query: Parser.Query;
 
-  constructor(language: Parser.Language, private options: OperandSpaceOptions) {
+  constructor(
+    language: Parser.Language,
+    private options: OperandSpaceOptions,
+  ) {
     this.query = language.query(`(operand_list) @operand_list`);
   }
 
@@ -30,7 +33,7 @@ class OperandSpaceFormatter implements Formatter {
         if (nextOperand) {
           const sep = tree.rootNode.text.substring(
             currentOperand.endIndex,
-            nextOperand.startIndex
+            nextOperand.startIndex,
           );
 
           const expected = useSpace ? ", " : ",";

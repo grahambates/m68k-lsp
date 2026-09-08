@@ -48,6 +48,7 @@ npm install --global m68k-lsp-server
 Configure using [nvim-lspconfig](https://github.com/neovim/nvim-lspconfig)
 
 e.g.
+
 ```lua
 require('lspconfig').m68k.setup{
   on_attach = on_attach,
@@ -294,17 +295,17 @@ Indents elements to align by type.
 
 (defaults)
 
-| Property            | Description                                                                                             |
-| ------------------- | ------------------------------------------------------------------------------------------------------- |
-| `mnemonic`          | Position of instruction/directive mnemonic and size e.g. `move.w`,`include`.                            |
-| `operands`          | Position of operands e.g. `d0,d1`.                                                                      |
-| `comment`           | Position of comment following statement. Comments on their own line are not affected.                   |
-| `operator`          | Position of `=` character in constant assignment                                                        |
-| `value`             | Position of value in constant assignment                                                                |
-| `standaloneComment` | Position / behaviour of comment with no other elements on the same line.                                |
-| `indentStyle`       | Character to use for indent - `tab` or `space`.                                                         |
-| `tabSize`           | Width of tab character to calculate positions when using `tab` indent style.                            |
-| `autoExtend`        | Behaviour when a component exceeds the available space between positions. See below.                    |
+| Property            | Description                                                                           |
+| ------------------- | ------------------------------------------------------------------------------------- |
+| `mnemonic`          | Position of instruction/directive mnemonic and size e.g. `move.w`,`include`.          |
+| `operands`          | Position of operands e.g. `d0,d1`.                                                    |
+| `comment`           | Position of comment following statement. Comments on their own line are not affected. |
+| `operator`          | Position of `=` character in constant assignment                                      |
+| `value`             | Position of value in constant assignment                                              |
+| `standaloneComment` | Position / behaviour of comment with no other elements on the same line.              |
+| `indentStyle`       | Character to use for indent - `tab` or `space`.                                       |
+| `tabSize`           | Width of tab character to calculate positions when using `tab` indent style.          |
+| `autoExtend`        | Behaviour when a component exceeds the available space between positions. See below.  |
 
 Options for `standaloneComment`:
 

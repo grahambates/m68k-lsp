@@ -33,7 +33,7 @@ const shared = {
  */
 const treeSitterWasm = join(
   dirname(require.resolve("web-tree-sitter/package.json")),
-  "tree-sitter.wasm"
+  "tree-sitter.wasm",
 );
 
 async function copyAssets() {

@@ -48,7 +48,7 @@ describe("SignatureHelpProvider", () => {
       expect(help.signatures).toContainEqual(
         expect.objectContaining({
           label: "move[.(bwl)] <source>,<destination>",
-        })
+        }),
       );
     });
 
@@ -63,7 +63,7 @@ describe("SignatureHelpProvider", () => {
       expect(help.signatures).toContainEqual(
         expect.objectContaining({
           label: "section <name>[,<sec_type>][,<mem_type>]",
-        })
+        }),
       );
     });
 

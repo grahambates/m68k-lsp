@@ -11,7 +11,10 @@ const chars = {
 export type EOL = "lf" | "cr" | "crlf";
 
 class EndOfLineFormatter implements Formatter {
-  constructor(private type: EOL, private finalNewLine?: boolean) {}
+  constructor(
+    private type: EOL,
+    private finalNewLine?: boolean,
+  ) {}
 
   format(tree: Parser.Tree): TextEdit[] {
     const edits: TextEdit[] = [];

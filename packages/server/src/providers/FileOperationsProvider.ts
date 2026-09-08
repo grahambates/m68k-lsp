@@ -70,7 +70,7 @@ export default class FileOperationsProvider implements Provider {
           file.newUri,
           languageId,
           version,
-          processed.document.getText()
+          processed.document.getText(),
         );
       }
 
@@ -105,7 +105,7 @@ export default class FileOperationsProvider implements Provider {
         }
 
         return { oldUri, newUri };
-      })
+      }),
     );
     return renames.flat().filter(({ newUri }) => isAsmExt(newUri));
   }

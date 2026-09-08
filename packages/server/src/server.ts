@@ -11,7 +11,7 @@ connection.onInitialize(async (params) => {
     params.workspaceFolders ?? [],
     connection.console,
     connection,
-    params.initializationOptions
+    params.initializationOptions,
   );
 
   const capabilities = registerProviders(connection, ctx, params.capabilities);

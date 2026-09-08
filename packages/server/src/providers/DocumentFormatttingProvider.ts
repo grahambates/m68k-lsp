@@ -85,10 +85,10 @@ export default class DocumentFormattingProvider implements Provider {
   register(connection: lsp.Connection): lsp.ServerCapabilities {
     connection.onDocumentFormatting(this.onDocumentFormatting.bind(this));
     connection.onDocumentRangeFormatting(
-      this.onDocumentRangeFormatting.bind(this)
+      this.onDocumentRangeFormatting.bind(this),
     );
     connection.onDocumentOnTypeFormatting(
-      this.onDocumentOnTypeFormatting.bind(this)
+      this.onDocumentOnTypeFormatting.bind(this),
     );
     return {
       documentFormattingProvider: true,

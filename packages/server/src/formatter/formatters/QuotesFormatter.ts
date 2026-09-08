@@ -8,7 +8,10 @@ export type QuotesOptions = "double" | "single" | "any";
 class QuotesFormatter implements Formatter {
   private query: Parser.Query;
 
-  constructor(language: Parser.Language, private options: QuotesOptions) {
+  constructor(
+    language: Parser.Language,
+    private options: QuotesOptions,
+  ) {
     this.query = language.query(`(string_literal) @string`);
   }
 

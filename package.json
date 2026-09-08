@@ -21,7 +21,7 @@
     "build:dev": "node scripts/build.mjs --sourcemap",
     "watch": "node scripts/build.mjs --sourcemap --watch",
     "clean": "rm -rf packages/*/out packages/*/.tsbuild packages/client/wasm",
-    "check": "npm run lint && npm run typecheck && npm run test",
+    "check": "npm run lint && npm run format:check && npm run typecheck && npm run test",
     "typecheck": "tsc -b packages/server packages/client",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
@@ -30,7 +30,8 @@
     "test:coverage": "jest --coverage",
     "build-docs": "scripts/conv-directives && scripts/conv-instructions",
     "package": "npm run package --workspace packages/client",
-    "prepare": "husky"
+    "prepare": "husky",
+    "format:check": "prettier --check ."
   },
   "devDependencies": {
     "@eslint/js": "^9.38.0",

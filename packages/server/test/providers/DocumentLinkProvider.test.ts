@@ -43,7 +43,7 @@ describe("DocumentLinkProvider", () => {
       const textDocument = await createDoc(
         "example.s",
         ` include example.i
- move #foo,d0`
+ move #foo,d0`,
       );
 
       const links = await provider.onDocumentLinks({

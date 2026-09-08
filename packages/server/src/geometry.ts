@@ -9,7 +9,7 @@ export function nodeAsRange(node: Parser.SyntaxNode): lsp.Range {
     node.startPosition.row,
     node.startPosition.column,
     node.endPosition.row,
-    node.endPosition.column
+    node.endPosition.column,
   );
 }
 
@@ -31,7 +31,7 @@ export function isBeforeOrEqual(a: lsp.Position, b: lsp.Position): boolean {
  */
 export function containsPosition(
   range: lsp.Range,
-  position: lsp.Position
+  position: lsp.Position,
 ): boolean {
   return (
     isBeforeOrEqual(range.start, position) &&

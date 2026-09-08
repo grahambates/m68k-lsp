@@ -15,7 +15,7 @@ export default class ReferencesProvider implements Provider {
       textDocument.uri,
       position,
       this.ctx,
-      context.includeDeclaration
+      context.includeDeclaration,
     );
     return refs.map((s) => s.location);
   }

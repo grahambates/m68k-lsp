@@ -53,7 +53,7 @@ let symbolsQuery: Query | undefined;
 export function processSymbols(
   uri: string,
   tree: Parser.Tree,
-  ctx: Context
+  ctx: Context,
 ): Symbols {
   const symbols: Symbols = {
     definitions: new Map<string, Definition>(),
@@ -115,7 +115,7 @@ export function processSymbols(
         // Escape special chars
         .replace(/([*_{}[\]()#+-.!`])/g, "\\$1")
         // Replace placholder with actual rule
-        .replace(/^~~~$/, horizontalRule)
+        .replace(/^~~~$/, horizontalRule),
     );
     // Ensure no horizontal rules at start or end of block
     while (processedLines[0] === horizontalRule) {
@@ -242,7 +242,7 @@ export function processPath(path: string): string {
  */
 export function symbolAtPosition(
   symbols: Symbols,
-  position: lsp.Position
+  position: lsp.Position,
 ): NamedSymbol | undefined {
   return (
     definitionAtPosition(symbols, position) ||
@@ -255,11 +255,11 @@ export function symbolAtPosition(
  */
 export function referenceAtPosition(
   symbols: Symbols,
-  position: lsp.Position
+  position: lsp.Position,
 ): NamedSymbol | undefined {
   for (const [, refs] of symbols.references) {
     const foundRef = refs.find((ref) =>
-      containsPosition(ref.location.range, position)
+      containsPosition(ref.location.range, position),
     );
     if (foundRef) {
       return foundRef;
@@ -272,7 +272,7 @@ export function referenceAtPosition(
  */
 export function definitionAtPosition(
   docSymbols: Symbols,
-  position: lsp.Position
+  position: lsp.Position,
 ): Definition | undefined {
   for (const def of docSymbols.definitions.values()) {
     if (def.locals) {
@@ -299,7 +299,7 @@ export async function getReferences(
   uri: string,
   position: lsp.Position,
   ctx: Context,
-  includeDeclaration = false
+  includeDeclaration = false,
 ): Promise<NamedSymbol[]> {
   const currentDoc = ctx.store.get(uri);
   if (!currentDoc) {
@@ -317,14 +317,14 @@ export async function getReferences(
     const { range, startLabel } = localContext(
       symbol,
       currentDoc.symbols,
-      currentDoc.document
+      currentDoc.document,
     );
     const refs = currentDoc.symbols.references.get(symbol.name);
     if (refs) {
       results.push(
         ...refs.filter((ref) =>
-          containsPosition(range, ref.location.range.start)
-        )
+          containsPosition(range, ref.location.range.start),
+        ),
       );
     }
     if (includeDeclaration) {
@@ -380,7 +380,7 @@ type LocalContext = {
 export async function getDefinitions(
   uri: string,
   position: lsp.Position,
-  ctx: Context
+  ctx: Context,
 ): Promise<Definition[]> {
   const processed = ctx.store.get(uri);
   if (!processed) {
@@ -425,7 +425,7 @@ export async function getDefinitions(
  */
 export function labelBeforePosition(
   docSymbols: Symbols,
-  position: lsp.Position
+  position: lsp.Position,
 ): Definition | undefined {
   let label: Definition | undefined;
   for (const def of docSymbols.definitions.values()) {
@@ -445,7 +445,7 @@ export function labelBeforePosition(
 function localContext(
   symbol: NamedSymbol,
   docSymbols: Symbols,
-  document: TextDocument
+  document: TextDocument,
 ): LocalContext {
   const range: lsp.Range = {
     start: { character: 0, line: 0 },

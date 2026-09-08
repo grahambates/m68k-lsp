@@ -41,7 +41,7 @@ describe("DocumentHighlightProvider", () => {
       const textDocument = await createDoc(
         "example.s",
         `foo = 123
- move #foo,d0`
+ move #foo,d0`,
       );
 
       const hightlights = await provider.onDocumentHighlight({
@@ -59,7 +59,7 @@ describe("DocumentHighlightProvider", () => {
     const textDocument = await createDoc(
       "example.s",
       `foo = 123
- move #foo,d0`
+ move #foo,d0`,
     );
 
     const hightlights = await provider.onDocumentHighlight({

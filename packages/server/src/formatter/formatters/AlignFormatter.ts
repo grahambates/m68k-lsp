@@ -76,7 +76,7 @@ class AlignFormatter implements Formatter {
 
     const lineText = tree.rootNode.text.split(/\r\n?|\n/);
     const lines = lineText.map((text, i) =>
-      this.processLine(text, i, prevEdits)
+      this.processLine(text, i, prevEdits),
     );
 
     // For files we only need to calculate adjustments once
@@ -133,68 +133,68 @@ class AlignFormatter implements Formatter {
         const maxLabelToMnemonic = max(
           compareLines
             .filter((l) => l.label && l.mnemonic)
-            .map((l) => elementLength(l.label))
+            .map((l) => elementLength(l.label)),
         );
         const maxMnemonicToOperands = max(
           compareLines
             .filter((l) => l.mnemonic && l.operands)
-            .map((l) => elementLength(l.mnemonic))
+            .map((l) => elementLength(l.mnemonic)),
         );
         const maxLabelToOperator = max(
           compareLines
             .filter((l) => l.label && l.operator)
-            .map((l) => elementLength(l.label))
+            .map((l) => elementLength(l.label)),
         );
         // Currently always 1
         const maxOperatorToValue = max(
           compareLines
             .filter((l) => l.operator && l.value)
-            .map((l) => elementLength(l.operator))
+            .map((l) => elementLength(l.operator)),
         );
         const maxOperandsToComment = max(
           compareLines
             .filter((l) => l.operands && l.comment)
-            .map((l) => elementLength(l.operands))
+            .map((l) => elementLength(l.operands)),
         );
         const maxMnemonicToComment = max(
           compareLines
             .filter((l) => l.mnemonic && !l.operands && l.comment)
-            .map((l) => elementLength(l.mnemonic))
+            .map((l) => elementLength(l.mnemonic)),
         );
         const maxLabelToComment = max(
           compareLines
             .filter((l) => l.label && !l.mnemonic && l.comment)
-            .map((l) => elementLength(l.label))
+            .map((l) => elementLength(l.label)),
         );
         const maxValueToComment = max(
           compareLines
             .filter((l) => l.value && l.comment)
-            .map((l) => elementLength(l.value))
+            .map((l) => elementLength(l.value)),
         );
 
         mnemonicPosition = Math.max(
           labelPosition + maxLabelToMnemonic,
-          this.options.mnemonic ?? 0
+          this.options.mnemonic ?? 0,
         );
         operandsPosition = Math.max(
           mnemonicPosition + maxMnemonicToOperands,
-          this.options.operands ?? 0
+          this.options.operands ?? 0,
         );
         // TODO: should operator and mnemonic be merged if no specific config?
         operatorPosition = Math.max(
           labelPosition + maxLabelToOperator,
-          this.options.operator ?? 0
+          this.options.operator ?? 0,
         );
         valuePosition = Math.max(
           operatorPosition + maxOperatorToValue,
-          this.options.value ?? 0
+          this.options.value ?? 0,
         );
         commentPosition = Math.max(
           operandsPosition + maxOperandsToComment,
           mnemonicPosition + maxMnemonicToComment,
           labelPosition + maxLabelToComment,
           valuePosition + maxValueToComment,
-          this.options.comment ?? 0
+          this.options.comment ?? 0,
         );
       }
 
@@ -243,7 +243,7 @@ class AlignFormatter implements Formatter {
               }
               // Calculate absolute delta from each position
               const positionDeltas = possiblePositions.map((o) =>
-                Math.abs(o - currentPos)
+                Math.abs(o - currentPos),
               );
               // Use index of smallest delta
               const minDelta = Math.min(...positionDeltas);
@@ -284,7 +284,7 @@ class AlignFormatter implements Formatter {
     const lineEdits = prevEdits
       // Find edits that apply exclusively to this line
       .filter(
-        ({ range: { start, end } }) => start.line === line && end.line === line
+        ({ range: { start, end } }) => start.line === line && end.line === line,
       )
       // Convert them to apply to line 0
       .map((e) => ({
@@ -354,7 +354,7 @@ class LineEditor {
     private text: string,
     private line: number,
     private shiftWidth: number,
-    private char: string
+    private char: string,
   ) {}
 
   /**
@@ -367,7 +367,7 @@ class LineEditor {
   addIndent(
     desiredOffset: number,
     { range, edited = { start: 0, end: 0 } }: ElementInfo,
-    minSpace = 1
+    minSpace = 1,
   ) {
     let offsetDelta = desiredOffset - this.currentOffset;
     let newText: string;
@@ -421,7 +421,7 @@ function elementLength(info?: ElementInfo) {
 
 function getLabelRange(
   { label }: ParsedLine,
-  lineText: string
+  lineText: string,
 ): ElementRange | undefined {
   if (label) {
     let end = label.end;

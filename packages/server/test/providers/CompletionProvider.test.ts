@@ -48,7 +48,7 @@ describe("CompletionProvider", () => {
       });
 
       expect(completions).toContainEqual(
-        expect.objectContaining({ label: "move" })
+        expect.objectContaining({ label: "move" }),
       );
     });
 
@@ -61,7 +61,7 @@ describe("CompletionProvider", () => {
       });
 
       expect(completions).not.toContainEqual(
-        expect.objectContaining({ label: "movec" })
+        expect.objectContaining({ label: "movec" }),
       );
     });
 
@@ -82,7 +82,7 @@ describe("CompletionProvider", () => {
       });
 
       expect(completions).toContainEqual(
-        expect.objectContaining({ label: "movec" })
+        expect.objectContaining({ label: "movec" }),
       );
     });
 
@@ -95,7 +95,7 @@ describe("CompletionProvider", () => {
       });
 
       expect(completions).toContainEqual(
-        expect.objectContaining({ label: "MOVE" })
+        expect.objectContaining({ label: "MOVE" }),
       );
     });
 
@@ -123,7 +123,7 @@ describe("CompletionProvider", () => {
       });
 
       expect(completions).toContainEqual(
-        expect.objectContaining({ label: "W" })
+        expect.objectContaining({ label: "W" }),
       );
     });
 
@@ -136,7 +136,7 @@ describe("CompletionProvider", () => {
       });
 
       expect(completions).toContainEqual(
-        expect.objectContaining({ label: "d0" })
+        expect.objectContaining({ label: "d0" }),
       );
     });
 
@@ -149,7 +149,7 @@ describe("CompletionProvider", () => {
       });
 
       expect(completions).toContainEqual(
-        expect.objectContaining({ label: "D0" })
+        expect.objectContaining({ label: "D0" }),
       );
     });
 
@@ -162,7 +162,7 @@ describe("CompletionProvider", () => {
       });
 
       expect(completions).toContainEqual(
-        expect.objectContaining({ label: "d0" })
+        expect.objectContaining({ label: "d0" }),
       );
     });
 
@@ -171,7 +171,7 @@ describe("CompletionProvider", () => {
         "example.s",
         `foo = 1
   move f
-      `
+      `,
       );
 
       const completions = await provider.onCompletion({
@@ -180,7 +180,7 @@ describe("CompletionProvider", () => {
       });
 
       expect(completions).toContainEqual(
-        expect.objectContaining({ label: "foo" })
+        expect.objectContaining({ label: "foo" }),
       );
     });
 
@@ -194,7 +194,7 @@ global2:
   bsr .l
 global3:
 .local3:
-      `
+      `,
       );
 
       const completions = await provider.onCompletion({
@@ -203,13 +203,13 @@ global3:
       });
 
       expect(completions).toContainEqual(
-        expect.objectContaining({ label: ".local2" })
+        expect.objectContaining({ label: ".local2" }),
       );
       expect(completions).not.toContainEqual(
-        expect.objectContaining({ label: ".local1" })
+        expect.objectContaining({ label: ".local1" }),
       );
       expect(completions).not.toContainEqual(
-        expect.objectContaining({ label: ".local3" })
+        expect.objectContaining({ label: ".local3" }),
       );
     });
 
@@ -245,7 +245,7 @@ global3:
       });
 
       expect(completions).toContainEqual(
-        expect.objectContaining({ label: "example.i" })
+        expect.objectContaining({ label: "example.i" }),
       );
     });
 
@@ -255,7 +255,7 @@ global3:
         `; test 123
 ; example
 foo = 123
- move fo`
+ move fo`,
       );
 
       const completions = await provider.onCompletion({
@@ -266,7 +266,7 @@ foo = 123
       expect(completions).toContainEqual(
         expect.objectContaining({
           documentation: { kind: "markdown", value: "test 123  \nexample" },
-        })
+        }),
       );
     });
 
@@ -274,7 +274,7 @@ foo = 123
       const textDocument = await createDoc(
         "example.s",
         `foo = 123 ; example
- move fo`
+ move fo`,
       );
 
       const completions = await provider.onCompletion({
@@ -285,7 +285,7 @@ foo = 123
       expect(completions).toContainEqual(
         expect.objectContaining({
           documentation: { kind: "markdown", value: "example" },
-        })
+        }),
       );
     });
 

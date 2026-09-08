@@ -48,7 +48,7 @@ describe("LabelColonFormatter", () => {
   it("adds colons to non-inline labels", async () => {
     const result = await doFormat(
       `foo\n move d0,d1\n.bar add d0,d1`,
-      "notInline"
+      "notInline",
     );
     expect(result).toBe("foo:\n move d0,d1\n.bar add d0,d1");
   });
@@ -56,7 +56,7 @@ describe("LabelColonFormatter", () => {
   it("adds colons to inline labels", async () => {
     const result = await doFormat(
       `foo\n move d0,d1\n.bar add d0,d1`,
-      "onlyInline"
+      "onlyInline",
     );
     expect(result).toBe("foo\n move d0,d1\n.bar: add d0,d1");
   });

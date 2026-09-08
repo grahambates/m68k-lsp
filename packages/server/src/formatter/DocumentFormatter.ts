@@ -46,7 +46,7 @@ class DocumentFormatter {
     }
     if (options.labelColon) {
       this.formatters.push(
-        new LabelColonFormatter(language, options.labelColon)
+        new LabelColonFormatter(language, options.labelColon),
       );
     }
     if (options.quotes) {
@@ -54,7 +54,7 @@ class DocumentFormatter {
     }
     if (options.operandSpace) {
       this.formatters.push(
-        new OperandSpaceFormatter(language, options.operandSpace)
+        new OperandSpaceFormatter(language, options.operandSpace),
       );
     }
     if (options.align) {
@@ -65,7 +65,7 @@ class DocumentFormatter {
     }
     if (options.endOfLine) {
       this.formatters.push(
-        new EndOfLineFormatter(options.endOfLine, options.finalNewLine)
+        new EndOfLineFormatter(options.endOfLine, options.finalNewLine),
       );
     }
   }

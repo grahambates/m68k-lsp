@@ -16,7 +16,10 @@ export type LabelColonOptions =
 class LabelColonFormatter implements Formatter {
   private query: Parser.Query;
 
-  constructor(language: Parser.Language, private options: LabelColonOptions) {
+  constructor(
+    language: Parser.Language,
+    private options: LabelColonOptions,
+  ) {
     this.query = language.query(`(label name: (_) @label)`);
   }
 

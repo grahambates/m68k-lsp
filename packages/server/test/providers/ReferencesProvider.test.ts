@@ -42,7 +42,7 @@ describe("ReferencesProvider", () => {
         "example.s",
         `foo = 123
  move foo,d0
- move #foo,d1`
+ move #foo,d1`,
       );
 
       const references = await provider.onReferences({
@@ -76,7 +76,7 @@ describe("ReferencesProvider", () => {
         `foo:
 .bar
  dbf d0,.bar
-baz:`
+baz:`,
       );
 
       const references = await provider.onReferences({
@@ -104,7 +104,7 @@ baz:`
         "example.s",
         `foo = 123
  move foo,d0
- move #foo,d1`
+ move #foo,d1`,
       );
 
       const references = await provider.onReferences({
@@ -120,7 +120,7 @@ baz:`
       const textDocument = await createDoc(
         "example.s",
         ` include "example.i"
- move #foo,d1`
+ move #foo,d1`,
       );
 
       const references = await provider.onReferences({
@@ -147,7 +147,7 @@ baz:`
       const textDocument = await createDoc(
         "example.s",
         ` include "example.i"
-bar = 123`
+bar = 123`,
       );
 
       const references = await provider.onReferences({
@@ -175,7 +175,7 @@ bar = 123`
         "example.s",
         `foo = 123
  move foo,d0
- move #foo,d1`
+ move #foo,d1`,
       );
 
       const references = await provider.onReferences({

@@ -24,7 +24,7 @@ import WorkspaceSymbolProvider from "./WorkspaceSymbolProvider";
 export interface Provider {
   register(
     connection: Connection,
-    clientCapabilities: ClientCapabilities
+    clientCapabilities: ClientCapabilities,
   ): ServerCapabilities;
 }
 const providers = [
@@ -48,7 +48,7 @@ const providers = [
 export default function registerProviders(
   connection: Connection,
   ctx: Context,
-  clientCapabilities: ClientCapabilities
+  clientCapabilities: ClientCapabilities,
 ): ServerCapabilities {
   return providers.reduce((acc, P) => {
     const p = new P(ctx);

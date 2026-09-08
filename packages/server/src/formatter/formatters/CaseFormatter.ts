@@ -6,17 +6,15 @@ import { Formatter } from "../DocumentFormatter";
 export type CaseOptions = Case | Partial<Record<CaseType, Case>>;
 type Case = "upper" | "lower" | "any";
 type CaseType =
-  | "instruction"
-  | "directive"
-  | "control"
-  | "register"
-  | "sectionType"
-  | "hex";
+  "instruction" | "directive" | "control" | "register" | "sectionType" | "hex";
 
 class CaseFormatter implements Formatter {
   private query: Parser.Query;
 
-  constructor(language: Parser.Language, private options: CaseOptions) {
+  constructor(
+    language: Parser.Language,
+    private options: CaseOptions,
+  ) {
     this.query = language.query(`
         (instruction_mnemonic) @instruction
         (directive_mnemonic) @directive

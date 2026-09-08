@@ -27,12 +27,12 @@ export default class FoldingRangeProvider implements Provider {
 
     function addRegion(start: number, end: number) {
       folds.push(
-        lsp.FoldingRange.create(start, end, undefined, undefined, "region")
+        lsp.FoldingRange.create(start, end, undefined, undefined, "region"),
       );
     }
 
     captures.forEach(({ node }) =>
-      addRegion(node.startPosition.row - 1, node.endPosition.row)
+      addRegion(node.startPosition.row - 1, node.endPosition.row),
     );
 
     const defs = Array.from(processed?.symbols.definitions.values());

@@ -126,7 +126,7 @@ export default class CompletionProvider implements Provider {
           case "<label>": {
             const symbols = await this.completeAllDefinitions(
               processed,
-              position
+              position,
             );
             return symbols.filter((n) => n.detail === "(label)");
           }
@@ -191,7 +191,7 @@ export default class CompletionProvider implements Provider {
     for await (const resolvedDir of resolveIncludesGen(
       docUri,
       dirPath,
-      this.ctx
+      this.ctx,
     )) {
       const { workspaceFolders } = this.ctx;
       const list = await fsp.readdir(resolvedDir);
@@ -236,11 +236,11 @@ export default class CompletionProvider implements Provider {
   async completeMnemonics(
     isUpperCase: boolean,
     processed: ProcessedDocument,
-    position: lsp.Position
+    position: lsp.Position,
   ): Promise<lsp.CompletionItem[]> {
     const instructions = Object.values(instructionDocs)
       .filter((doc) =>
-        this.ctx.config.processors.some((proc) => doc.procs[proc])
+        this.ctx.config.processors.some((proc) => doc.procs[proc]),
       )
       .map((doc) => {
         const item: lsp.CompletionItem = {
@@ -270,7 +270,7 @@ export default class CompletionProvider implements Provider {
   }
 
   completeDefinitions(
-    definitions: Map<string, Definition>
+    definitions: Map<string, Definition>,
   ): lsp.CompletionItem[] {
     return Array.from(definitions.values()).map((def) => {
       const unprefixed = def.name.replace(/^\./, "");
@@ -291,7 +291,7 @@ export default class CompletionProvider implements Provider {
   async completeOperands(
     isUpperCase: boolean,
     processed: ProcessedDocument,
-    position: lsp.Position
+    position: lsp.Position,
   ) {
     const symbols = await this.completeAllDefinitions(processed, position);
     const withoutMacros = symbols.filter((s) => !this.isMacro(s));
@@ -302,7 +302,7 @@ export default class CompletionProvider implements Provider {
   completeRegisters(isUpperCase: boolean) {
     return this.ucItems(
       [...this.addrRegs, ...this.dataRegs, ...this.namedRegs],
-      isUpperCase
+      isUpperCase,
     );
   }
 
@@ -312,10 +312,10 @@ export default class CompletionProvider implements Provider {
 
   async completeAllDefinitions(
     processed: ProcessedDocument,
-    position: lsp.Position
+    position: lsp.Position,
   ) {
     const globals = Array.from(this.ctx.store.values()).flatMap(({ symbols }) =>
-      this.completeDefinitions(symbols.definitions)
+      this.completeDefinitions(symbols.definitions),
     );
 
     const lastLabel = labelBeforePosition(processed.symbols, position);

@@ -24,7 +24,7 @@ export default class DocumentProcessor {
 
   async process(
     document: TextDocument,
-    oldTree?: Parser.Tree
+    oldTree?: Parser.Tree,
   ): Promise<ProcessedDocument> {
     this.ctx.logger.log("processDocument: " + document.uri);
 
@@ -54,7 +54,7 @@ export default class DocumentProcessor {
             this.process(doc);
           }
         }
-      })
+      }),
     );
 
     return processed;

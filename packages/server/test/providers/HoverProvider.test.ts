@@ -41,7 +41,7 @@ describe("HoverProvider", () => {
       const textDocument = await createDoc(
         "example.s",
         `foo = 1
-	move #foo,d1`
+	move #foo,d1`,
       );
 
       const hover = await provider.onHover({
@@ -68,7 +68,7 @@ describe("HoverProvider", () => {
         contents: {
           kind: "markdown",
           value: expect.stringMatching(
-            /Move the contents of the source to the destination location/
+            /Move the contents of the source to the destination location/,
           ),
         },
       });

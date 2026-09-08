@@ -14,7 +14,7 @@ export function activate(context: ExtensionContext): void {
   // The server bundle is copied next to the extension at build time, so the
   // packaged extension carries no node_modules of its own.
   const serverModule = context.asAbsolutePath(
-    process.env["M68K_SERVER_PATH"] || path.join("out", "server.js")
+    process.env["M68K_SERVER_PATH"] || path.join("out", "server.js"),
   );
   // The debug options for the server
   // --inspect=6009: runs the server in Node's Inspector mode so VS Code can attach to the server for debugging
@@ -58,7 +58,7 @@ export function activate(context: ExtensionContext): void {
     "m68k",
     "Motorola 68000 Assembly",
     serverOptions,
-    clientOptions
+    clientOptions,
   );
 
   client.start();

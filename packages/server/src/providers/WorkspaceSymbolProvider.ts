@@ -19,8 +19,8 @@ export default class WorkspaceSymbolProvider implements Provider {
               def.name,
               symbolKindMappings[def.type],
               def.location.range,
-              def.location.uri
-            )
+              def.location.uri,
+            ),
           );
         }
       }

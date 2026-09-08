@@ -12,12 +12,12 @@ const { readFile, access } = fsp;
 export async function exists(filePath: string): Promise<boolean> {
   return access(filePath).then(
     () => true,
-    () => false
+    () => false,
   );
 }
 
 export async function readDocumentFromUri(
-  uri: string
+  uri: string,
 ): Promise<TextDocument | null> {
   let content: string;
 
@@ -38,7 +38,7 @@ type ResolveContext = Pick<Context, "workspaceFolders" | "store" | "config">;
 export async function resolveInclude(
   documentUri: string,
   path: string,
-  ctx: ResolveContext
+  ctx: ResolveContext,
 ): Promise<string | undefined> {
   for await (const resolved of resolveIncludesGen(documentUri, path, ctx)) {
     return resolved;
@@ -53,7 +53,7 @@ export async function resolveInclude(
 export async function* resolveIncludesGen(
   documentUri: string,
   path: string | undefined,
-  ctx: ResolveContext
+  ctx: ResolveContext,
 ): AsyncGenerator<string> {
   const roots = ctx.workspaceFolders.map((f) => URI.parse(f.uri).fsPath);
   roots.push(dirname(URI.parse(documentUri).fsPath));
@@ -85,7 +85,7 @@ export async function* resolveIncludesGen(
  */
 export async function resolveReferencedUris(
   documentUri: string,
-  ctx: ResolveContext
+  ctx: ResolveContext,
 ): Promise<string[]> {
   const uris = new Set<string>();
   const docSymbols = ctx.store.get(documentUri)?.symbols;
@@ -96,7 +96,7 @@ export async function resolveReferencedUris(
         if (resolved) {
           uris.add(URI.file(resolved).toString());
         }
-      })
+      }),
     );
   }
   return Array.from(uris);
@@ -131,7 +131,7 @@ export async function getDirectory(path: string): Promise<string> {
  */
 export async function getDependencies(
   documentUri: string,
-  ctx: ResolveContext
+  ctx: ResolveContext,
 ): Promise<string[]> {
   const deps = await addDependencies(documentUri, ctx, new Set());
   deps.delete(documentUri);
@@ -141,15 +141,15 @@ export async function getDependencies(
 async function addDependencies(
   documentUri: string,
   ctx: ResolveContext,
-  result: Set<string>
+  result: Set<string>,
 ) {
   const referenced = ctx.store.get(documentUri)?.referencedUris ?? [];
   const referencing = [...ctx.store.keys()].filter((uri) =>
-    ctx.store.get(uri)?.referencedUris.includes(documentUri)
+    ctx.store.get(uri)?.referencedUris.includes(documentUri),
   );
 
   const newUris = [...referenced, ...referencing].filter(
-    (uri) => !result.has(uri)
+    (uri) => !result.has(uri),
   );
 
   for (const uri of newUris) {

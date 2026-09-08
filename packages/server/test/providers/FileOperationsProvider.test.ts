@@ -82,7 +82,7 @@ describe("FileOperationsProvider", () => {
       });
 
       expect(ctx.store.get(referencing.uri).referencedUris).not.toContain(
-        referenced
+        referenced,
       );
     });
   });

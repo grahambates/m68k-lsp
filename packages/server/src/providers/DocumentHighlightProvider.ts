@@ -32,8 +32,8 @@ export default class DocumentHighlightProvider implements Provider {
         results.push(
           lsp.DocumentHighlight.create(
             ref.location.range,
-            lsp.DocumentHighlightKind.Read
-          )
+            lsp.DocumentHighlightKind.Read,
+          ),
         );
       }
     }
@@ -42,8 +42,8 @@ export default class DocumentHighlightProvider implements Provider {
       results.push(
         lsp.DocumentHighlight.create(
           def.selectionRange,
-          lsp.DocumentHighlightKind.Write
-        )
+          lsp.DocumentHighlightKind.Write,
+        ),
       );
     }
 
