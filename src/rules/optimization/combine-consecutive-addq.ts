@@ -39,17 +39,18 @@ export const combineConsecutiveAddq: Rule = {
     if (!secondImm || secondImm.value.type === "string-literal") return;
     const m = ctx.evaluate(secondImm.value);
     if (!m.known || m.value < 1 || m.value > 8) return;
-    if (!ctx.config.processors.every((cpu) => ["mc68000", "mc68010", "mc68030"].includes(cpu))) return;
 
     const destText = sourceOperand(ctx, line, 1);
     if (!destText) return;
     const total = n.value + m.value;
-    // The ASP68K table claims the full-immediate form (sum > 8) is a
-    // speed win on 68000/68010/68030. Exact 68000 auditing with 68kcounter
-    // shows no CPU-cycle gain and a 2-byte / 1-read-cycle regression, so do
-    // not offer that branch when mc68000 is one of the selected targets.
-    // Keep the 68010/68030 cases source-backed until we have exact counters.
-    if (total > 8 && ctx.config.processors.includes("mc68000")) return;
+    // Two ADDQs collapsing into one ADDQ (sum <= 8) is a strict size and
+    // instruction-count win on every 68k model, so that branch carries no CPU
+    // gate. The ASP68K table's claim for the full-immediate fallback (sum > 8)
+    // is 68000/68010/68030-specific, and exact 68000 auditing with 68kcounter
+    // shows no CPU-cycle gain and a 2-byte / 1-read-cycle regression there, so
+    // that branch is offered only for 68010/68030 targets -- kept
+    // source-backed until there are exact counters for those too.
+    if (total > 8 && !ctx.config.processors.every((cpu) => cpu === "mc68010" || cpu === "mc68030")) return;
 
     const isAddress = operand(line, 1)?.type === "address-register";
     const safety = isAddress

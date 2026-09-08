@@ -2,7 +2,7 @@ import type { Rule } from "../../core/rule.js";
 import { dataRegisterOperand, immediateOperand, instructionSize, isInstruction } from "../../util/ast.js";
 import { changedFlagsApplicability, embeddedValueText } from "./helpers.js";
 
-function makeRule(kind: "bset" | "bclr"): Rule {
+function makeRule(kind: "bset" | "bclr" | "bchg"): Rule {
   return {
     meta: {
       id: `optimization/${kind}-low-word-mask`,
@@ -23,14 +23,14 @@ function makeRule(kind: "bset" | "bclr"): Rule {
       if (!bit.known || bit.value < 0 || bit.value > 15) return;
       if (!ctx.config.processors.every((cpu) => ["mc68000", "mc68010", "mc68030", "mc68040"].includes(cpu))) return;
 
-      const op = kind === "bset" ? "or" : "and";
+      const op = kind === "bset" ? "or" : kind === "bclr" ? "and" : "eor";
       // Written as a shift of the bit number rather than the value it produces.
       // It says which bit is meant instead of leaving the reader to decode a
       // hex constant, and it is the only way the bit number survives when it is
       // a symbol: `bset #SPRITE_ON,d3` keeps that name rather than becoming
       // `or.w #$0100,d3`, which stops tracking the constant it came from.
       const bitText = embeddedValueText(ctx, bitOp.value, bit.value);
-      const renderedMask = kind === "bset" ? `1<<${bitText}` : `~(1<<${bitText})`;
+      const renderedMask = kind === "bclr" ? `~(1<<${bitText})` : `1<<${bitText}`;
       const safety = changedFlagsApplicability(ctx, index, ["N", "Z", "V", "C"]);
 
       ctx.report({
@@ -62,3 +62,4 @@ function makeRule(kind: "bset" | "bclr"): Rule {
 
 export const bsetLowWordMask = makeRule("bset");
 export const bclrLowWordMask = makeRule("bclr");
+export const bchgLowWordMask = makeRule("bchg");

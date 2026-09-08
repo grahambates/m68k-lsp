@@ -69,6 +69,13 @@ describe("optimization rules", () => {
     expect(ids("lea (a0),a1")).not.toContain("optimization/redundant-lea");
   });
 
+  test("detects redundant LEA written with an explicit zero displacement", () => {
+    const diagnostic = lint("lea 0(a3),a3").find((d) => d.ruleId === "optimization/redundant-lea");
+    expect(diagnostic?.message).toContain("0(a3)");
+    expect(ids("off equ 0\nlea off(a3),a3")).toContain("optimization/redundant-lea");
+    expect(ids("lea 4(a3),a3")).not.toContain("optimization/redundant-lea");
+  });
+
   test("detects a null BRA across blank/comment-only lines", () => {
     const source = ["bra .next", "; comment", "", ".next:", "move.l d0,d1"].join("\n");
 
@@ -184,6 +191,24 @@ describe("optimization rules", () => {
     expect(lint(live).find((d) => d.ruleId === "optimization/prefer-link-sequence")?.suggestion?.applicability).toBe(
       "conditional",
     );
+  });
+
+  test("recognises a LINK sequence closed with ADDQ", () => {
+    const setup = ["move.l a6,-(sp)", "move.l sp,a6", "addq.w #8,sp"].join("\n");
+    const diagnostic = lint(setup).find((d) => d.ruleId === "optimization/prefer-link-sequence");
+    expect(diagnostic?.suggestion?.replacement).toBe("\tlink a6,#8");
+  });
+
+  test("recognises a LINK sequence closed with a .L stack adjustment", () => {
+    const setup = ["move.l a6,-(sp)", "move.l sp,a6", "add.l #-32,sp"].join("\n");
+    const diagnostic = lint(setup).find((d) => d.ruleId === "optimization/prefer-link-sequence");
+    expect(diagnostic?.suggestion?.replacement).toBe("\tlink a6,#-32");
+  });
+
+  test("accepts -32768 as the LINK frame size", () => {
+    const setup = ["move.l a6,-(sp)", "move.l sp,a6", "add.w #-32768,sp"].join("\n");
+    const diagnostic = lint(setup).find((d) => d.ruleId === "optimization/prefer-link-sequence");
+    expect(diagnostic?.suggestion?.replacement).toBe("\tlink a6,#-32768");
   });
 });
 
@@ -485,12 +510,7 @@ describe("v0.8 sequence rules", () => {
   });
 
   test("does not combine register-indirect displacement stores through different address registers", () => {
-    const source = [
-      "off1 equ $44",
-      "off2 equ $46",
-      "move.w #$1234,off1(a6)",
-      "move.w #$5678,off2(a5)",
-    ].join("\n");
+    const source = ["off1 equ $44", "off2 equ $46", "move.w #$1234,off1(a6)", "move.w #$5678,off2(a5)"].join("\n");
     expect(ids(source)).not.toContain("optimization/combine-adjacent-move-words");
   });
 
@@ -642,6 +662,10 @@ describe("v0.9 local peepholes", () => {
     expect(
       lint("bclr.l #7,d1").find((d) => d.ruleId === "optimization/bclr-low-word-mask")?.suggestion?.replacement,
     ).toBe("\tand.w #~(1<<7),d1");
+
+    expect(
+      lint("bchg.l #5,d2").find((d) => d.ruleId === "optimization/bchg-low-word-mask")?.suggestion?.replacement,
+    ).toBe("\teor.w #1<<5,d2");
   });
 
   test("suggests two ADDs for two-bit byte/word shifts on supported CPUs", () => {
@@ -721,6 +745,24 @@ describe("v0.11 register-driven rules", () => {
     const source = ["addq.l #3,d0", "addq.l #5,d0", "bcs .carry", ".carry:", "rts"].join("\n");
     const diagnostic = lint(source).find((d) => d.ruleId === "optimization/combine-consecutive-addq");
     expect(diagnostic?.suggestion?.applicability).toBe("conditional");
+  });
+
+  test("combines two ADDQs staying within quick range on any CPU", () => {
+    // Collapsing into one still-quick ADDQ is a strict size/instruction-count
+    // win everywhere, so this branch carries no CPU restriction, unlike the
+    // full-immediate ADD fallback for a sum over 8.
+    const source = ["addq.l #3,d0", "addq.l #5,d0", "add.l d1,d2", "rts"].join("\n");
+    const diagnostic = lint(source, { processors: ["mc68020"] }).find(
+      (d) => d.ruleId === "optimization/combine-consecutive-addq",
+    );
+    expect(diagnostic?.suggestion?.replacement).toBe("\taddq.l #8,d0");
+  });
+
+  test("does not use the full-immediate ADD fallback outside 68010/68030 either", () => {
+    const source = ["addq.l #5,d0", "addq.l #6,d0", "move.l d1,d2", "rts"].join("\n");
+    expect(lint(source, { processors: ["mc68020"] }).map((d) => d.ruleId)).not.toContain(
+      "optimization/combine-consecutive-addq",
+    );
   });
 
   test("tracks constants through simple full-register arithmetic", () => {
@@ -1000,6 +1042,12 @@ describe("v0.19 long shifts and MOVEA/LEA rules", () => {
     const source = ["move.w a0,a1", "add.w #12,a1", "rts"].join("\n");
     expect(ids(source)).not.toContain("optimization/movea-add-to-lea");
   });
+
+  test("folds MOVEA.L plus ADDQ into LEA", () => {
+    const source = ["move.l a0,a1", "addq.w #4,a1", "rts"].join("\n");
+    const diagnostic = lint(source).find((d) => d.ruleId === "optimization/movea-add-to-lea");
+    expect(diagnostic?.suggestion?.replacement).toBe("\tlea 4(a0),a1");
+  });
 });
 
 describe("v0.19 multiple predecrement cancellation", () => {
@@ -1086,6 +1134,18 @@ describe("v0.22 deferred-rule tranche", () => {
     expect(ids(["move.w a0,a2", "add.w #12,a2", "add.w d3,a2"].join("\n"))).not.toContain(
       "optimization/address-expression-to-lea",
     );
+  });
+
+  test("folds an address-register index the same way as a data-register index", () => {
+    const diagnostic = lint(["move.l a0,a2", "add.l #12,a2", "add.w a3,a2", "rts"].join("\n")).find(
+      (d) => d.ruleId === "optimization/address-expression-to-lea",
+    );
+    expect(diagnostic?.suggestion?.replacement).toBe("\tlea 12(a0,a3.w),a2");
+  });
+
+  test("does not fold when the index register is the destination itself", () => {
+    const source = ["move.l a0,a2", "add.l #12,a2", "add.w a2,a2", "rts"].join("\n");
+    expect(ids(source)).not.toContain("optimization/address-expression-to-lea");
   });
 
   test("suggests DIVU.W power-of-two shifts conditionally when upper-word use is unknown", () => {
@@ -1537,6 +1597,12 @@ describe("rules mined from the EAB thread", () => {
       // (a0)+ cannot be read a second time in the AND's place.
       expect(ids("move.l (a0)+,d0\nand.l #$3f,d0\nrts", cfg)).not.toContain(ID);
     });
+
+    test("also accepts a fixed displacement source", () => {
+      // 4(a0) has no side effects and doesn't depend on the loaded register,
+      // so it is just as re-readable as (a0) or an absolute address.
+      expect(rep("move.l 4(a0),d0\nand.l #$3f,d0\nmoveq #0,d7\nrts", ID)).toBe("\tmoveq #$3f,d0\n\tand.l 4(a0),d0");
+    });
   });
 
   describe("sign bit to TAS", () => {
@@ -1603,6 +1669,10 @@ describe("rules mined from the EAB thread", () => {
 
     test("works for any instruction that dereferences the register", () => {
       expect(rep("adda.w d4,a0\ntst.w (a0)\nlea buf,a0\nrts\nbuf:", ID)).toBe("\ttst.w (a0,d4.w)");
+    });
+
+    test("carries a fixed displacement into the indexed mode", () => {
+      expect(rep("adda.w d4,a0\nmove.l 4(a0),a1\nlea buf,a0\nrts\nbuf:", ID)).toBe("\tmove.l 4(a0,d4.w),a1");
     });
 
     test("is offered only where the indexed mode is the faster form", () => {

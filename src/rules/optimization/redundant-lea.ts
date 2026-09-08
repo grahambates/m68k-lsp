@@ -1,5 +1,24 @@
 import type { Rule } from "../../core/rule.js";
 import { addressRegisterOperand, isInstruction, operand } from "../../util/ast.js";
+import { sourceOperand } from "./helpers.js";
+
+/** The register a bare `(An)` or a zero-displacement `0(An)` dereferences, if it is one of those forms. */
+function dereferencedRegister(
+  ctx: Parameters<NonNullable<Rule["checkLine"]>>[0],
+  line: Parameters<NonNullable<Rule["checkLine"]>>[1],
+): string | undefined {
+  const source = operand(line, 0);
+  if (!source) return undefined;
+  if (source.type === "address-register-indirect") {
+    return source.register.type === "address-register" ? source.register.register : undefined;
+  }
+  if (source.type === "address-register-indirect-displacement") {
+    if (source.register.type !== "address-register") return undefined;
+    const result = ctx.evaluate(source.displacement);
+    return result.known && result.value === 0 ? source.register.register : undefined;
+  }
+  return undefined;
+}
 
 export const redundantLea: Rule = {
   meta: {
@@ -14,12 +33,12 @@ export const redundantLea: Rule = {
   checkLine(ctx, line) {
     if (!isInstruction(line, "lea")) return;
 
-    const source = operand(line, 0);
     const dest = addressRegisterOperand(line, 1);
-    if (source?.type !== "address-register-indirect" || !dest) return;
-    if (source.register.type !== "address-register") return;
-    if (source.register.register !== dest.register) return;
+    const sourceRegister = dereferencedRegister(ctx, line);
+    if (!dest || !sourceRegister || sourceRegister !== dest.register) return;
 
+    const rendered = sourceOperand(ctx, line, 0);
+    if (!rendered) return;
     const canDeleteWholeLine = !line.label && !line.comment;
 
     ctx.report({
@@ -27,7 +46,7 @@ export const redundantLea: Rule = {
       category: this.meta.category,
       severity: this.meta.defaultSeverity,
       confidence: "certain",
-      message: `LEA (${dest.register}),${dest.register} leaves ${dest.register.toUpperCase()} unchanged`,
+      message: `LEA ${rendered},${dest.register} leaves ${dest.register.toUpperCase()} unchanged`,
       loc: line.mnemonic!.loc,
       suggestion: {
         description: canDeleteWholeLine

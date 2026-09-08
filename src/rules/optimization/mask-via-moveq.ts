@@ -33,8 +33,15 @@ export const maskViaMoveq: Rule = {
     const source = operand(line, 0);
     if (!loaded || !source) return;
     // The source has to be re-readable in the AND's place, so an operand with
-    // side effects or one that depends on the loaded register is out.
-    if (source.type !== "address-register-indirect" && source.type !== "absolute-address") return;
+    // side effects or one that depends on the loaded register is out. A fixed
+    // displacement has neither problem -- it addresses the same location the
+    // second time as the first.
+    if (
+      source.type !== "address-register-indirect" &&
+      source.type !== "address-register-indirect-displacement" &&
+      source.type !== "absolute-address"
+    )
+      return;
 
     const next = ctx.nextInstruction(index);
     if (!next || hasLabelBetween(ctx, index, next.index)) return;

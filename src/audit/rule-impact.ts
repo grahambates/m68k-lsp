@@ -74,6 +74,7 @@ export const ruleImpactAuditCases: readonly RuleImpactAuditCase[] = [
   { ruleId: "optimization/single-register-movem", source: "movem.l d0,-(sp)" },
   { ruleId: "optimization/bset-low-word-mask", source: "bset.l #8,d0\nmoveq #0,d7" },
   { ruleId: "optimization/bclr-low-word-mask", source: "bclr.l #8,d0\nmoveq #0,d7" },
+  { ruleId: "optimization/bchg-low-word-mask", source: "bchg.l #8,d0\nmoveq #0,d7" },
   { ruleId: "optimization/known-zero-clear", source: "moveq #0,d7\nclr.l -(a0)\nmoveq #1,d7" },
   { ruleId: "optimization/move-immediate-via-scratch", source: "move.l #42,(a0)\nmoveq #0,d7" },
   { ruleId: "optimization/cmp-zero-address-via-scratch", source: "cmp.l #0,a0\nmoveq #0,d7" },

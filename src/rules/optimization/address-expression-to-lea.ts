@@ -59,14 +59,20 @@ export const foldAddressExpressionToLea: Rule = {
     const third = ctx.nextInstruction(second.index);
     if (!third || hasLabelBetween(ctx, second.index, third.index)) return;
     if (!isInstruction(third.line, "adda")) return;
-    const indexRegister = dataRegisterOperand(third.line, 0);
+    const dataIndex = dataRegisterOperand(third.line, 0);
+    const addressIndex = addressRegisterOperand(third.line, 0);
+    const indexRegister = dataIndex?.register ?? addressIndex?.register;
     const thirdDest = addressRegisterOperand(third.line, 1);
     const indexSize = instructionSize(third.line);
     if (!indexRegister || !thirdDest || !sameRegister(thirdDest.register, dest.register)) return;
     if (indexSize !== "w" && indexSize !== "l") return;
+    // The index EA is computed before An is written back, but LEA's indexed
+    // mode reads An as part of forming its own result -- using An as its own
+    // index here would observe the wrong (pre-fold) value.
+    if (sameRegister(indexRegister, dest.register)) return;
 
     const disp = displacement === 0 ? "" : `${displacement}`;
-    const replacement = `lea ${disp}(${base.register},${indexRegister.register}.${indexSize}),${dest.register}`;
+    const replacement = `lea ${disp}(${base.register},${indexRegister}.${indexSize}),${dest.register}`;
     ctx.report({
       ruleId: this.meta.id,
       category: this.meta.category,

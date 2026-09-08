@@ -44,7 +44,7 @@ import { redundantZeroDisplacement } from "./optimization/redundant-zero-displac
 import { addressAddToLea, addressSubToLea } from "./optimization/address-immediate-lea.js";
 import { pushImmediatePea } from "./optimization/push-immediate-pea.js";
 import { singleRegisterMovem } from "./optimization/single-register-movem.js";
-import { bsetLowWordMask, bclrLowWordMask } from "./optimization/bit-op-low-word.js";
+import { bsetLowWordMask, bclrLowWordMask, bchgLowWordMask } from "./optimization/bit-op-low-word.js";
 import { shiftTwoAdds } from "./optimization/shift-two-adds.js";
 import { addsToShift } from "./optimization/adds-to-shift.js";
 
@@ -203,6 +203,7 @@ export {
   singleRegisterMovem,
   bsetLowWordMask,
   bclrLowWordMask,
+  bchgLowWordMask,
   shiftTwoAdds,
   addsToShift,
   knownZeroClear,
@@ -353,6 +354,7 @@ export const defaultRules: readonly Rule[] = [
   singleRegisterMovem,
   bsetLowWordMask,
   bclrLowWordMask,
+  bchgLowWordMask,
   shiftTwoAdds,
   addsToShift,
   preferMoveq,

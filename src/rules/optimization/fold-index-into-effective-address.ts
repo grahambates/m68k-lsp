@@ -1,7 +1,7 @@
 import type { Rule } from "../../core/rule.js";
 import { addressRegisterOperand, dataRegisterOperand, instructionSize } from "../../util/ast.js";
 import type { RuleContext } from "../../core/context.js";
-import { hasLabelBetween, sourceOperand } from "./helpers.js";
+import { hasLabelBetween, sourceOperand, valueText } from "./helpers.js";
 import { semanticMnemonic } from "../../semantics/mnemonics.js";
 
 /**
@@ -47,15 +47,18 @@ export const foldIndexIntoEffectiveAddress: Rule = {
     const next = ctx.nextInstruction(index);
     if (!next || hasLabelBetween(ctx, index, next.index)) return;
 
-    // The very next instruction must dereference the adjusted register with no
-    // displacement, which is the form the indexed mode replaces exactly.
-    const uses = (next.line.operands ?? []).findIndex(
+    // The very next instruction must dereference the adjusted register, either
+    // with no displacement or a fixed one -- both are the form the indexed
+    // mode replaces, just carrying the displacement along.
+    const operands = next.line.operands ?? [];
+    const uses = operands.findIndex(
       (op) =>
-        op.type === "address-register-indirect" &&
+        (op.type === "address-register-indirect" || op.type === "address-register-indirect-displacement") &&
         op.register.type === "address-register" &&
         op.register.register.toLowerCase() === base.register.toLowerCase(),
     );
     if (uses < 0) return;
+    const matched = operands[uses];
 
     // The fold never updates the base, so anything that reads it afterwards
     // would see a different value.
@@ -67,7 +70,13 @@ export const foldIndexIntoEffectiveAddress: Rule = {
 
     const operandText = sourceOperand(ctx, next.line, uses);
     if (!operandText) return;
-    const replacementOperand = `(${base.register},${indexRegister.register}.${size})`;
+    let displacement = "";
+    if (matched.type === "address-register-indirect-displacement") {
+      const result = ctx.evaluate(matched.displacement);
+      if (!result.known || result.value !== 0)
+        displacement = valueText(ctx, matched.displacement, result.known ? result.value : 0);
+    }
+    const replacementOperand = `${displacement}(${base.register},${indexRegister.register}.${size})`;
     const rest = (next.line.operands ?? []).map((_, i) =>
       i === uses ? replacementOperand : sourceOperand(ctx, next.line, i),
     );

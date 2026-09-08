@@ -38,12 +38,17 @@ export const preferLinkSequence: Rule = {
     if (!frameDest || frameDest.register.toLowerCase() !== frame.register.toLowerCase()) return;
 
     const third = ctx.nextInstruction(second.index);
-    if (!third || (!isInstruction(third.line, "add") && !isInstruction(third.line, "adda"))) return;
-    if (instructionSize(third.line) !== "w" || !isSpRegister(third.line, 1)) return;
+    if (
+      !third ||
+      (!isInstruction(third.line, "add") && !isInstruction(third.line, "adda") && !isInstruction(third.line, "addq"))
+    )
+      return;
+    const thirdSize = instructionSize(third.line);
+    if ((thirdSize !== "w" && thirdSize !== "l") || !isSpRegister(third.line, 1)) return;
     const imm = immediateOperand(third.line, 0);
     if (!imm || imm.value.type === "string-literal") return;
     const value = ctx.evaluate(imm.value);
-    if (!value.known || value.value < -32767 || value.value > 32767) return;
+    if (!value.known || value.value < -32768 || value.value > 32767) return;
 
     // LINK sets no condition codes. The sequence it replaces does: the opening
     // MOVE.L of the frame pointer to -(SP) sets N and Z from the value pushed

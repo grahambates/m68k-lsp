@@ -63,7 +63,7 @@ export const moveAddressThenAddToLea: Rule = {
     id: "optimization/movea-add-to-lea",
     category: "optimization",
     defaultSeverity: "suggestion",
-    description: "Combine MOVEA plus immediate ADDA into one LEA",
+    description: "Combine MOVEA plus immediate ADDA/ADDQ into one LEA",
     tags: ["asp68k", "address-register", "sequence"],
     docs: { source: "ASP68K" },
   },
@@ -76,7 +76,7 @@ export const moveAddressThenAddToLea: Rule = {
     if (!source || !dest) return;
 
     const next = ctx.nextInstruction(index);
-    if (!next || next.line.label || !isInstruction(next.line, "adda")) return;
+    if (!next || next.line.label || (!isInstruction(next.line, "adda") && !isInstruction(next.line, "addq"))) return;
     const addSize = instructionSize(next.line);
     if (addSize !== "w" && addSize !== "l") return;
     const imm = immediateOperand(next.line, 0);
@@ -97,7 +97,7 @@ export const moveAddressThenAddToLea: Rule = {
       category: this.meta.category,
       severity: this.meta.defaultSeverity,
       confidence: "certain",
-      message: "MOVEA plus immediate ADDA can be folded into one LEA",
+      message: "MOVEA plus an immediate address adjustment can be folded into one LEA",
       loc: line.mnemonic!.loc,
       suggestion: { description: "Fold the address copy and adjustment into LEA", replacement, applicability: "safe" },
       data: { secondInstructionIndex: next.index },
