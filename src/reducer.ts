@@ -1,5 +1,12 @@
 import process, { calculateTotals, Line, Totals } from "68kcounter";
 
+// Vite's dependency pre-bundler can't statically detect 68kcounter's named
+// exports (they're re-exported via a dynamic loop, not static `exports.x =`
+// assignments), so it falls back to CJS-style interop: the default import
+// resolves to the whole CommonJS module.exports object rather than its
+// `default` property. Unwrap it explicitly.
+const parse = (process as unknown as { default: typeof process }).default;
+
 interface CodeAction {
   type: "code";
   payload: string;
@@ -44,12 +51,12 @@ export const defaultState = {
   selectionTotals: null,
 };
 
-const reducer = (state: State, { type, payload }: Action): State => {
+export const reducer = (state: State, { type, payload }: Action): State => {
   switch (type) {
     case "code": {
       const code = payload as string;
       if (code) {
-        const lines = process(code);
+        const lines = parse(code);
         return {
           ...state,
           code,
@@ -125,5 +132,3 @@ const reducer = (state: State, { type, payload }: Action): State => {
   }
   return state;
 };
-
-export default reducer;

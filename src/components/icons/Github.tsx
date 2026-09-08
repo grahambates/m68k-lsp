@@ -1,6 +1,6 @@
 import { FC } from "react";
 
-const Github: FC = () => (
+export const Github: FC = () => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
     width="1em"
@@ -17,5 +17,3 @@ const Github: FC = () => (
     </g>
   </svg>
 );
-
-export default Github;

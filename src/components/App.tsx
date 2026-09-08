@@ -1,14 +1,14 @@
 import { FC, useEffect, useCallback, useReducer } from "react";
-import reducer, { defaultState } from "../reducer";
+import { reducer, defaultState } from "../reducer";
 import "./App.css";
-import Form from "./Form";
-import Github from "./icons/Github";
-import Logo from "./icons/Logo";
-import VsCode from "./icons/VsCode";
-import Line from "./Line";
-import Totals from "./Totals";
+import { Form } from "./Form";
+import { Github } from "./icons/Github";
+import { Logo } from "./icons/Logo";
+import { VsCode } from "./icons/VsCode";
+import { Line } from "./Line";
+import { Totals } from "./Totals";
 
-const App: FC = () => {
+export const App: FC = () => {
   const [state, dispatch] = useReducer(reducer, defaultState);
   const {
     lines,
@@ -136,5 +136,3 @@ const App: FC = () => {
     </div>
   );
 };
-
-export default App;

@@ -1,6 +1,6 @@
 import { FC } from "react";
 
-const Asm: FC<{ size: string }> = ({ size = "1em" }) => (
+export const Asm: FC<{ size: string }> = ({ size = "1em" }) => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
     width={size}
@@ -13,5 +13,3 @@ const Asm: FC<{ size: string }> = ({ size = "1em" }) => (
     />
   </svg>
 );
-
-export default Asm;

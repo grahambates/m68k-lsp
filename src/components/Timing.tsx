@@ -6,9 +6,7 @@ export interface TimingProps {
   color?: boolean;
 }
 
-const Timing: FC<TimingProps> = ({ timing, color }) => {
+export const Timing: FC<TimingProps> = ({ timing, color }) => {
   const className = color ? timingLevel(timing).toLowerCase() : "";
   return <span className={"Timing " + className}>{formatTiming(timing)}</span>;
 };
-
-export default Timing;

@@ -6,7 +6,7 @@ export interface WordsProps {
   color?: boolean;
 }
 
-const Bytes: FC<WordsProps> = ({ bytes, color }) => {
+export const Bytes: FC<WordsProps> = ({ bytes, color }) => {
   const className = color ? lengthLevel(bytes).toLowerCase() : "";
   return (
     <span
@@ -17,5 +17,3 @@ const Bytes: FC<WordsProps> = ({ bytes, color }) => {
     </span>
   );
 };
-
-export default Bytes;

@@ -1,14 +1,14 @@
 import { FC } from "react";
 import { Totals as TotalsType } from "68kcounter";
-import Timing from "./Timing";
-import Bytes from "./Bytes";
+import { Timing } from "./Timing";
+import { Bytes } from "./Bytes";
 import "./Totals.css";
 
 export interface TotalsProps {
   totals: TotalsType;
 }
 
-const Totals: FC<TotalsProps> = ({ totals }) => (
+export const Totals: FC<TotalsProps> = ({ totals }) => (
   <div className="Totals">
     <div>
       <p>
@@ -32,5 +32,3 @@ const Totals: FC<TotalsProps> = ({ totals }) => (
     </div>
   </div>
 );
-
-export default Totals;

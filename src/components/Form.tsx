@@ -1,12 +1,12 @@
 import { FC, FormEvent, useEffect, useRef, useState } from "react";
 import "./Form.css";
-import Asm from "./icons/Asm";
+import { Asm } from "./icons/Asm";
 
 export interface InputProps {
   onSubmit: (code: string) => void;
 }
 
-const Form: FC<InputProps> = ({ onSubmit }) => {
+export const Form: FC<InputProps> = ({ onSubmit }) => {
   const ref = useRef<HTMLDivElement>(null);
   const [dragging, setDragging] = useState(false);
   const [code, setCode] = useState("");
@@ -89,5 +89,3 @@ const Form: FC<InputProps> = ({ onSubmit }) => {
     </form>
   );
 };
-
-export default Form;

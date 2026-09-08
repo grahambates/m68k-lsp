@@ -1,7 +1,7 @@
 import { FC } from "react";
 import { Totals } from "68kcounter";
-import Timing from "./Timing";
-import Bytes from "./Bytes";
+import { Timing } from "./Timing";
+import { Bytes } from "./Bytes";
 import "./LineTotals.css";
 
 export interface LineTotalsProps {
@@ -9,7 +9,7 @@ export interface LineTotalsProps {
   onClearSelection: () => void;
 }
 
-const LineTotals: FC<LineTotalsProps> = ({
+export const LineTotals: FC<LineTotalsProps> = ({
   totals: { min, max, isRange, bytes },
   onClearSelection,
 }) => (
@@ -35,5 +35,3 @@ const LineTotals: FC<LineTotalsProps> = ({
     <Bytes bytes={bytes} />
   </div>
 );
-
-export default LineTotals;

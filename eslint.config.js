@@ -36,6 +36,14 @@ export default tseslint.config(
     },
   },
   {
+    files: ["src/**/*.{ts,tsx}"],
+    rules: {
+      // Prefer named exports: better refactor/auto-import support, and no
+      // ambiguity about what a module exports.
+      "import/no-default-export": "error",
+    },
+  },
+  {
     files: ["**/*.test.{ts,tsx}", "src/setupTests.ts"],
     languageOptions: {
       globals: {

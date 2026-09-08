@@ -1,7 +1,7 @@
 import { memo, useState } from "react";
-import Timing from "./Timing";
-import LineTotals from "./LineTotals";
-import Bytes from "./Bytes";
+import { Timing } from "./Timing";
+import { LineTotals } from "./LineTotals";
+import { Bytes } from "./Bytes";
 import "./Line.css";
 import {
   Line as LineType,
@@ -20,7 +20,7 @@ export interface LineProps {
   totals: Totals | null;
 }
 
-const Line = memo<LineProps>(
+export const Line = memo<LineProps>(
   ({ isSelected, onHover, onClick, onClearSelection, line, index, totals }) => {
     const isMultiple = line.timing && line.timing.values.length > 1;
     const hasEa =
@@ -149,5 +149,3 @@ const formatTiming = (timing: TimingType, multiplier?: TimingType) => {
 
   return `${strVals[0]}(${strVals[1]}/${strVals[2]})`;
 };
-
-export default Line;
