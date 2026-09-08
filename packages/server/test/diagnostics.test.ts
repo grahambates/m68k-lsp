@@ -101,6 +101,57 @@ error 2 in line 1 of "a.i": unknown mnemonic <sdsdffd>
       });
     });
 
+    it("reports a message against the file that has the problem", () => {
+      const output = `
+error 2 in line 1 of "a.i": unknown mnemonic <sdsdffd>
+	included from line 1 of "b.i"
+	included from line 9 of "example.s"
+>            sdsdffd
+`;
+      const [result] = parseVasmOutput(output, "a.i");
+
+      // At the origin the line is the one that actually has the error, and
+      // the message needs no explanation of how it was reached.
+      expect(result.range.start.line).toBe(0);
+      expect(result.message).toBe("unknown mnemonic <sdsdffd>");
+    });
+
+    it("reports the same message against a file part way up the chain", () => {
+      const output = `
+error 2 in line 1 of "a.i": unknown mnemonic <sdsdffd>
+	included from line 1 of "b.i"
+	included from line 9 of "example.s"
+>            sdsdffd
+`;
+      const [result] = parseVasmOutput(output, "b.i");
+
+      expect(result.range.start.line).toBe(0);
+      expect(result.message).toContain('error 2 in line 1 of "a.i"');
+    });
+
+    it("leaves out a message belonging to another file", () => {
+      const output = `
+error 2 in line 1 of "a.i": unknown mnemonic <sdsdffd>
+>            sdsdffd
+`;
+      expect(parseVasmOutput(output, "unrelated.s")).toHaveLength(0);
+    });
+
+    it("matches a reported name against a full path", () => {
+      const output = `
+error 2 in line 3 of "defs.i": unknown mnemonic <x>
+>            x
+`;
+      const [result] = parseVasmOutput(output, "/work/proj/defs.i");
+      expect(result.range.start.line).toBe(2);
+    });
+
+    it("keeps a message with no location whatever the target", () => {
+      const output = "fatal error 13: could not open <example.s> for input";
+      const [result] = parseVasmOutput(output, "anything.s");
+      expect(result.message).toBe("could not open <example.s> for input");
+    });
+
     it("sets severity level", () => {
       const output = `warning 2 in line 9 of "example.s": uh oh spaghettios`;
       const result = parseVasmOutput(output);
