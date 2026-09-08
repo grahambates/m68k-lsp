@@ -24,7 +24,7 @@ class EndOfLineFormatter implements Formatter {
     for (let i = 0; i < matches.length; i++) {
       const match = matches[i];
       const line = lines[i];
-      if (match.index && match[0] !== newText) {
+      if (match.index !== undefined && match[0] !== newText) {
         edits.push({
           range: {
             start: { line: i, character: line.length },

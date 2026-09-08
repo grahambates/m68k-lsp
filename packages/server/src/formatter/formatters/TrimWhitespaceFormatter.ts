@@ -9,7 +9,7 @@ class TrimWhitespaceFormatter implements Formatter {
 
     for (let i = 0; i < lines.length; i++) {
       const match = lines[i].match(/\s+$/);
-      if (match && match.index) {
+      if (match && match.index !== undefined) {
         const start = match.index;
         const end = match.index + match[0].length;
 
