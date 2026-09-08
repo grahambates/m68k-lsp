@@ -28,14 +28,9 @@
     "vscode-languageserver": "^9.0.1",
     "vscode-languageserver-textdocument": "^1.0.12",
     "vscode-uri": "^3.0.8",
-    "web-tree-sitter": "^0.20.8",
     "which": "^4.0.0"
   },
-  "scripts": {
-    "build-wasm": "npx tree-sitter build-wasm --docker node_modules/tree-sitter-m68k; mv -f tree-sitter-m68k.wasm wasm/"
-  },
   "devDependencies": {
-    "@types/which": "^3.0.4",
-    "tree-sitter-m68k": "^0.3.2"
+    "@types/which": "^3.0.4"
   }
 }

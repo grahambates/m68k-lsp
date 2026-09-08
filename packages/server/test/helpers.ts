@@ -2,7 +2,6 @@ import { parseFile } from "m68k-parser";
 import { pathToFileURL } from "url";
 import * as lsp from "vscode-languageserver";
 import { TextDocument } from "vscode-languageserver-textdocument";
-import Parser from "web-tree-sitter";
 import path from "path";
 
 import { createContext } from "../src/context";
@@ -49,17 +48,6 @@ export const range = (
   start: { line: startLine, character: startChar },
   end: { line: endLine, character: endChar },
 });
-
-export async function parseTree(src: string) {
-  await Parser.init();
-  const language = await Parser.Language.load(
-    path.join(__dirname, "..", "wasm", "tree-sitter-m68k.wasm"),
-  );
-  const parser = new Parser();
-  parser.setLanguage(language);
-
-  return { tree: parser.parse(src), language };
-}
 
 export function applyEdits(src: string, edits: lsp.TextEdit[]) {
   const doc = TextDocument.create("file://", "asm68k", 1, src);

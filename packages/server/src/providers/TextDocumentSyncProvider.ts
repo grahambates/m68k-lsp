@@ -1,12 +1,10 @@
 import * as lsp from "vscode-languageserver";
 import { TextDocument } from "vscode-languageserver-textdocument";
-import Parser from "web-tree-sitter";
 
 import { Provider } from ".";
 import { Context } from "../context";
 import DiagnosticProcessor from "../diagnostics";
 import DocumentProcessor from "../DocumentProcessor";
-import { positionToPoint } from "../geometry";
 
 export default class TextDocumentSyncProvider implements Provider {
   private processor: DocumentProcessor;
@@ -37,24 +35,6 @@ export default class TextDocumentSyncProvider implements Provider {
       return;
     }
     const { document } = existing;
-
-    // Disable incremental changes in tree-sitter for now
-    // Seeing issues in neovim. Order dependent?
-    /*
-    const allIncremental = contentChanges.every(
-      lsp.TextDocumentContentChangeEvent.isIncremental
-    );
-
-    if (tree && allIncremental) {
-      contentChanges
-        .sort(
-          (a, b) =>
-            b.range.start.line - a.range.start.line ||
-            b.range.start.character - a.range.start.character
-        )
-        .forEach((c) => tree.edit(this.changeToEdit(document, c)));
-    }
-    */
 
     const updatedDoc = TextDocument.update(document, contentChanges, version);
 
@@ -94,27 +74,6 @@ export default class TextDocumentSyncProvider implements Provider {
       uri,
       diagnostics: [...captureDiagnostics, ...vasmDiagnostics],
     });
-  }
-
-  changeToEdit(
-    document: TextDocument,
-    change: lsp.TextDocumentContentChangeEvent,
-  ): Parser.Edit {
-    if (!lsp.TextDocumentContentChangeEvent.isIncremental(change)) {
-      throw new Error("Not incremental");
-    }
-    const rangeOffset = document.offsetAt(change.range.start);
-    const rangeLength = document.offsetAt(change.range.end) - rangeOffset;
-    return {
-      startPosition: positionToPoint(change.range.start),
-      oldEndPosition: positionToPoint(change.range.end),
-      newEndPosition: positionToPoint(
-        document.positionAt(rangeOffset + change.text.length),
-      ),
-      startIndex: rangeOffset,
-      oldEndIndex: rangeOffset + rangeLength,
-      newEndIndex: rangeOffset + change.text.length,
-    };
   }
 
   register(connection: lsp.Connection): lsp.ServerCapabilities {

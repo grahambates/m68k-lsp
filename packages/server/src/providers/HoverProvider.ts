@@ -68,7 +68,10 @@ export default class HoverProvider implements Provider {
         );
       case "size":
         return this.hoverSize(node, position.line);
+      // A label is the definition site of a symbol; both resolve through the
+      // symbol table, which is what hoverSymbol consults.
       case "symbol":
+      case "label":
         return this.hoverSymbol(node, processed.document, position);
       case "string-literal": {
         const directive =

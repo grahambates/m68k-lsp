@@ -1,12 +1,10 @@
 import { copyFile, mkdir, readdir } from "node:fs/promises";
-import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import * as esbuild from "esbuild";
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const args = new Set(process.argv.slice(2));
-const require = createRequire(import.meta.url);
 
 const serverDir = join(root, "packages/server");
 const clientDir = join(root, "packages/client");
@@ -26,32 +24,17 @@ const shared = {
 };
 
 /**
- * web-tree-sitter's emscripten glue resolves its runtime wasm as
- * `__dirname + "/tree-sitter.wasm"`, so a copy has to sit beside every bundle
- * that includes it. The grammar and vasm binaries are instead looked up as
- * `__dirname/../wasm`, so they go one level up from the bundle.
+ * The vasm binaries are resolved as `__dirname/../wasm`, so the client needs
+ * its own copy beside the bundle it launches the server from.
  */
-const treeSitterWasm = join(
-  dirname(require.resolve("web-tree-sitter/package.json")),
-  "tree-sitter.wasm",
-);
-
 async function copyAssets() {
   const wasmSrc = join(serverDir, "wasm");
-  const entries = await readdir(wasmSrc);
+  const wasmDest = join(clientDir, "wasm");
 
-  for (const [outDir, pkgDir] of [
-    [serverOut, serverDir],
-    [clientOut, clientDir],
-  ]) {
-    await mkdir(outDir, { recursive: true });
-    await mkdir(join(pkgDir, "wasm"), { recursive: true });
-    await copyFile(treeSitterWasm, join(outDir, "tree-sitter.wasm"));
-    if (pkgDir !== serverDir) {
-      for (const entry of entries) {
-        await copyFile(join(wasmSrc, entry), join(pkgDir, "wasm", entry));
-      }
-    }
+  await mkdir(clientOut, { recursive: true });
+  await mkdir(wasmDest, { recursive: true });
+  for (const entry of await readdir(wasmSrc)) {
+    await copyFile(join(wasmSrc, entry), join(wasmDest, entry));
   }
 }
 

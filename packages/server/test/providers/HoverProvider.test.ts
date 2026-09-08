@@ -141,5 +141,36 @@ describe("HoverProvider", () => {
         },
       });
     });
+
+    it("provide hover info for a label definition", async () => {
+      const textDocument = await createDoc(
+        "example.s",
+        `; Entry point
+; of the demo
+Start:
+\trts`,
+      );
+
+      const hover = await provider.onHover({
+        textDocument,
+        position: { line: 2, character: 2 },
+      });
+
+      expect(hover).toBeTruthy();
+      const contents = hover.contents as string[];
+      expect(contents[0]).toContain("Entry point");
+      expect(contents).toContainEqual("(label) Start");
+    });
+
+    it("provide hover info for a constant definition", async () => {
+      const textDocument = await createDoc("example.s", `foo equ 42`);
+
+      const hover = await provider.onHover({
+        textDocument,
+        position: { line: 0, character: 1 },
+      });
+
+      expect(hover).toBeTruthy();
+    });
   });
 });
