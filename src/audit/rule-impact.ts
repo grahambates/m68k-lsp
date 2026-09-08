@@ -100,6 +100,7 @@ export const ruleImpactAuditCases: readonly RuleImpactAuditCase[] = [
   { ruleId: "optimization/move-immediate-word-complement", source: "move.l #65534,d0\nmoveq #0,d7" },
   { ruleId: "optimization/move-immediate-swap", source: "move.l #2752512,d0\nmoveq #0,d7" },
   { ruleId: "optimization/cancel-addq-predecrement-move", source: "addq.l #4,a0\nmove.l d0,-(a0)" },
+  { ruleId: "optimization/cancel-subq-postincrement-move", source: "subq.l #4,a0\nmove.l (a0)+,d0" },
   {
     ruleId: "optimization/cancel-multiple-predecrement-moves",
     source: "addq.l #8,a0\nmove.l d0,-(a0)\nmove.l d1,-(a0)",
@@ -128,6 +129,7 @@ export const ruleImpactAuditCases: readonly RuleImpactAuditCase[] = [
   { ruleId: "optimization/known-register-rotate", source: "moveq #12,d1\nrol.w d1,d0\nmoveq #0,d1" },
   { ruleId: "optimization/roxl-to-addx", source: "roxl.w #1,d0\nmoveq #0,d7" },
   { ruleId: "optimization/lsl-byte-seven", source: "lsl.b #7,d0\nmoveq #0,d7" },
+  { ruleId: "optimization/asl-byte-seven", source: "asl.b #7,d0\nmoveq #0,d7" },
   { ruleId: "optimization/known-register-shift-to-clear", source: "moveq #32,d1\nlsl.l d1,d0\nmoveq #0,d1" },
   { ruleId: "optimization/lsr-byte-seven", source: "lsr.b #7,d0\nmoveq #0,d7" },
   { ruleId: "optimization/asr-byte-saturate", source: "asr.b #7,d0\nmoveq #0,d7" },

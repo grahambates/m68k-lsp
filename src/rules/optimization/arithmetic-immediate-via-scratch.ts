@@ -15,22 +15,31 @@ import { valueText } from "./helpers.js";
  * where the exchange is a win.
  *
  * ADDQ and SUBQ already cover 1..8 in a single word, so those are left alone.
+ * AND/OR/EOR have no quick-immediate counterpart at any magnitude, so every
+ * value in the MOVEQ range is worth rerouting for them -- confirmed with
+ * 68kcounter, which shows the same win at #1 as at #100.
  */
 const SCRATCH_IS_FASTER = ["mc68000", "mc68010", "mc68020", "mc68030", "mc68060", "cpu32"];
+const MNEMONICS = ["add", "sub", "and", "or", "eor"] as const;
+type ScratchMnemonic = (typeof MNEMONICS)[number];
+
+function isScratchMnemonic(value: string | undefined): value is ScratchMnemonic {
+  return !!value && (MNEMONICS as readonly string[]).includes(value);
+}
 
 export const arithmeticImmediateViaScratch: Rule = {
   meta: {
     id: "optimization/arithmetic-immediate-via-scratch",
     category: "optimization",
     defaultSeverity: "suggestion",
-    description: "Materialize a small long immediate with MOVEQ before adding or subtracting it",
+    description: "Materialize a small long immediate with MOVEQ before combining it",
     tags: ["register-analysis", "scratch-register", "moveq"],
     docs: { source: "EAB 68000 code optimisations; Optimizing 680x0 Applications" },
   },
 
   checkLine(ctx, line, index) {
     const mnemonic = semanticMnemonic(line);
-    if (mnemonic !== "add" && mnemonic !== "sub") return;
+    if (!isScratchMnemonic(mnemonic)) return;
     if (instructionSize(line) !== "l") return;
     if (!ctx.config.processors.every((cpu) => SCRATCH_IS_FASTER.includes(cpu))) return;
 
@@ -41,8 +50,9 @@ export const arithmeticImmediateViaScratch: Rule = {
     const value = ctx.evaluate(immediate.value);
     if (!value.known || value.value < -128 || value.value > 127) return;
     // The quick forms already reach 1..8 in one word, and the negated quick
-    // forms cover -8..-1, so only the wider range is worth rerouting.
-    if (Math.abs(value.value) <= 8) return;
+    // forms cover -8..-1, so only the wider range is worth rerouting for
+    // ADD/SUB. AND/OR/EOR have no such quick form to defer to.
+    if ((mnemonic === "add" || mnemonic === "sub") && Math.abs(value.value) <= 8) return;
 
     const target = destination.register.toLowerCase();
     const scratch = ctx.registers.deadDataRegistersAfter(index).find((register) => register.toLowerCase() !== target);

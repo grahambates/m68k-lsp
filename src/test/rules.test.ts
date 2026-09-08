@@ -284,6 +284,22 @@ describe("Flamewing rotate and shift rules", () => {
     expect(diagnostic?.suggestion?.replacement).toBe("\tror.b #1,d0\n\tandi.b #$80,d0");
   });
 
+  test("recognises the ASL.B #7 rotate-and-mask speed tradeoff, tracking V unlike LSL", () => {
+    // add.l overwrites X/N/Z/V/C unconditionally, proving all of them (V
+    // included) dead before the routine returns.
+    const source = ["asl.b #7,d0", "add.l d2,d3", "rts"].join("\n");
+    const diagnostic = lint(source).find((d) => d.ruleId === "optimization/asl-byte-seven");
+    expect(diagnostic?.suggestion?.replacement).toBe("\tror.b #1,d0\n\tandi.b #$80,d0");
+    expect(diagnostic?.suggestion?.applicability).toBe("safe");
+
+    // ASL's V is data-dependent (unlike LSL's, which is always clear), so a
+    // later V read must block "safe" even though X/C alone would allow it.
+    const vObserved = ["asl.b #7,d0", "bvs .over", ".over:", "rts"].join("\n");
+    expect(lint(vObserved).find((d) => d.ruleId === "optimization/asl-byte-seven")?.suggestion?.applicability).toBe(
+      "conditional",
+    );
+  });
+
   test("reduces known register-count LSL.W #12 using rotate and mask", () => {
     const source = ["moveq #12,d1", "lsl.w d1,d0", "move.l #0,d1", "rts"].join("\n");
     const diagnostic = lint(source).find((d) => d.ruleId === "optimization/known-register-shift-reduction");
@@ -693,6 +709,19 @@ describe("register analysis", () => {
     expect(diagnostic?.suggestion?.applicability).toBe("conditional");
   });
 
+  test("extends the known-zero CLR swap to every memory destination", () => {
+    // Verified with 68kcounter: every memory-destination CLR form measures
+    // slower than MOVE from a known-zero register on 68000, not just
+    // predecrement and indexed, which is all ASP68K's own table covers.
+    const rep = (dest: string) =>
+      lint(["moveq #0,d7", `clr.w ${dest}`, "rts"].join("\n")).find((d) => d.ruleId === "optimization/known-zero-clear")
+        ?.suggestion?.replacement;
+    expect(rep("(a0)")).toBe("\tmove.w d7,(a0)");
+    expect(rep("(a0)+")).toBe("\tmove.w d7,(a0)+");
+    expect(rep("4(a0)")).toBe("\tmove.w d7,4(a0)");
+    expect(rep("$1000")).toBe("\tmove.w d7,$1000");
+  });
+
   test("does not assume a register is dead merely because the routine returns", () => {
     const source = ["move.l #42,(a0)", "rts"].join("\n");
     const ctx = fixtureContext(source);
@@ -918,6 +947,13 @@ describe("v0.16 redundant TST and additional ASP68K rules", () => {
     expect(diagnostic?.suggestion?.applicability).toBe("safe");
   });
 
+  test("also uses SUBA.L to zero an address register for LEA 0.l", () => {
+    // Verified with 68kcounter: the .L form is an even bigger win than .W --
+    // SUBA.L beats it on both cycles (8 vs 12) and bytes (2 vs 6), not just bytes.
+    const diagnostic = lint("lea 0.l,a2").find((d) => d.ruleId === "optimization/lea-zero-address");
+    expect(diagnostic?.suggestion?.replacement).toBe("\tsuba.l a2,a2");
+  });
+
   test("synthesizes selected constants with MOVEQ + NOT.W", () => {
     const diagnostic = lint(["move.l #65534,d0", "move.l d1,d2", "rts"].join("\n")).find(
       (d) => d.ruleId === "optimization/move-immediate-word-complement",
@@ -1068,6 +1104,37 @@ describe("v0.19 multiple predecrement cancellation", () => {
     const source = ["addq.l #8,a0", "move.l (a0),-(a0)", "move.l d1,-(a0)", "rts"].join("\n");
     expect(ids(source)).not.toContain("optimization/cancel-multiple-predecrement-moves");
   });
+
+  test("folds the mirrored SUBQ plus postincrement load, at a fixed negative displacement", () => {
+    // Unlike ADDQ+predecrement, the read happens at the decremented address,
+    // not An's original value, so the fold needs an explicit displacement
+    // rather than collapsing to bare (An). Verified with 68kcounter: still a
+    // real cycle win (16->12 on 68000) even though the byte count ties.
+    const word = lint(["subq.w #2,a3", "move.w (a3)+,d0", "rts"].join("\n")).find(
+      (d) => d.ruleId === "optimization/cancel-subq-postincrement-move",
+    );
+    expect(word?.suggestion?.replacement).toBe("\tmove.w -2(a3),d0");
+    expect(word?.suggestion?.applicability).toBe("safe");
+
+    const long = lint(["subq.l #4,a4", "move.l (a4)+,d1", "rts"].join("\n")).find(
+      (d) => d.ruleId === "optimization/cancel-subq-postincrement-move",
+    );
+    expect(long?.suggestion?.replacement).toBe("\tmove.l -4(a4),d1");
+  });
+
+  test("rejects a SUBQ/postincrement pair whose destination depends on the adjusted register", () => {
+    const source = ["subq.w #2,a3", "move.w (a3)+,(a3)", "rts"].join("\n");
+    expect(ids(source)).not.toContain("optimization/cancel-subq-postincrement-move");
+  });
+
+  test("does not fold SUBQ against a mismatched postincrement width or register", () => {
+    expect(ids(["subq.w #2,a3", "move.l (a3)+,d0", "rts"].join("\n"))).not.toContain(
+      "optimization/cancel-subq-postincrement-move",
+    );
+    expect(ids(["subq.w #2,a3", "move.w (a4)+,d0", "rts"].join("\n"))).not.toContain(
+      "optimization/cancel-subq-postincrement-move",
+    );
+  });
 });
 
 describe("v0.20 coverage rules", () => {
@@ -1182,6 +1249,19 @@ describe("v0.27 Flamewing shift tranche", () => {
 
   test("does not treat ASR as a zeroing shift", () => {
     expect(ids(["moveq #32,d1", "asr.l d1,d0"].join("\n"))).not.toContain("optimization/known-register-shift-to-clear");
+  });
+
+  test("clears known register-count logical shifts on 68020 too, unlike its 68000-only siblings", () => {
+    // Verified with 68kcounter: a register-count LSR.L on 68020's barrel
+    // shifter is still a flat 6 cycles against MOVEQ's flat 3 -- half the
+    // cost, not a wash -- unlike the ADD/SUBX/SWAP/ROL sibling rules in this
+    // file, which specifically trade instructions for cycles on 68000's
+    // linear shifter and would lose that trade on a barrel shifter.
+    const source = ["moveq #32,d1", "lsr.l d1,d0", "move.l d2,d3", "rts"].join("\n");
+    const diagnostic = lint(source, { processors: ["mc68020"] }).find(
+      (d) => d.ruleId === "optimization/known-register-shift-to-clear",
+    );
+    expect(diagnostic?.suggestion?.replacement).toBe("\tmoveq #0,d0");
   });
 
   test("recognises Flamewing byte edge-shift identities", () => {
@@ -1656,6 +1736,15 @@ describe("rules mined from the EAB thread", () => {
     test("needs a value MOVEQ can hold and a register to spare", () => {
       expect(ids("add.l #1000,d1\nmoveq #0,d0\nrts", cfg)).not.toContain(ID);
       expect(ids("add.l #20,d1\nrts", cfg)).not.toContain(ID);
+    });
+
+    test("also routes AND/OR/EOR, which have no quick-immediate form to defer to", () => {
+      // Verified with 68kcounter: unlike ADD/SUB, AND/OR/EOR benefit at any
+      // magnitude in the MOVEQ range -- #1 shows the same win as #100, so
+      // there's no small-value cutoff to leave to a dedicated quick form.
+      expect(rep("and.l #1,d1\nmoveq #0,d0\nmove.l d1,d2\nrts", ID)).toBe("\tmoveq #1,d0\n\tand.l d0,d1");
+      expect(rep("or.l #100,d1\nmoveq #0,d0\nmove.l d1,d2\nrts", ID)).toBe("\tmoveq #100,d0\n\tor.l d0,d1");
+      expect(rep("eor.l #-50,d1\nmoveq #0,d0\nmove.l d1,d2\nrts", ID)).toBe("\tmoveq #-50,d0\n\teor.l d0,d1");
     });
   });
 

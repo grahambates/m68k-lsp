@@ -4,8 +4,23 @@ import { DATA_REGISTERS } from "../../semantics/registers.js";
 import { instructionSize, isInstruction, operand } from "../../util/ast.js";
 import { sourceOperand } from "./helpers.js";
 
+/**
+ * Every memory-destination CLR form measures slower than the equivalent MOVE
+ * from a known-zero register on 68000 -- not just predecrement and indexed,
+ * which is all ASP68K's own table documents. Verified directly with
+ * 68kcounter: e.g. `clr.w (a0)` is 12 cycles against `move.w d7,(a0)` at 8,
+ * and `clr.w $1000`/`clr.w 4(a0)` show the same 4-cycle gap, all at identical
+ * byte counts either way.
+ */
 function supportedDestination(op: OperandNode | undefined): boolean {
-  return op?.type === "address-register-indirect-predec" || op?.type === "address-register-indirect-index";
+  return (
+    op?.type === "address-register-indirect" ||
+    op?.type === "address-register-indirect-displacement" ||
+    op?.type === "address-register-indirect-predec" ||
+    op?.type === "address-register-indirect-postinc" ||
+    op?.type === "address-register-indirect-index" ||
+    op?.type === "absolute-address"
+  );
 }
 
 export const knownZeroClear: Rule = {

@@ -59,6 +59,13 @@ export function predecrementAddressRegister(line: ParsedLine, index: number): Ad
   return value.register.type === "address-register" ? value.register : undefined;
 }
 
+/** A (An)+ operand with a concrete address register, not a symbol/macro placeholder. */
+export function postincrementAddressRegister(line: ParsedLine, index: number): AddressRegisterNode | undefined {
+  const value = operand(line, index);
+  if (value?.type !== "address-register-indirect-postinc") return undefined;
+  return value.register.type === "address-register" ? value.register : undefined;
+}
+
 export function isAddqDestination(value: OperandNode | undefined, size?: Size): boolean {
   if (!value) return false;
 

@@ -68,6 +68,7 @@ import {
   moveImmediateDoubleByte,
 } from "./optimization/move-immediate-synthesis.js";
 import { cancelAddqPredecrementMove } from "./optimization/cancel-addq-predecrement-move.js";
+import { cancelSubqPostincrementMove } from "./optimization/cancel-subq-postincrement-move.js";
 import { zeroArithmeticToTst } from "./optimization/zero-arithmetic-to-tst.js";
 import { combineExtByte } from "./optimization/combine-ext-byte.js";
 
@@ -105,7 +106,12 @@ import {
 } from "./optimization/narrow-address-immediates.js";
 import { simplifyLongWordMasks } from "./optimization/simplify-long-word-mask.js";
 import { normalizeByteRotate } from "./optimization/normalize-byte-rotate-direction.js";
-import { simplifyKnownRegisterRotate, roxlToAddx, lslByteSeven } from "./optimization/rotate-sequences.js";
+import {
+  simplifyKnownRegisterRotate,
+  roxlToAddx,
+  lslByteSeven,
+  aslByteSeven,
+} from "./optimization/rotate-sequences.js";
 import {
   knownRegisterShiftToClear,
   lsrByteSeven,
@@ -226,6 +232,7 @@ export {
   moveImmediateWordComplement,
   moveImmediateSwap,
   cancelAddqPredecrementMove,
+  cancelSubqPostincrementMove,
   zeroArithmeticToTst,
   combineExtByte,
   redundantTst,
@@ -252,6 +259,7 @@ export {
   simplifyKnownRegisterRotate,
   roxlToAddx,
   lslByteSeven,
+  aslByteSeven,
   knownRegisterShiftToClear,
   lsrByteSeven,
   asrByteSaturate,
@@ -297,6 +305,7 @@ export const defaultRules: readonly Rule[] = [
   simplifyKnownRegisterRotate,
   roxlToAddx,
   lslByteSeven,
+  aslByteSeven,
   knownRegisterShiftToClear,
   lsrByteSeven,
   asrByteSaturate,
@@ -330,6 +339,7 @@ export const defaultRules: readonly Rule[] = [
   combineExtByte,
   zeroArithmeticToTst,
   cancelAddqPredecrementMove,
+  cancelSubqPostincrementMove,
   moveImmediateBelowMoveq,
   moveImmediateByteComplement,
   moveImmediateDoubleByte,

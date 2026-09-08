@@ -37,9 +37,17 @@ function canRemoveCountSetup(
 }
 
 /**
- * Flamewing's register-count logical-shift-to-zero families.  On 68000 the
- * register shift count is taken modulo 64.  For a non-zero count at least as
- * wide as the operand, LSL/ASL/LSR necessarily produce zero.
+ * Flamewing's register-count logical-shift-to-zero family. The register shift
+ * count is taken modulo 64 on every 68k model, so for a non-zero count at
+ * least as wide as the operand, LSL/ASL/LSR necessarily produce zero.
+ *
+ * Unlike its siblings in this file, this one is not 68000-only: replacing the
+ * shift with CLR/MOVEQ is a genuine win on the 68020's barrel shifter too, not
+ * just 68000's linear one. Confirmed with 68kcounter: a register-count
+ * LSR.L/LSL.L costs 8+2n cycles on 68000 (72 cycles at n=32) against MOVEQ's
+ * flat 4, and on 68020 the barrel shifter still costs a flat 6 against
+ * MOVEQ's flat 3 -- half the cost, not a wash -- at the same byte count
+ * either way.
  */
 export const knownRegisterShiftToClear: Rule = {
   meta: {
@@ -47,11 +55,10 @@ export const knownRegisterShiftToClear: Rule = {
     category: "optimization",
     defaultSeverity: "suggestion",
     description: "Replace a known large register-count logical shift with a clear",
-    tags: ["flamewing", "68000", "shift", "register-count", "ccr"],
+    tags: ["flamewing", "shift", "register-count", "ccr"],
     docs: { source: "Flamewing M68000 Peephole Optimizations" },
   },
   checkLine(ctx, line, index) {
-    if (!m68000Only(ctx)) return;
     const mnemonic = canonicalMnemonic(line);
     if (mnemonic !== "lsl" && mnemonic !== "asl" && mnemonic !== "lsr") return;
     const size = instructionSize(line);
@@ -78,7 +85,7 @@ export const knownRegisterShiftToClear: Rule = {
       category: this.meta.category,
       severity: this.meta.defaultSeverity,
       confidence: safety.confidence,
-      message: `${mnemonic.toUpperCase()}.${size.toUpperCase()} uses a known count of ${effectiveCount}, which necessarily clears the ${width}-bit result on 68000`,
+      message: `${mnemonic.toUpperCase()}.${size.toUpperCase()} uses a known count of ${effectiveCount}, which necessarily clears the ${width}-bit result`,
       loc: (removeSetup ? setup.line.mnemonic : line.mnemonic)!.loc,
       suggestion: {
         description: removeSetup ? "Replace the count setup and shift with a clear" : "Replace the shift with a clear",

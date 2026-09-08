@@ -196,3 +196,53 @@ export const lslByteSeven: Rule = {
     });
   },
 };
+
+/**
+ * ASL.B #7 and LSL.B #7 shift in zeros identically -- an arithmetic left
+ * shift fills the same way a logical one does, only right shifts differ --
+ * so the same ROR.B #1 plus mask produces the same byte. Unlike LSL, which
+ * always clears V, ASL's V is set if the sign bit changes at any point during
+ * the shift, which depends on the input value and cannot be assumed zero, so
+ * V is tracked alongside X/C here where LSL's version does not need to.
+ */
+export const aslByteSeven: Rule = {
+  meta: {
+    id: "optimization/asl-byte-seven",
+    category: "optimization",
+    defaultSeverity: "suggestion",
+    description: "Replace ASL.B #7 with ROR.B #1 plus a mask on 68000",
+    tags: ["flamewing", "68000", "shift", "ccr"],
+    serves: "speed",
+    docs: { source: "Flamewing M68000 Peephole Optimizations" },
+  },
+  checkLine(ctx, line, index) {
+    if (!m68000Only(ctx) || !isInstruction(line, "asl") || instructionSize(line) !== "b") return;
+    const expr = immediateExpressionOperand(line, 0);
+    const dst = dataRegisterOperand(line, 1);
+    if (!expr || !dst) return;
+    const value = ctx.evaluate(expr);
+    if (!value.known || value.value !== 7) return;
+    // Same byte result and N/Z. V is data-dependent for ASL (unlike LSL, which
+    // always clears it) and X/C reflect the shifted-out bit, so all three are
+    // checked; the final ANDI clears V/C and leaves X from before the sequence.
+    const safety = changedFlagsApplicability(ctx, index, ["X", "V", "C"]);
+    ctx.report({
+      ruleId: this.meta.id,
+      category: this.meta.category,
+      severity: this.meta.defaultSeverity,
+      confidence: safety.confidence,
+      message: `ASL.B #7,${dst.register.toUpperCase()} can use a 1-bit rotate and mask on 68000`,
+      loc: line.mnemonic!.loc,
+      suggestion: {
+        description: "Use ROR.B #1 followed by ANDI.B #$80",
+        replacement: `ror.b #1,${dst.register}\nandi.b #$80,${dst.register}`,
+        applicability: safety.applicability,
+      },
+      notes: [
+        ...(safety.applicability === "safe"
+          ? []
+          : [{ message: "X/V/C differ from the original ASL and must not be observed." }]),
+      ],
+    });
+  },
+};
