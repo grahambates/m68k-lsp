@@ -1,7 +1,6 @@
 src/**
 examples/**
 node_modules/**
+.tsbuild/**
 tsconfig.json
-*.tsbuildinfo
 out/*.map
-out/.tsbuildinfo
