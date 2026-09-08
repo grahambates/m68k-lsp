@@ -1,5 +1,19 @@
+import type { Location } from "m68k-parser";
 import * as lsp from "vscode-languageserver";
 import type Parser from "web-tree-sitter";
+
+/**
+ * Get language-server range of an m68k-parser node location.
+ *
+ * `Location.line` is one-based and absent entirely for a location produced by
+ * `parseLine`, whereas language-server positions are zero-based. Pass `line`
+ * explicitly (zero-based) when the location came from a single parsed line.
+ * Columns need no adjustment: both are zero-based and end-exclusive.
+ */
+export function locationAsRange(loc: Location, line?: number): lsp.Range {
+  const row = line ?? (loc.line !== undefined ? loc.line - 1 : 0);
+  return lsp.Range.create(row, loc.start, row, loc.end);
+}
 
 /**
  * Get language-server range of tree-sitter node

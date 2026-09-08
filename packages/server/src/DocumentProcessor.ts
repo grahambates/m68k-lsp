@@ -1,3 +1,5 @@
+import { parseFile } from "m68k-parser";
+import type { ParsedFile } from "m68k-parser";
 import { TextDocument } from "vscode-languageserver-textdocument";
 import Parser from "web-tree-sitter";
 
@@ -8,6 +10,13 @@ import { Context } from "./context";
 export interface ProcessedDocument {
   document: TextDocument;
   tree: Parser.Tree;
+  /**
+   * m68k-parser syntax tree for the same text.
+   *
+   * Maintained alongside the tree-sitter tree while consumers move across to
+   * it; `tree` goes away once nothing reads it any more.
+   */
+  parsed: ParsedFile;
   symbols: Symbols;
   referencedUris: string[];
 }
@@ -28,7 +37,9 @@ export default class DocumentProcessor {
   ): Promise<ProcessedDocument> {
     this.ctx.logger.log("processDocument: " + document.uri);
 
-    const tree = this.parser.parse(document.getText(), oldTree);
+    const text = document.getText();
+    const tree = this.parser.parse(text, oldTree);
+    const parsed = parseFile(text);
 
     if (oldTree) {
       oldTree.delete();
@@ -37,6 +48,7 @@ export default class DocumentProcessor {
     const processed: ProcessedDocument = {
       document,
       tree,
+      parsed,
       symbols: processSymbols(document.uri, tree, this.ctx),
       referencedUris: [],
     };
