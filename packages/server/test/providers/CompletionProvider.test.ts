@@ -304,5 +304,48 @@ foo = 123
         expect(item.documentation.value).toContain("MOVE");
       }
     });
+
+    it("does not offer labels from an unrelated program", async () => {
+      // Two entry points sharing only an include. Neither can see the other's
+      // labels, so neither should suggest them.
+      await createDoc(
+        "otherUnit.s",
+        ` include "example.i"
+OnlyInOther:
+ rts`,
+      );
+      const doc = await createDoc(
+        "thisUnit.s",
+        ` include "example.i"
+OnlyInThis:
+ bsr O`,
+      );
+
+      const items = await provider.onCompletion({
+        textDocument: doc,
+        position: lsp.Position.create(2, 6),
+      });
+      const labels = items.map((i) => i.label);
+
+      expect(labels).toContain("OnlyInThis");
+      expect(labels).not.toContain("OnlyInOther");
+    });
+
+    it("offers symbols from an included file", async () => {
+      const doc = await createDoc(
+        "includer.s",
+        ` include "example.i"
+Start:
+ move #f`,
+      );
+
+      const items = await provider.onCompletion({
+        textDocument: doc,
+        position: lsp.Position.create(2, 8),
+      });
+
+      // `foo` is defined in example.i
+      expect(items.map((i) => i.label)).toContain("foo");
+    });
   });
 });

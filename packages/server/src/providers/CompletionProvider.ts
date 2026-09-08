@@ -12,7 +12,12 @@ import {
   registerDocs,
   sizeDocs,
 } from "../docs/index";
-import { isAsmExt, resolveIncludesGen, getDirectory } from "../files";
+import {
+  getDirectory,
+  getUnitFiles,
+  isAsmExt,
+  resolveIncludesGen,
+} from "../files";
 import {
   Definition,
   DefinitionType,
@@ -310,9 +315,15 @@ export default class CompletionProvider implements Provider {
     processed: ProcessedDocument,
     position: lsp.Position,
   ) {
-    const globals = Array.from(this.ctx.store.values()).flatMap(({ symbols }) =>
-      this.completeDefinitions(symbols.definitions),
-    );
+    // Only symbols the file can actually reach. Offering every definition in
+    // the workspace suggests labels from unrelated programs, and became much
+    // more noticeable once the whole workspace was indexed rather than just
+    // the files that happened to be open.
+    const inScope = [processed.uri, ...getUnitFiles(processed.uri, this.ctx)];
+    const globals = inScope.flatMap((uri) => {
+      const symbols = this.ctx.store.get(uri)?.symbols;
+      return symbols ? this.completeDefinitions(symbols.definitions) : [];
+    });
 
     const lastLabel = labelBeforePosition(processed.symbols, position);
     const locals = lastLabel?.locals
