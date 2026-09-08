@@ -1,12 +1,12 @@
-#!/usr/bin/env ts-node
+#!/usr/bin/env node
 const fs = require("fs");
 // const yaml = require("js-yaml");
-const summaries = require("../server/docs/instructions-single.json");
+const summaries = require("../packages/server/docs/instructions-single.json");
 
 function processMd(mnemonic) {
   const file =
     __dirname +
-    "/../server/docs/instructions/" +
+    "/../packages/server/docs/instructions/" +
     mnemonic.toLowerCase() +
     ".md";
   if (!fs.existsSync(file)) {
@@ -100,7 +100,7 @@ function lookup(mnemonic, groupMnem) {
 }
 
 const csv = fs.readFileSync(
-  __dirname + "/../server/docs/inst-proc-xref-single.csv"
+  __dirname + "/../packages/server/docs/inst-proc-xref-single.csv"
 );
 
 const lines = csv.toString().substring(1).split("\r\n");
@@ -170,7 +170,7 @@ for (const line of lines) {
 }
 
 const json = JSON.stringify(out, null, 2);
-fs.writeFileSync(__dirname + "/../server/src/docs/instructions.json", json);
+fs.writeFileSync(__dirname + "/../packages/server/src/docs/instructions.json", json);
 
 // const yml = yaml.dump(out, {});
-// fs.writeFileSync(__dirname + "/../server/src/docs/instructions.yaml", yml);
+// fs.writeFileSync(__dirname + "/../packages/server/src/docs/instructions.yaml", yml);

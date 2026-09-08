@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 const fs = require("fs");
 
-const inDir = __dirname + "/../server/docs/directives";
+const inDir = __dirname + "/../packages/server/docs/directives";
 const files = fs.readdirSync(inDir);
 
 const json = {};
@@ -37,5 +37,5 @@ for (const file of files) {
   }
 }
 
-const indexPath = __dirname + "/../server/src/docs/directives.json";
+const indexPath = __dirname + "/../packages/server/src/docs/directives.json";
 fs.writeFileSync(indexPath, JSON.stringify(json, null, 2));
