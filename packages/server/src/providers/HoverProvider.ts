@@ -1,10 +1,19 @@
+import type {
+  DirectiveNode,
+  InstructionNode,
+  MacroNode,
+  NumericLiteralNode,
+  SizeNode,
+  SpecialRegisterNode,
+  StringLiteralNode,
+} from "m68k-parser";
 import * as lsp from "vscode-languageserver";
 import { TextDocument } from "vscode-languageserver-textdocument";
-import { SyntaxNode } from "web-tree-sitter";
 import { Provider } from ".";
-import { nodeAsRange, positionToPoint } from "../geometry";
+import { AstNode, nodeAtPosition } from "../ast";
+import { locationAsRange } from "../geometry";
 import { resolveInclude } from "../files";
-import { DefinitionType, getDefinitions, processPath } from "../symbols";
+import { DefinitionType, getDefinitions } from "../symbols";
 import { mnemonicDocs, registerDocs, sizeDocs } from "../docs/index";
 import { RegisterName, Size } from "../syntax";
 import { Context } from "../context";
@@ -27,34 +36,68 @@ export default class HoverProvider implements Provider {
       return;
     }
 
-    const node = processed.tree.rootNode.descendantForPosition(
-      positionToPoint(position),
-    );
+    const path = nodeAtPosition(processed.parsed, position);
+    if (!path) {
+      return;
+    }
+    const { node, line } = path;
 
     switch (node.type) {
-      case "instruction_mnemonic":
-        return this.hoverInstructionMnemonic(node);
-      case "directive_mnemonic":
-      case "control_mnemonic":
-        return this.hoverDirectiveMnemonic(node);
+      case "instruction":
+        return this.hoverMnemonic(
+          (node as unknown as InstructionNode).instruction,
+          node,
+          "instruction",
+          position.line,
+        );
+      case "directive":
+        return this.hoverMnemonic(
+          (node as unknown as DirectiveNode).directive,
+          node,
+          "directive",
+          position.line,
+        );
+      case "macro":
+        // An unrecognised mnemonic parses as a macro call. Some are directives
+        // the parser does not know but the docs do, so still try a lookup, and
+        // fall through to no hover rather than labelling it a macro.
+        return this.hoverKnownMnemonic(
+          (node as unknown as MacroNode).macro,
+          node,
+          position.line,
+        );
       case "size":
-        return this.hoverSize(node);
+        return this.hoverSize(node, position.line);
       case "symbol":
         return this.hoverSymbol(node, processed.document, position);
-      case "path":
-        return this.hoverPath(node, textDocument.uri);
-      case "string_literal":
-        if (node.parent?.type === "path") {
-          return this.hoverPath(node.parent, textDocument.uri);
+      case "string-literal": {
+        const directive =
+          line.mnemonic?.type === "directive"
+            ? line.mnemonic.directive.toLowerCase()
+            : undefined;
+        if (
+          directive === "include" ||
+          directive === "incdir" ||
+          directive === "incbin"
+        ) {
+          return this.hoverPath(
+            node as unknown as StringLiteralNode,
+            textDocument.uri,
+            position.line,
+          );
         }
         break;
-      case "decimal_literal":
-      case "hexadecimal_literal":
-      case "octal_literal":
-      case "binary_literal":
-        return this.hoverNumber(node);
-      case "named_register":
-        return this.hoverRegister(node);
+      }
+      case "numeric-literal":
+        return this.hoverNumber(
+          node as unknown as NumericLiteralNode,
+          position.line,
+        );
+      case "special-register":
+        return this.hoverRegister(
+          node as unknown as SpecialRegisterNode,
+          position.line,
+        );
     }
   }
 
@@ -65,32 +108,34 @@ export default class HoverProvider implements Provider {
     };
   }
 
-  private async hoverInstructionMnemonic(node: SyntaxNode) {
-    const docs = await lookupMnemonicDoc(node.text);
+  private async hoverMnemonic(
+    text: string,
+    node: AstNode,
+    kind: "instruction" | "directive",
+    line: number,
+  ) {
+    const docs = lookupMnemonicDoc(text);
     return {
-      range: nodeAsRange(node),
+      range: locationAsRange(node.loc, line),
       contents: docs || {
         kind: lsp.MarkupKind.PlainText,
-        value: "(instruction) " + node.text.toUpperCase(),
+        value: `(${kind}) ` + text.toUpperCase(),
       },
     };
   }
 
-  private async hoverDirectiveMnemonic(node: SyntaxNode) {
-    const docs = await lookupMnemonicDoc(node.text);
-    return {
-      range: nodeAsRange(node),
-      contents: docs || {
-        kind: lsp.MarkupKind.PlainText,
-        value: "(directive) " + node.text.toUpperCase(),
-      },
-    };
+  private async hoverKnownMnemonic(text: string, node: AstNode, line: number) {
+    const docs = lookupMnemonicDoc(text);
+    if (docs) {
+      return { range: locationAsRange(node.loc, line), contents: docs };
+    }
   }
 
-  private async hoverSize(node: SyntaxNode) {
-    const sizeDoc = sizeDocs[node.text.toLowerCase() as Size];
+  private async hoverSize(node: AstNode, line: number) {
+    const size = (node as unknown as SizeNode).size;
+    const sizeDoc = sizeDocs[size.toLowerCase() as Size];
     return {
-      range: nodeAsRange(node),
+      range: locationAsRange(node.loc, line),
       contents: {
         kind: lsp.MarkupKind.PlainText,
         value: sizeDoc || "(size)",
@@ -99,7 +144,7 @@ export default class HoverProvider implements Provider {
   }
 
   private async hoverSymbol(
-    node: SyntaxNode,
+    node: AstNode,
     document: TextDocument,
     position: lsp.Position,
   ) {
@@ -134,18 +179,19 @@ export default class HoverProvider implements Provider {
       }
 
       return {
-        range: nodeAsRange(node),
+        range: locationAsRange(node.loc, position.line),
         contents,
       };
     }
   }
 
-  private async hoverPath(node: SyntaxNode, uri: string) {
-    const path = processPath(node.text);
+  private async hoverPath(node: StringLiteralNode, uri: string, line: number) {
+    // The node already holds the string with its quotes removed.
+    const path = node.content;
     const resolved = await resolveInclude(uri, path, this.ctx);
 
     return {
-      range: nodeAsRange(node),
+      range: locationAsRange(node.loc, line),
       contents: {
         kind: lsp.MarkupKind.Markdown,
         value: resolved || path,
@@ -153,24 +199,24 @@ export default class HoverProvider implements Provider {
     };
   }
 
-  private async hoverNumber(node: SyntaxNode) {
+  private async hoverNumber(node: NumericLiteralNode, line: number) {
     return {
-      range: nodeAsRange(node),
+      range: locationAsRange(node.loc, line),
       contents: {
         kind: lsp.MarkupKind.Markdown,
-        value: formatNumeric(node.text),
+        value: formatNumeric(node.raw),
       },
     };
   }
 
-  private async hoverRegister(node: SyntaxNode) {
-    const doc = registerDocs[<RegisterName>node.text.toLowerCase()];
+  private async hoverRegister(node: SpecialRegisterNode, line: number) {
+    const doc = registerDocs[node.register.toLowerCase() as RegisterName];
     if (doc) {
       return {
-        range: nodeAsRange(node),
+        range: locationAsRange(node.loc, line),
         contents: {
           kind: lsp.MarkupKind.Markdown,
-          value: registerDocs[<RegisterName>node.text.toLowerCase()],
+          value: doc,
         },
       };
     }

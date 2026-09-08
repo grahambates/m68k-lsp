@@ -1,10 +1,55 @@
+import type { ParsedFile } from "m68k-parser";
 import * as lsp from "vscode-languageserver";
-import { Query } from "web-tree-sitter";
 import { Provider } from ".";
 import { Context } from "../context";
 import { Definition, DefinitionType } from "../symbols";
+import { blockDividers, blockOpeners } from "../syntax";
 
-let foldQuery: Query | undefined;
+/**
+ * Regions for macro, rept, rem and conditional blocks.
+ *
+ * A block runs from its opening directive to the line before whatever closes
+ * it, and `else`/`elseif` both close the section above and open the next. The
+ * tree-sitter grammar produced these as nested body nodes; a line-oriented
+ * tree needs the nesting tracked explicitly.
+ *
+ * Unbalanced blocks are common enough in sources that guard conditionals
+ * around includes, so a closer only pops when it matches the innermost open
+ * block, and anything left open at the end is discarded.
+ */
+function blockRegions(parsed: ParsedFile): Array<[number, number]> {
+  const regions: Array<[number, number]> = [];
+  const open: Array<{ line: number; closers: string[] }> = [];
+
+  for (const [index, line] of parsed.lines.entries()) {
+    if (line.mnemonic?.type !== "directive") {
+      continue;
+    }
+    const directive = line.mnemonic.directive.toLowerCase();
+
+    const innermost = open[open.length - 1];
+    const closes =
+      innermost &&
+      (innermost.closers.includes(directive) || blockDividers.has(directive));
+
+    if (closes) {
+      const { line: start } = open.pop()!;
+      // An empty body has nothing to fold.
+      if (index - 1 > start) {
+        regions.push([start, index - 1]);
+      }
+    }
+
+    if (blockOpeners[directive]) {
+      open.push({ line: index, closers: blockOpeners[directive] });
+    } else if (closes && blockDividers.has(directive)) {
+      // `else` reopens with the same terminators as the branch it replaces.
+      open.push({ line: index, closers: innermost.closers });
+    }
+  }
+
+  return regions;
+}
 
 export default class FoldingRangeProvider implements Provider {
   constructor(protected readonly ctx: Context) {}
@@ -12,16 +57,10 @@ export default class FoldingRangeProvider implements Provider {
   async onFoldingRanges({
     textDocument,
   }: lsp.FoldingRangeParams): Promise<lsp.FoldingRange[]> {
-    const { store: processor, language } = this.ctx;
-    const processed = processor.get(textDocument.uri);
+    const processed = this.ctx.store.get(textDocument.uri);
     if (!processed) {
       return [];
     }
-
-    if (!foldQuery) {
-      foldQuery = language.query(`(element_list) @region`);
-    }
-    const captures = foldQuery.captures(processed.tree.rootNode);
 
     const folds: lsp.FoldingRange[] = [];
 
@@ -31,9 +70,9 @@ export default class FoldingRangeProvider implements Provider {
       );
     }
 
-    captures.forEach(({ node }) =>
-      addRegion(node.startPosition.row - 1, node.endPosition.row),
-    );
+    for (const [start, end] of blockRegions(processed.parsed)) {
+      addRegion(start, end);
+    }
 
     const defs = Array.from(processed?.symbols.definitions.values());
     const labels = defs.filter((def) => def.type === DefinitionType.Label);
