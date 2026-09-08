@@ -113,7 +113,7 @@ error 2 in line 1 of "a.i": unknown mnemonic <sdsdffd>
       new DiagnosticProcessor(await createTestContext(config));
 
     const diagnose = (processor: DiagnosticProcessor, src: string) =>
-      processor.parserDiagnostics(parseFile(src), src);
+      processor.parserDiagnostics(parseFile(src));
 
     it("reports a syntax error with its parser code and position", async () => {
       const processor = await build({ vasm: { provideDiagnostics: true } });
@@ -145,8 +145,9 @@ error 2 in line 1 of "a.i": unknown mnemonic <sdsdffd>
 
     it("does not report indexed addressing that uses equr register aliases", async () => {
       const processor = await build({ vasm: { provideDiagnostics: true } });
-      // `sin equr a1` / `x equr d5` makes (sin,x) ordinary indexed addressing,
-      // but the parser has no symbol table and flags the index as malformed.
+      // `sin equr a1` / `x equr d5` makes (sin,x) ordinary indexed addressing.
+      // m68k-parser reports the names as symbols for a caller to resolve
+      // rather than rejecting them (fixed in 1.5.0).
       const result = diagnose(
         processor,
         "sin\tequr\ta1\nx\tequr\td5\n  move.w\t(sin,x),d2\n",

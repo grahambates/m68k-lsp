@@ -38,12 +38,9 @@ export default class TextDocumentSyncProvider implements Provider {
 
     const updatedDoc = TextDocument.update(document, contentChanges, version);
 
-    this.processor.process(updatedDoc).then(({ parsed, document: doc }) => {
+    this.processor.process(updatedDoc).then(({ parsed }) => {
       // Send just local parser diagnostics - can't get vasm errors until save
-      const diagnostics = this.diagnostics.parserDiagnostics(
-        parsed,
-        doc.getText(),
-      );
+      const diagnostics = this.diagnostics.parserDiagnostics(parsed);
       this.connection.sendDiagnostics({
         uri,
         diagnostics,
@@ -68,7 +65,6 @@ export default class TextDocumentSyncProvider implements Provider {
     const vasmDiagnostics = await this.diagnostics.vasmDiagnostics(uri);
     const captureDiagnostics = this.diagnostics.parserDiagnostics(
       existing.parsed,
-      existing.document.getText(),
     );
     this.connection.sendDiagnostics({
       uri,

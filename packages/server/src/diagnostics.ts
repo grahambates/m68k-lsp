@@ -1,4 +1,4 @@
-import type { ParseError, ParsedFile } from "m68k-parser";
+import type { ParsedFile } from "m68k-parser";
 import { Diagnostic, DiagnosticSeverity } from "vscode-languageserver";
 import { URI } from "vscode-uri";
 import which from "which";
@@ -104,17 +104,14 @@ export default class DiagnosticProcessor {
   /**
    * Diagnostic messages generated from the parsed syntax tree
    */
-  parserDiagnostics(parsed: ParsedFile, text: string): Diagnostic[] {
-    const lines = text.split(/\r?\n/g);
-    const diagnostics = parsed.errors
-      .filter((error) => !isSpuriousIndexError(error, lines))
-      .map((error): Diagnostic => ({
-        range: locationAsRange(error.loc),
-        message: error.hint ? `${error.message}. ${error.hint}` : error.message,
-        severity: DiagnosticSeverity.Error,
-        source: "m68k",
-        code: error.code,
-      }));
+  parserDiagnostics(parsed: ParsedFile): Diagnostic[] {
+    const diagnostics = parsed.errors.map((error): Diagnostic => ({
+      range: locationAsRange(error.loc),
+      message: error.hint ? `${error.message}. ${error.hint}` : error.message,
+      severity: DiagnosticSeverity.Error,
+      source: "m68k",
+      code: error.code,
+    }));
 
     // No need for this if vasm is configured
     if (!this.ctx.config.vasm.provideDiagnostics) {
@@ -140,36 +137,6 @@ export default class DiagnosticProcessor {
 
     return diagnostics;
   }
-}
-
-/** A bare name, which could be a register alias defined with `equr`. */
-const identifier = /^[A-Za-z_.][A-Za-z0-9_.$]*$/;
-
-/**
- * Is a malformed-index error just an `equr` register alias?
- *
- * `equr` binds a register to a name, so `(sin,x)` is ordinary indexed
- * addressing once `sin` and `x` resolve to registers. m68k-parser has no
- * symbol table: it accepts a symbol as the base and builds the right node
- * either way, but reports the index as malformed. The error location covers
- * exactly the offending text, so an index shaped like a name is treated as an
- * alias and left alone, while `(a0,#5)` or `(a0,$ff)` still get reported.
- *
- * A name that is not in fact an `equr` is passed over too, but resolving that
- * needs a symbol table, and vasm reports it on save regardless. The idiom is
- * common enough in Amiga sources that the alternative is a wall of false
- * errors.
- */
-function isSpuriousIndexError(error: ParseError, lines: string[]): boolean {
-  if (error.code !== "MALFORMED_INDEXED_ADDRESSING") {
-    return false;
-  }
-  const line =
-    error.loc.line !== undefined ? lines[error.loc.line - 1] : undefined;
-  if (line === undefined) {
-    return false;
-  }
-  return identifier.test(line.slice(error.loc.start, error.loc.end));
 }
 
 // Map vasm error types to DiagnosticSeverity

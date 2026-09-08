@@ -54,18 +54,10 @@ export function parseLine(text: string): ParsedLine {
     line.mnemonic = component(ast.mnemonic.loc);
   }
   if (ast.qualifier) {
+    // An unrecognised or half-typed size ("move." / "move.z") comes back as an
+    // unknown qualifier spanning the text after the dot, which is empty in the
+    // first case. Completion needs that to know the cursor is on a size.
     line.size = component(ast.qualifier.loc);
-  } else if (line.mnemonic) {
-    // m68k-parser only emits a qualifier for a size it recognises, so a
-    // half-typed one ("move." or "move.z") produces no node at all. Completion
-    // needs to know the cursor is on a size there, so synthesise the component
-    // from the text following the dot.
-    const dot = line.mnemonic.end;
-    if (text[dot] === ".") {
-      const start = dot + 1;
-      const end = start + /^[^\s.,;*]*/.exec(text.slice(start))![0].length;
-      line.size = { start, end, value: text.slice(start, end) };
-    }
   }
   if (ast.operands?.length) {
     line.operands = ast.operands.map((operand) => component(operand.loc));
