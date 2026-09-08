@@ -3,7 +3,7 @@
   "tasks": [
     {
       "type": "npm",
-      "script": "compile",
+      "script": "typecheck",
       "group": "build",
       "presentation": {
         "panel": "dedicated",
@@ -23,7 +23,7 @@
         "panel": "dedicated",
         "reveal": "never"
       },
-      "problemMatcher": ["$tsc-watch"]
+      "problemMatcher": []
     }
   ]
 }

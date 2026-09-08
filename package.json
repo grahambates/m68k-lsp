@@ -1,40 +1,52 @@
 {
-  "name": "m68k-lsp",
+  "name": "m68k-lsp-workspace",
+  "version": "0.11.3",
   "private": true,
+  "description": "Motorola 68000 assembly language server and VS Code extension",
+  "license": "MIT",
+  "author": "Graham Bates",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/grahambates/m68k-lsp.git"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "workspaces": [
+    "packages/server",
+    "packages/client"
+  ],
   "scripts": {
-    "check": "npm run lint && npm run tsc && npm run test",
-    "build": "npm run esbuild -- --minify",
-    "build-dev": "npm run esbuild -- --sourcemap",
-    "watch": "npm run esbuild -- --sourcemap --watch",
-    "clean": "rm -rf ./client/out/* && rm -rf ./server/out/*",
-    "esbuild": "esbuild ./client/src/extension.ts ./server/src/server.ts --bundle --outdir=. --entry-names=[dir]/../out/[name] --external:vscode --external:web-tree-sitter --platform=node",
-    "lint": "eslint . --ext .ts",
-    "lint-fix": "eslint . --ext .ts --fix",
-    "postinstall": "cd client && npm install && cd ../server && npm install && cd ..",
-    "build-docs": "scripts/conv-directives && scripts/conv-instructions",
-    "tsc": "tsc -p ./server --noEmit && tsc -p ./client --noEmit",
+    "build": "node scripts/build.mjs --minify",
+    "build:dev": "node scripts/build.mjs --sourcemap",
+    "watch": "node scripts/build.mjs --sourcemap --watch",
+    "clean": "rm -rf packages/*/out packages/*/.tsbuild packages/client/wasm",
+    "check": "npm run lint && npm run typecheck && npm run test",
+    "typecheck": "tsc -b packages/server packages/client",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
     "test": "jest",
-    "test-coverage": "jest --coverage",
-    "prepare": "husky install"
+    "test:coverage": "jest --coverage",
+    "build-docs": "scripts/conv-directives && scripts/conv-instructions",
+    "package": "npm run package --workspace packages/client",
+    "prepare": "husky"
   },
   "devDependencies": {
-    "@types/jest": "^27.4.1",
-    "@types/js-yaml": "^4.0.5",
-    "@types/node": "^17.0.21",
-    "@typescript-eslint/eslint-plugin": "^5.15.0",
-    "@typescript-eslint/parser": "^5.15.0",
-    "esbuild": "^0.14.27",
-    "eslint": "^7.32.0",
-    "eslint-config-prettier": "^8.5.0",
-    "eslint-plugin-prettier": "^4.0.0",
-    "husky": "^7.0.4",
-    "jest": "^27.5.1",
+    "@eslint/js": "^9.38.0",
+    "@types/jest": "^30.0.0",
+    "@types/js-yaml": "^4.0.9",
+    "@types/node": "^24.9.1",
+    "esbuild": "^0.25.11",
+    "eslint": "^9.38.0",
+    "eslint-config-prettier": "^10.1.8",
+    "globals": "^16.4.0",
+    "husky": "^9.1.7",
+    "jest": "^30.2.0",
     "js-yaml": "^4.1.0",
-    "prettier": "^2.6.0",
-    "ts-jest": "^27.1.3",
-    "typescript": "^4.6.2"
-  },
-  "dependencies": {
-    "nan": "^2.20.0"
+    "prettier": "^3.6.2",
+    "ts-jest": "^29.4.5",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.46.2"
   }
 }

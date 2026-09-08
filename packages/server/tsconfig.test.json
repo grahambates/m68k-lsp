@@ -1,0 +1,15 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "composite": false,
+    "declaration": false,
+    "declarationMap": false,
+    "noEmit": true,
+    // Tests predate `strict` and rely on non-null access to fixture lookups.
+    // Tightening them is deliberately left out of the tooling migration so a
+    // failing test means a real regression, not a new type error.
+    "strict": false,
+    "esModuleInterop": true
+  },
+  "include": ["src", "test"]
+}

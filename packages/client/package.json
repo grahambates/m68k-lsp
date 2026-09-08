@@ -1,0 +1,360 @@
+{
+  "name": "m68k-lsp",
+  "displayName": "Motorola 68000 Assembly",
+  "description": "Motorola 68000 family Assembly language support",
+  "author": "Graham Bates",
+  "license": "MIT",
+  "version": "0.11.3",
+  "scripts": {
+    "package": "vsce package --no-dependencies",
+    "publish": "vsce publish --no-dependencies"
+  },
+  "homepage": "https://github.com/grahambates/m68k-lsp",
+  "bugs": {
+    "url": "https://github.com/grahambates/m68k-lsp/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/grahambates/m68k-lsp.git",
+    "directory": "packages/client"
+  },
+  "publisher": "gigabates",
+  "icon": "icon.png",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Formatters",
+    "Snippets",
+    "Programming Languages"
+  ],
+  "keywords": [
+    "68000",
+    "assembly",
+    "asm",
+    "retro",
+    "amiga",
+    "atarist",
+    "m68k"
+  ],
+  "activationEvents": [
+    "onLanguage:m68k",
+    "onLanguage:vasmmot",
+    "workspaceContains:**/*.{s,S,asm,ASM}"
+  ],
+  "main": "./out/extension",
+  "contributes": {
+    "snippets": [
+      {
+        "language": "m68k",
+        "path": "./snippets.json"
+      }
+    ],
+    "languages": [
+      {
+        "id": "m68k",
+        "aliases": [
+          "M68k-Assembly",
+          "asm68k",
+          "m68k"
+        ],
+        "extensions": [
+          ".s",
+          ".i",
+          ".asm"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "configurationDefaults": {
+      "[m68k]": {
+        "files.associations": {
+          "*.s": "m68k",
+          "*.asm": "m68k"
+        }
+      }
+    },
+    "grammars": [
+      {
+        "language": "m68k",
+        "scopeName": "source.asm.m68k",
+        "path": "./syntaxes/M68k-Assembly.tmLanguage.json"
+      }
+    ],
+    "problemMatchers": [
+      {
+        "name": "vasm",
+        "owner": "m68k",
+        "fileLocation": [
+          "relative",
+          "${workspaceFolder}"
+        ],
+        "pattern": {
+          "regexp": "^(.\\w+) (\\d+) in line (\\d+) of \"([^\"]*)\": (.*)$",
+          "severity": 1,
+          "line": 3,
+          "file": 4,
+          "message": 5
+        }
+      }
+    ],
+    "configuration": {
+      "type": "object",
+      "title": "M68k",
+      "properties": {
+        "m68k.format.align.mnemonic": {
+          "type": "number",
+          "default": 8,
+          "minium": 0,
+          "maximum": 120,
+          "description": "Indent position of instruction/directive element"
+        },
+        "m68k.format.align.operands": {
+          "type": "number",
+          "default": 16,
+          "minium": 0,
+          "maximum": 120,
+          "description": "Indent position of operands element"
+        },
+        "m68k.format.align.comment": {
+          "type": "number",
+          "default": 48,
+          "minium": 0,
+          "maximum": 120,
+          "description": "Indent position of comment element"
+        },
+        "m68k.format.align.operator": {
+          "type": "number",
+          "default": 0,
+          "minium": 0,
+          "maximum": 120,
+          "description": "Indent position of '=' for constant"
+        },
+        "m68k.format.align.value": {
+          "type": "number",
+          "default": 0,
+          "minium": 0,
+          "maximum": 120,
+          "description": "Indent position of value for constant assignment"
+        },
+        "m68k.format.align.standaloneComment": {
+          "type": "string",
+          "enum": [
+            "nearest",
+            "ignore",
+            "label",
+            "mnemonic",
+            "operands",
+            "comment",
+            "operator",
+            "value"
+          ],
+          "default": "nearest",
+          "description": "Position / behaviour of comment with no other elements on the same line."
+        },
+        "m68k.format.align.indentStyle": {
+          "type": "string",
+          "enum": [
+            "space",
+            "tab"
+          ],
+          "default": "space",
+          "description": "Indent character"
+        },
+        "m68k.format.align.autoExtend": {
+          "type": "string",
+          "enum": [
+            "line",
+            "block",
+            "file"
+          ],
+          "default": "line",
+          "description": "Behaviour when a component exceeds the available space between positions."
+        },
+        "m68k.format.case.instruction": {
+          "type": "string",
+          "enum": [
+            "upper",
+            "lower",
+            "any"
+          ],
+          "default": "lower",
+          "description": "Instruction mnemonic case"
+        },
+        "m68k.format.case.directive": {
+          "type": "string",
+          "enum": [
+            "upper",
+            "lower",
+            "any"
+          ],
+          "default": "lower",
+          "description": "Directive mnemonic case"
+        },
+        "m68k.format.case.control": {
+          "type": "string",
+          "enum": [
+            "upper",
+            "lower",
+            "any"
+          ],
+          "default": "lower",
+          "markdownDescription": "Control mnemonic case (e.g. `IFEQ`/`ENDC`, `REPT`/`ENDR`)"
+        },
+        "m68k.format.case.register": {
+          "type": "string",
+          "enum": [
+            "upper",
+            "lower",
+            "any"
+          ],
+          "default": "lower",
+          "description": "Register case"
+        },
+        "m68k.format.case.sectionType": {
+          "type": "string",
+          "enum": [
+            "upper",
+            "lower",
+            "any"
+          ],
+          "default": "lower",
+          "markdownDescription": "Section type case (e.g. `BSS`)"
+        },
+        "m68k.format.case.hex": {
+          "type": "string",
+          "enum": [
+            "upper",
+            "lower",
+            "any"
+          ],
+          "default": "lower",
+          "markdownDescription": "Hexadecimal number literals"
+        },
+        "m68k.format.quotes": {
+          "type": "string",
+          "enum": [
+            "any",
+            "single",
+            "double"
+          ],
+          "default": "any",
+          "description": "Quote style for strings"
+        },
+        "m68k.format.labelColon.global": {
+          "type": "string",
+          "enum": [
+            "on",
+            "off",
+            "notInline",
+            "onlyInline",
+            "any"
+          ],
+          "default": "any",
+          "markdownDescription": "Include colon suffix for global labels (e.g. `MyLabel:`)"
+        },
+        "m68k.format.labelColon.local": {
+          "type": "string",
+          "enum": [
+            "on",
+            "off",
+            "notInline",
+            "onlyInline",
+            "any"
+          ],
+          "default": "any",
+          "markdownDescription": "Include colon suffix for local labels (e.g. `.MyLabel`)"
+        },
+        "m68k.format.operandSpace": {
+          "type": "string",
+          "enum": [
+            "on",
+            "off",
+            "any"
+          ],
+          "default": "off",
+          "markdownDescription": "Include space between operands? VASM needs `-spaces` or `-phxass` option to support this."
+        },
+        "m68k.includePaths": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "description": "Additional paths to resolve includes"
+        },
+        "m68k.processors": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "mc68000",
+              "mc68010",
+              "mc68020",
+              "mc68030",
+              "mc68040",
+              "mc68060",
+              "mc68881",
+              "mc68851",
+              "cpu32"
+            ]
+          },
+          "default": [
+            "mc68000"
+          ],
+          "description": "Supported processors for syntax checking"
+        },
+        "m68k.vasm.provideDiagnostics": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable vasm diagnostics"
+        },
+        "m68k.vasm.binPath": {
+          "type": "string",
+          "default": "vasmm68k_mot",
+          "description": "Filename or full path of vasm executable binary"
+        },
+        "m68k.vasm.args": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "description": "Custom arguments to pass to vasm. Include paths and processor(s) from server config will automatically be added"
+        },
+        "m68k.vasm.preferWasm": {
+          "type": "boolean",
+          "default": false,
+          "description": "Always use bundled Web Assembly vasm"
+        },
+        "m68k.vasm.exclude": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "*.i"
+          ],
+          "description": "File patterns to ignore and not build directly e.g. `*.i`"
+        },
+        "m68k.trace.server": {
+          "type": "string",
+          "enum": [
+            "off",
+            "messages",
+            "verbose"
+          ],
+          "default": "off",
+          "description": "Traces the communication between VS Code and the language server."
+        }
+      }
+    }
+  },
+  "dependencies": {
+    "vscode-languageclient": "^9.0.1"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.85.0",
+    "@vscode/vsce": "^3.6.0"
+  }
+}

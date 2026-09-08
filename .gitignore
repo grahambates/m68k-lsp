@@ -1,5 +1,7 @@
-out
-node_modules
-.DS_Store
-coverage
+node_modules/
+out/
+.tsbuild/
 *.vsix
+.DS_Store
+packages/client/wasm/
+coverage/

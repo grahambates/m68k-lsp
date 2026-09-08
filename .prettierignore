@@ -1,0 +1,19 @@
+node_modules/
+out/
+.tsbuild/
+coverage/
+package-lock.json
+
+# Generated from the m68k reference by `npm run build-docs`
+packages/server/docs/
+packages/server/src/docs/directives.json
+packages/server/src/docs/instructions.json
+
+# Vendored / generated editor assets
+packages/client/syntaxes/
+packages/server/wasm/
+packages/client/wasm/
+
+# Extensionless node scripts
+scripts/conv-directives
+scripts/conv-instructions
