@@ -159,6 +159,8 @@ export const ruleImpactAuditCases: readonly RuleImpactAuditCase[] = [
   { ruleId: "optimization/combine-adjacent-clr-words", source: "clr.w $1000\nclr.w $1002\nmoveq #0,d7" },
   { ruleId: "optimization/combine-adjacent-move-bytes", source: "move.b #1,$1000\nmove.b #2,$1001\nmoveq #0,d7" },
   { ruleId: "optimization/combine-adjacent-move-words", source: "move.w #1,$1000\nmove.w #2,$1002\nmoveq #0,d7" },
+  { ruleId: "optimization/combine-adjacent-copy-bytes", source: "move.b (a0)+,(a1)+\nmove.b (a0)+,(a1)+\nmoveq #0,d7" },
+  { ruleId: "optimization/combine-adjacent-copy-words", source: "move.w (a0)+,(a1)+\nmove.w (a0)+,(a1)+\nmoveq #0,d7" },
   // The tail-call rewrites are offered now, so they can be measured. The
   // callee sees one fewer return address on the stack, which is a condition
   // stated on the suggestion rather than a reason to withhold it.

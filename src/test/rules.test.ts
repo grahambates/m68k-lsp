@@ -486,6 +486,68 @@ describe("v0.8 sequence rules", () => {
     ].join("\n");
     expect(ids(source)).not.toContain("optimization/combine-adjacent-move-words");
   });
+
+  test("combines a bare (An) store with a matching displacement store", () => {
+    const diagnostic = lint(["move.w #$1234,(a6)", "move.w #$5678,2(a6)"].join("\n")).find(
+      (d) => d.ruleId === "optimization/combine-adjacent-move-words",
+    );
+    expect(diagnostic?.suggestion?.description).toContain("(a6)");
+    expect(diagnostic?.suggestion?.description).toContain("#$12345678");
+  });
+
+  test("combines adjacent immediate stores through postincrement", () => {
+    const diagnostic = lint(["move.w #$1234,(a1)+", "move.w #$5678,(a1)+"].join("\n")).find(
+      (d) => d.ruleId === "optimization/combine-adjacent-move-words",
+    );
+    expect(diagnostic?.suggestion?.replacement).toBe("\tmove.l #$12345678,(a1)+");
+  });
+
+  test("combines adjacent immediate stores through predecrement with the byte order reversed", () => {
+    // The second write lands at the lower (more significant) address, so it
+    // becomes the high half -- backwards from every other addressing mode.
+    const diagnostic = lint(["move.w #$1234,-(a1)", "move.w #$5678,-(a1)"].join("\n")).find(
+      (d) => d.ruleId === "optimization/combine-adjacent-move-words",
+    );
+    expect(diagnostic?.suggestion?.replacement).toBe("\tmove.l #$56781234,-(a1)");
+  });
+
+  test("does not combine byte-sized predecrement/postincrement through A7", () => {
+    // -(a7)/(a7)+ always moves the stack pointer by 2 even for a byte access,
+    // so two chained byte ops on A7 are two bytes apart, not one.
+    expect(ids(["clr.b -(a7)", "clr.b -(a7)"].join("\n"))).not.toContain("optimization/combine-adjacent-clr-bytes");
+    expect(ids(["clr.b -(a2)", "clr.b -(a2)"].join("\n"))).toContain("optimization/combine-adjacent-clr-bytes");
+  });
+
+  test("combines adjacent memory-to-memory copies through matching postincrement", () => {
+    const diagnostic = lint(["move.w (a0)+,(a1)+", "move.w (a0)+,(a1)+"].join("\n")).find(
+      (d) => d.ruleId === "optimization/combine-adjacent-copy-words",
+    );
+    expect(diagnostic?.suggestion?.replacement).toBe("\tmove.l (a0)+,(a1)+");
+  });
+
+  test("combines adjacent memory-to-memory copies through matching predecrement", () => {
+    const diagnostic = lint(["move.w -(a0),-(a1)", "move.w -(a0),-(a1)"].join("\n")).find(
+      (d) => d.ruleId === "optimization/combine-adjacent-copy-words",
+    );
+    expect(diagnostic?.suggestion?.replacement).toBe("\tmove.l -(a0),-(a1)");
+  });
+
+  test("combines a moving source with an adjacent fixed destination, and the mirror image", () => {
+    const forward = lint(["move.w (a0)+,$100(a1)", "move.w (a0)+,$102(a1)"].join("\n")).find(
+      (d) => d.ruleId === "optimization/combine-adjacent-copy-words",
+    );
+    expect(forward?.suggestion?.replacement).toBe("\tmove.l (a0)+,$100(a1)");
+
+    const mirrored = lint(["move.w $100(a0),(a1)+", "move.w $102(a0),(a1)+"].join("\n")).find(
+      (d) => d.ruleId === "optimization/combine-adjacent-copy-words",
+    );
+    expect(mirrored?.suggestion?.replacement).toBe("\tmove.l $100(a0),(a1)+");
+  });
+
+  test("does not combine a copy that reads and writes through the same address register", () => {
+    const source = ["move.w $4(a0),(a0)+", "move.w $6(a0),(a0)+"].join("\n");
+    expect(ids(source)).not.toContain("optimization/combine-adjacent-copy-words");
+  });
 });
 
 describe("v0.9 local peepholes", () => {

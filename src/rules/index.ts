@@ -39,6 +39,7 @@ import { preferLinkSequence } from "./optimization/prefer-link-sequence.js";
 import { btstSignBranch } from "./optimization/btst-sign-branch.js";
 import { combineAdjacentClrBytes, combineAdjacentClrWords } from "./optimization/adjacent-clear.js";
 import { combineAdjacentMoveBytes, combineAdjacentMoveWords } from "./optimization/adjacent-immediate-move.js";
+import { combineAdjacentCopyBytes, combineAdjacentCopyWords } from "./optimization/adjacent-copy.js";
 import { redundantZeroDisplacement } from "./optimization/redundant-zero-displacement.js";
 import { addressAddToLea, addressSubToLea } from "./optimization/address-immediate-lea.js";
 import { pushImmediatePea } from "./optimization/push-immediate-pea.js";
@@ -193,6 +194,8 @@ export {
   combineAdjacentClrWords,
   combineAdjacentMoveBytes,
   combineAdjacentMoveWords,
+  combineAdjacentCopyBytes,
+  combineAdjacentCopyWords,
   redundantZeroDisplacement,
   addressAddToLea,
   addressSubToLea,
@@ -376,6 +379,8 @@ export const defaultRules: readonly Rule[] = [
   combineAdjacentClrWords,
   combineAdjacentMoveBytes,
   combineAdjacentMoveWords,
+  combineAdjacentCopyBytes,
+  combineAdjacentCopyWords,
   jsrRtsTailCall,
   bsrRtsTailCall,
   redundantLea,

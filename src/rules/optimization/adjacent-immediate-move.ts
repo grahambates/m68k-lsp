@@ -53,7 +53,14 @@ function movePair(
       if (!b || !isAdjacentLocation(a, b, delta) || y === undefined) return;
       const dest = sourceOperand(ctx, line, 1);
       if (!dest) return;
-      const combined = ((x & mask) * 2 ** shift + (y & mask)) >>> 0;
+      // Predecrement stores the *later* write at the lower address: two
+      // `move #x,-(An)` / `move #y,-(An)` leave x at the higher address (it was
+      // written first, before the pointer moved as far) and y at the lower one,
+      // the reverse of every other addressing mode here, where the first write
+      // ends up at the lower address. So the combined value's high half is
+      // whichever operand actually landed at the lower address.
+      const [hi, lo] = a.kind === "predec" ? [y, x] : [x, y];
+      const combined = ((hi & mask) * 2 ** shift + (lo & mask)) >>> 0;
       const hexWidth = toSize === "w" ? 4 : 8;
       const literal = `$${combined.toString(16).padStart(hexWidth, "0")}`;
 
