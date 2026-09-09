@@ -84,6 +84,7 @@ export const ruleImpactAuditCases: readonly RuleImpactAuditCase[] = [
     source: "addq.l #2,d0\naddq.l #3,d0",
   },
   { ruleId: "optimization/combine-consecutive-shift", source: "lsl.w #2,d0\nlsl.w #6,d0" },
+  { ruleId: "optimization/combine-consecutive-bit-ops", source: "bclr #0,d0\nbclr #4,d0\nmoveq #0,d7" },
   {
     ruleId: "optimization/fold-redundant-intermediate",
     caseId: "into-arithmetic",

@@ -54,6 +54,7 @@ import { moveImmediateViaScratch } from "./optimization/move-immediate-via-scrat
 import { cmpZeroAddressViaScratch } from "./optimization/cmp-zero-address-via-scratch.js";
 import { combineConsecutiveAddq } from "./optimization/combine-consecutive-addq.js";
 import { combineConsecutiveShift } from "./optimization/combine-consecutive-shift.js";
+import { combineConsecutiveBitOps } from "./optimization/combine-consecutive-bit-ops.js";
 import {
   multiplyWordByZero,
   multiplySignedWordByOne,
@@ -222,6 +223,7 @@ export {
   cmpZeroAddressViaScratch,
   combineConsecutiveAddq,
   combineConsecutiveShift,
+  combineConsecutiveBitOps,
   multiplyWordByZero,
   multiplySignedWordByOne,
   multiplyUnsignedWordByOne,
@@ -364,6 +366,7 @@ export const defaultRules: readonly Rule[] = [
   cmpZeroAddressViaScratch,
   combineConsecutiveAddq,
   combineConsecutiveShift,
+  combineConsecutiveBitOps,
   moveImmediateViaScratch,
   redundantZeroDisplacement,
   addressAddToLea,

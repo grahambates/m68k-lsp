@@ -927,6 +927,82 @@ describe("v0.11 register-driven rules", () => {
     });
   });
 
+  describe("combine consecutive single-bit operations", () => {
+    const ID = "optimization/combine-consecutive-bit-ops";
+    const rep = (lines: string[]) => lint(lines.join("\n")).find((d) => d.ruleId === ID)?.suggestion?.replacement;
+
+    test("merges a run into one masked operation, sized to the highest bit", () => {
+      expect(rep(["bclr #0,d0", "bclr #4,d0", "moveq #0,d7", "rts"])).toBe("\tand.b #$ee,d0");
+      expect(rep(["bclr #0,d0", "bclr #4,d0", "bclr #8,d0", "bclr #12,d0", "moveq #0,d7", "rts"])).toBe(
+        "\tand.w #$eeee,d0",
+      );
+      expect(rep(["bset #0,d0", "bset #4,d0", "moveq #0,d7", "rts"])).toBe("\tor.b #$11,d0");
+      expect(rep(["bchg #3,d0", "bchg #5,d0", "moveq #0,d7", "rts"])).toBe("\teor.b #$28,d0");
+    });
+
+    test("renders a mask reaching bit 31 unsigned", () => {
+      // `& limit` works on a signed 32-bit value, so the unsigned coercion has
+      // to come last or the mask renders as a negative number.
+      expect(rep(["bset #31,d0", "bset #0,d0", "moveq #0,d7", "rts"])).toBe("\tor.l #$80000001,d0");
+      expect(rep(["bclr #16,d0", "bclr #20,d0", "moveq #0,d7", "rts"])).toBe("\tand.l #$ffeeffff,d0");
+    });
+
+    test("keeps symbolic bit numbers, with each shift parenthesised", () => {
+      expect(rep(["ON equ 3", "OFF equ 5", "bclr #ON,d0", "bclr #OFF,d0", "moveq #0,d7", "rts"])).toBe(
+        "\tand.b #~((1<<ON)|(1<<OFF)),d0",
+      );
+      expect(rep(["ON equ 3", "OFF equ 5", "bset #ON,d0", "bset #OFF,d0", "moveq #0,d7", "rts"])).toBe(
+        "\tor.b #(1<<ON)|(1<<OFF),d0",
+      );
+    });
+
+    test("BCHG on the same bit twice cancels, so there is nothing to suggest", () => {
+      expect(ids(["bchg #3,d0", "bchg #3,d0", "moveq #0,d7", "rts"].join("\n"))).not.toContain(ID);
+    });
+
+    test("needs one register, one operation, and no label between", () => {
+      expect(ids(["bclr #0,d0", "bclr #4,d1", "moveq #0,d7", "rts"].join("\n"))).not.toContain(ID);
+      expect(ids(["bclr #0,d0", "bset #4,d0", "moveq #0,d7", "rts"].join("\n"))).not.toContain(ID);
+      expect(ids(["bclr #0,d0", ".mid:", "bclr #4,d0", "moveq #0,d7", "rts"].join("\n"))).not.toContain(ID);
+    });
+
+    test("reports a run once, from its first instruction", () => {
+      const source = ["bclr #0,d0", "bclr #4,d0", "bclr #8,d0", "moveq #0,d7", "rts"].join("\n");
+      const hits = lint(source).filter((d) => d.ruleId === ID);
+      expect(hits).toHaveLength(1);
+      expect(hits[0]?.loc.line).toBe(1);
+      expect(hits[0]?.suggestion?.replacement).toBe("\tand.w #$feee,d0");
+    });
+
+    test("needs the flags the masked form changes to be dead", () => {
+      // BCLR sets Z from the bit it tested; AND sets N/Z from the whole result.
+      const live = ["bclr #0,d0", "bclr #4,d0", "beq .x", ".x:", "rts"].join("\n");
+      expect(lint(live).find((d) => d.ruleId === ID)?.suggestion?.applicability).toBe("conditional");
+    });
+
+    test("does not merge a run across conditional-assembly arms", () => {
+      // The CACR cache-control code this rule was found in is written exactly
+      // this way, so merging across the ELSE would produce a mask for bits from
+      // a branch that never assembles together.
+      const source = [
+        "ifeq CACHE",
+        "bclr #0,d0",
+        "bclr #8,d0",
+        "else",
+        "bclr #4,d0",
+        "bclr #12,d0",
+        "endc",
+        "moveq #0,d7",
+        "rts",
+      ].join("\n");
+      const hits = lint(source).filter((d) => d.ruleId === ID);
+      expect(hits.map((d) => [d.span?.startLine, d.span?.endLine])).toEqual([
+        [2, 3],
+        [5, 6],
+      ]);
+    });
+  });
+
   describe("storing zero with CLR", () => {
     const ID = "optimization/zero-store-to-clear";
 
