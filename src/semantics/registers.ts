@@ -14,6 +14,15 @@ export function normalizeRegister(register: string): Register | undefined {
   return (REGISTERS as readonly string[]).includes(r) ? (r as Register) : undefined;
 }
 
+/**
+ * Position in the order MOVEM uses: D0-D7 then A0-A7. A register list is a
+ * bitmask in that order, so this is what decides whether a run of loads can
+ * become one MOVEM at all.
+ */
+export function registerOrdinal(register: Register): number {
+  return REGISTERS.indexOf(register);
+}
+
 export interface RegisterSemantics {
   reads: ReadonlySet<Register>;
   writes: ReadonlySet<Register>;

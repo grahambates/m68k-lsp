@@ -927,6 +927,77 @@ describe("v0.11 register-driven rules", () => {
     });
   });
 
+  describe("combine postincrement loads into MOVEM", () => {
+    const ID = "optimization/combine-loads-into-movem";
+    const rep = (lines: string[]) =>
+      lint([...lines, "moveq #0,d7", "rts"].join("\n")).find((d) => d.ruleId === ID)?.suggestion?.replacement;
+
+    test("folds a run of three or more into one MOVEM", () => {
+      expect(rep(["move.l (a0)+,d0", "move.l (a0)+,d1", "move.l (a0)+,d2"])).toBe("\tmovem.l (a0)+,d0-d2");
+      expect(
+        rep([
+          "move.l (a0)+,d0",
+          "move.l (a0)+,d1",
+          "move.l (a0)+,d2",
+          "move.l (a0)+,d3",
+          "move.l (a0)+,d4",
+          "move.l (a0)+,d5",
+        ]),
+      ).toBe("\tmovem.l (a0)+,d0-d5");
+    });
+
+    test("does not fold a pair, which measures worse than the MOVEM", () => {
+      // On 68000 two loads are the same 4 bytes as movem.l and 4 cycles
+      // faster, so the win only starts at three.
+      expect(ids(["move.l (a0)+,d0", "move.l (a0)+,d1", "moveq #0,d7", "rts"].join("\n"))).not.toContain(ID);
+    });
+
+    test("register numbers may skip, since the list is a bitmask", () => {
+      expect(rep(["move.l (a0)+,d1", "move.l (a0)+,d3", "move.l (a0)+,d5"])).toBe("\tmovem.l (a0)+,d1/d3/d5");
+      expect(rep(["move.l (a0)+,d0", "move.l (a0)+,d1", "move.l (a0)+,a1"])).toBe("\tmovem.l (a0)+,d0/d1/a1");
+    });
+
+    test("needs MOVEM's own register order, one pointer, and no label between", () => {
+      // MOVEM fills D0-D7 then A0-A7, so a descending run loads different
+      // values into different registers than the individual moves would.
+      expect(ids(["move.l (a0)+,d2", "move.l (a0)+,d1", "move.l (a0)+,d0", "rts"].join("\n"))).not.toContain(ID);
+      expect(ids(["move.l (a0)+,d0", "move.l (a1)+,d1", "move.l (a0)+,d2", "rts"].join("\n"))).not.toContain(ID);
+      expect(ids(["move.l (a0)+,d0", "move.l (a0)+,d1", ".mid:", "move.l (a0)+,d2", "rts"].join("\n"))).not.toContain(
+        ID,
+      );
+    });
+
+    test("will not load into the pointer it is walking", () => {
+      expect(ids(["move.l (a0)+,d0", "move.l (a0)+,d1", "move.l (a0)+,a0", "rts"].join("\n"))).not.toContain(ID);
+    });
+
+    test("leaves word-sized runs alone, because MOVEM.W sign-extends", () => {
+      // `move.w (a0)+,d0` writes only the low half; MOVEM.W sign-extends into
+      // the whole register, so a word run is not the same instruction.
+      expect(ids(["move.w (a0)+,d0", "move.w (a0)+,d1", "move.w (a0)+,d2", "rts"].join("\n"))).not.toContain(ID);
+    });
+
+    test("needs the flags each MOVE sets to be dead, since MOVEM sets none", () => {
+      const live = ["move.l (a0)+,d0", "move.l (a0)+,d1", "move.l (a0)+,d2", "beq .x", ".x:", "rts"].join("\n");
+      expect(lint(live).find((d) => d.ruleId === ID)?.suggestion?.applicability).toBe("conditional");
+    });
+
+    test("reports a run once, from its first load", () => {
+      const source = [
+        "move.l (a0)+,d0",
+        "move.l (a0)+,d1",
+        "move.l (a0)+,d2",
+        "move.l (a0)+,d3",
+        "moveq #0,d7",
+        "rts",
+      ].join("\n");
+      const hits = lint(source).filter((d) => d.ruleId === ID);
+      expect(hits).toHaveLength(1);
+      expect(hits[0]?.loc.line).toBe(1);
+      expect(hits[0]?.span?.endLine).toBe(4);
+    });
+  });
+
   describe("combine consecutive single-bit operations", () => {
     const ID = "optimization/combine-consecutive-bit-ops";
     const rep = (lines: string[]) => lint(lines.join("\n")).find((d) => d.ruleId === ID)?.suggestion?.replacement;
