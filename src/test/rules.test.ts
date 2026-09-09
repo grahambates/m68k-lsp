@@ -971,6 +971,18 @@ describe("v0.11 register-driven rules", () => {
       expect(ids(["move.l (a0)+,d0", "move.l (a0)+,d1", "move.l (a0)+,a0", "rts"].join("\n"))).not.toContain(ID);
     });
 
+    test("is offered only for the targets the win is measured on", () => {
+      // 68kcounter models the 68000 and 68020 and both agree from three
+      // registers up, but MOVEM is not the fast path on 68040/68060.
+      const source = ["move.l (a0)+,d0", "move.l (a0)+,d1", "move.l (a0)+,d2", "moveq #0,d7", "rts"].join("\n");
+      for (const cpu of ["mc68000", "mc68010", "mc68020", "mc68030"] as const) {
+        expect([cpu, ids(source, { processors: [cpu] }).includes(ID)]).toEqual([cpu, true]);
+      }
+      for (const cpu of ["mc68040", "mc68060", "cpu32"] as const) {
+        expect([cpu, ids(source, { processors: [cpu] }).includes(ID)]).toEqual([cpu, false]);
+      }
+    });
+
     test("leaves word-sized runs alone, because MOVEM.W sign-extends", () => {
       // `move.w (a0)+,d0` writes only the low half; MOVEM.W sign-extends into
       // the whole register, so a word run is not the same instruction.

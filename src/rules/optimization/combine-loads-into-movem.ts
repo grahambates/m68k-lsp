@@ -74,7 +74,15 @@ function memberData(list: string, indices: readonly number[]): Record<string, st
  * where `move.w (a0)+,d0` leaves the top half alone, so a word run would have
  * to prove those bits dead first. In the corpus 169 of 188 foldable runs are
  * long anyway.
+ *
+ * Restricted to the targets the win is measured on. 68kcounter models the
+ * 68000 and the 68020, and both agree from three registers up, but MOVEM is
+ * not the fast path on the 68040 and 68060 -- and the code this fires on most
+ * in the corpus is Kalms' c2p routines, which target exactly those. Rather
+ * than assume the 68000 result carries over to the parts most likely to
+ * disagree with it, they are left out until someone measures them.
  */
+const MEASURED_TARGETS = ["mc68000", "mc68010", "mc68020", "mc68030"];
 export const combineLoadsIntoMovem: Rule = {
   meta: {
     id: "optimization/combine-loads-into-movem",
@@ -88,6 +96,7 @@ export const combineLoadsIntoMovem: Rule = {
   },
 
   checkLine(ctx, line, index) {
+    if (!ctx.config.processors.every((cpu) => MEASURED_TARGETS.includes(cpu))) return;
     const first = postincrementLoad(line);
     if (!first) return;
     // Report each run once, from its first load.
