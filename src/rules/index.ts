@@ -49,6 +49,7 @@ import { shiftTwoAdds } from "./optimization/shift-two-adds.js";
 import { addsToShift } from "./optimization/adds-to-shift.js";
 
 import { knownZeroClear } from "./optimization/known-zero-clear.js";
+import { zeroStoreToClear } from "./optimization/zero-store-to-clear.js";
 import { moveImmediateViaScratch } from "./optimization/move-immediate-via-scratch.js";
 import { cmpZeroAddressViaScratch } from "./optimization/cmp-zero-address-via-scratch.js";
 import { combineConsecutiveAddq } from "./optimization/combine-consecutive-addq.js";
@@ -217,6 +218,7 @@ export {
   shiftTwoAdds,
   addsToShift,
   knownZeroClear,
+  zeroStoreToClear,
   moveImmediateViaScratch,
   cmpZeroAddressViaScratch,
   combineConsecutiveAddq,
@@ -359,6 +361,7 @@ export const defaultRules: readonly Rule[] = [
   multiplyUnsignedWordByOne,
   multiplySignedWordPowerOfTwo,
   knownZeroClear,
+  zeroStoreToClear,
   cmpZeroAddressViaScratch,
   combineConsecutiveAddq,
   combineConsecutiveShift,

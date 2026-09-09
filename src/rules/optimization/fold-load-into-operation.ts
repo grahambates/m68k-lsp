@@ -36,13 +36,18 @@ const ALTERABLE_DESTINATION = [
 ];
 
 /**
- * Source addressing modes that read the same value at the second instruction's
- * position as they did at the first. Post-increment and pre-decrement are left
- * out for now: they are probably foldable too, since the single side effect
- * happens either way, but they interact with the destination-register check
- * below in ways worth proving separately.
+ * Sources that read the same value at the second instruction's position as
+ * they did at the first, so the intermediate register is carrying nothing the
+ * operation could not fetch itself.
+ *
+ * Post-increment and pre-decrement are left out: they are probably foldable
+ * too, since the single side effect happens either way, but they interact with
+ * the destination checks below in ways worth proving separately.
  */
 const FOLDABLE_SOURCE = [
+  "data-register",
+  "address-register",
+  "immediate",
   "address-register-indirect",
   "address-register-indirect-displacement",
   "address-register-indirect-index",
@@ -53,6 +58,31 @@ const FOLDABLE_SOURCE = [
 
 function foldableSource(op: OperandNode | undefined): boolean {
   return !!op && FOLDABLE_SOURCE.includes(op.type);
+}
+
+/**
+ * Whether folding an immediate would actually pay.
+ *
+ * MOVEQ carries its value in the instruction word, so staging a long constant
+ * through a register is *smaller* than embedding it in the operation -- which
+ * is exactly what `move-immediate-via-scratch` and
+ * `arithmetic-immediate-via-scratch` exist to recommend. Measured on 68000,
+ * folding `moveq #-1,d0 / move.l d0,$44(a6)` back into `move.l #-1,$44(a6)`
+ * costs 2 bytes and 4 cycles, and the word-sized case is an exact wash. Only
+ * an immediate that already pays for its own extension word, and that MOVEQ
+ * could not have carried, is worth folding.
+ */
+function immediateWorthFolding(
+  ctx: Parameters<NonNullable<Rule["checkLine"]>>[0],
+  line: ParsedLine,
+  source: OperandNode,
+  size: "b" | "w" | "l",
+): boolean {
+  if (isInstruction(line, "moveq")) return false;
+  if (size !== "l") return true;
+  if (source.type !== "immediate" || source.value.type === "string-literal") return false;
+  const value = ctx.evaluate(source.value);
+  return !value.known || value.value < -128 || value.value > 127;
 }
 
 function destinationRegister(line: ParsedLine): Register | undefined {
@@ -90,12 +120,16 @@ function foldRule(kind: "operation" | "copy"): Rule {
     },
 
     checkLine(ctx, line, index) {
-      if (!isInstruction(line, "move")) return;
-      const size = instructionSize(line);
+      // MOVEQ is a load too, and reaches here so its immediate can be judged
+      // against the folded form rather than assumed foldable.
+      const isMoveq = isInstruction(line, "moveq");
+      if (!isInstruction(line, "move") && !isMoveq) return;
+      const size = isMoveq ? "l" : instructionSize(line);
       if (size !== "b" && size !== "w" && size !== "l") return;
       const source = operand(line, 0);
       const scratchOperand = dataRegisterOperand(line, 1);
-      if (!foldableSource(source) || !scratchOperand) return;
+      if (!source || !foldableSource(source) || !scratchOperand) return;
+      if (source.type === "immediate" && !immediateWorthFolding(ctx, line, source, size)) return;
       const scratch = normalizeRegister(scratchOperand.register);
       if (!scratch) return;
 

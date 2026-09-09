@@ -917,7 +917,72 @@ describe("v0.11 register-driven rules", () => {
     });
 
     test("stays out of the arithmetic rule's way", () => {
+      expect(ids(["move.w (a0),d1", "move.w d1,d0", "moveq #0,d1", "rts"].join("\n"))).toContain(ID);
       expect(ids(["move.w (a0),d1", "add.w d1,d0", "moveq #0,d1", "rts"].join("\n"))).not.toContain(ID);
+    });
+  });
+
+  describe("storing zero with CLR", () => {
+    const ID = "optimization/zero-store-to-clear";
+
+    test("drops the immediate from a zero store", () => {
+      const diagnostic = lint("move.w #0,$64(a6)").find((d) => d.ruleId === ID);
+      expect(diagnostic?.suggestion?.replacement).toBe("\tclr.w $64(a6)");
+      // Conditional because a 68000 CLR reads before writing, so a write-only
+      // register briefly holds bus noise between the two cycles.
+      expect(diagnostic?.suggestion?.applicability).toBe("conditional");
+      expect(diagnostic?.notes?.some((n) => n.message.includes("bus noise"))).toBe(true);
+
+      expect(lint("move.l #0,(a0)").find((d) => d.ruleId === ID)?.suggestion?.replacement).toBe("\tclr.l (a0)");
+      expect(lint("move.w #0,(a0)+").find((d) => d.ruleId === ID)?.suggestion?.replacement).toBe("\tclr.w (a0)+");
+    });
+
+    test("leaves data registers to the register-specific rules", () => {
+      expect(ids("move.l #0,d0")).not.toContain(ID);
+      expect(ids("move.l #0,a0")).not.toContain(ID);
+    });
+
+    test("fires on any immediate that evaluates to zero", () => {
+      expect(ids("move.w #1,$64(a6)")).not.toContain(ID);
+      // A named constant that happens to be zero still folds. CLR cannot carry
+      // the name, so the report path's own symbols-lost note is what tells the
+      // reader the replacement stops tracking it.
+      const named = lint("CITY_ENDMARK equ 0\nmove.w #CITY_ENDMARK,(a1)+").find((d) => d.ruleId === ID);
+      expect(named?.suggestion?.replacement).toBe("\tclr.w (a1)+");
+      expect(named?.data?.symbolsLost).toEqual(["city_endmark"]);
+    });
+  });
+
+  describe("intermediate registers that carry a value nothing else needs", () => {
+    const OP = "optimization/fold-load-into-operation";
+    const MOVE = "optimization/fold-load-into-move";
+    const rep = (lines: string[], id: string) =>
+      lint(lines.join("\n")).find((d) => d.ruleId === id)?.suggestion?.replacement;
+
+    test("folds a register copy that only feeds the next instruction", () => {
+      expect(rep(["move.w d2,d1", "add.w d1,d0", "moveq #0,d1", "rts"], OP)).toBe("\tadd.w d2,d0");
+      expect(rep(["move.w d4,d6", "move.w d6,4(a3)", "moveq #0,d6", "rts"], MOVE)).toBe("\tmove.w d4,4(a3)");
+      expect(rep(["move.l a0,d0", "move.l d0,d1", "moveq #0,d0", "rts"], MOVE)).toBe("\tmove.l a0,d1");
+    });
+
+    test("folds an immediate that pays for its own extension word either way", () => {
+      expect(rep(["move.w #$7fe,d3", "and.w d3,d0", "moveq #0,d3", "rts"], OP)).toBe("\tand.w #$7fe,d0");
+      expect(rep(["move.w #$7fff,d2", "move.w d2,$96(a6)", "moveq #0,d2", "rts"], MOVE)).toBe(
+        "\tmove.w #$7fff,$96(a6)",
+      );
+    });
+
+    test("leaves the MOVEQ-via-scratch idiom alone, which is smaller than folding", () => {
+      // move-immediate-via-scratch recommends exactly this shape; folding it
+      // back measures 2 bytes and 4 cycles worse on 68000.
+      expect(ids(["moveq #-1,d0", "move.l d0,$44(a6)", "moveq #0,d0", "rts"].join("\n"))).not.toContain(MOVE);
+      expect(ids(["moveq #15,d3", "and.l d3,d0", "moveq #0,d3", "rts"].join("\n"))).not.toContain(OP);
+      // A long immediate MOVEQ could have carried is the same story however it
+      // is spelled, since prefer-moveq will rewrite the load itself.
+      expect(ids(["move.l #20,d3", "add.l d3,d0", "moveq #0,d3", "rts"].join("\n"))).not.toContain(OP);
+      // Out of MOVEQ's reach, the immediate costs its extension word regardless,
+      // so folding drops a whole instruction.
+      expect(rep(["move.l #$12345,d3", "add.l d3,d0", "moveq #0,d3", "rts"], OP)).toBe("\tadd.l #$12345,d0");
     });
   });
 
