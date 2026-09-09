@@ -52,6 +52,7 @@ import { knownZeroClear } from "./optimization/known-zero-clear.js";
 import { moveImmediateViaScratch } from "./optimization/move-immediate-via-scratch.js";
 import { cmpZeroAddressViaScratch } from "./optimization/cmp-zero-address-via-scratch.js";
 import { combineConsecutiveAddq } from "./optimization/combine-consecutive-addq.js";
+import { combineConsecutiveShift } from "./optimization/combine-consecutive-shift.js";
 import {
   multiplyWordByZero,
   multiplySignedWordByOne,
@@ -216,6 +217,7 @@ export {
   moveImmediateViaScratch,
   cmpZeroAddressViaScratch,
   combineConsecutiveAddq,
+  combineConsecutiveShift,
   multiplyWordByZero,
   multiplySignedWordByOne,
   multiplyUnsignedWordByOne,
@@ -356,6 +358,7 @@ export const defaultRules: readonly Rule[] = [
   knownZeroClear,
   cmpZeroAddressViaScratch,
   combineConsecutiveAddq,
+  combineConsecutiveShift,
   moveImmediateViaScratch,
   redundantZeroDisplacement,
   addressAddToLea,

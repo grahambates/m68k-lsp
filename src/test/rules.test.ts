@@ -794,6 +794,51 @@ describe("v0.11 register-driven rules", () => {
     );
   });
 
+  describe("combine consecutive shifts", () => {
+    const ID = "optimization/combine-consecutive-shift";
+
+    test("combines two immediate shifts that still fit one instruction", () => {
+      const diagnostic = lint(["lsl.l #2,d2", "lsl.l #6,d2"].join("\n")).find((d) => d.ruleId === ID);
+      expect(diagnostic?.suggestion?.replacement).toBe("\tlsl.l #8,d2");
+      expect(diagnostic?.suggestion?.applicability).toBe("safe");
+
+      expect(
+        lint(["lsr.w #2,d0", "lsr.w #2,d0"].join("\n")).find((d) => d.ruleId === ID)?.suggestion?.replacement,
+      ).toBe("\tlsr.w #4,d0");
+    });
+
+    test("routes an over-8 total through MOVEQ plus a register-count shift on 68000", () => {
+      const source = ["lsl.w #8,d2", "lsl.w #4,d2", "move.l d1,d3", "rts"].join("\n");
+      const diagnostic = lint(source, { processors: ["mc68000"] }).find((d) => d.ruleId === ID);
+      expect(diagnostic?.suggestion?.replacement).toBe("\tmoveq #12,d3\n\tlsl.w d3,d2");
+    });
+
+    test("does not offer the over-8 fallback outside 68000", () => {
+      const source = ["lsl.w #8,d2", "lsl.w #4,d2", "move.l d1,d3", "rts"].join("\n");
+      expect(ids(source, { processors: ["mc68020"] })).not.toContain(ID);
+    });
+
+    test("does not combine shifts of different direction, size, or register", () => {
+      expect(ids(["lsl.w #2,d0", "lsr.w #2,d0"].join("\n"))).not.toContain(ID);
+      expect(ids(["lsl.w #2,d0", "lsl.l #2,d0"].join("\n"))).not.toContain(ID);
+      expect(ids(["lsl.w #2,d0", "lsl.w #2,d1"].join("\n"))).not.toContain(ID);
+    });
+
+    test("declines the over-8 fallback without a free scratch register", () => {
+      // Every data register is either the shift target or already in use, so
+      // there is nothing MOVEQ could safely carry the count in.
+      const source = [
+        "lsl.w #8,d0",
+        "lsl.w #4,d0",
+        "move.w d1,d2",
+        "move.w d3,d4",
+        "move.w d5,d6",
+        "move.w d7,d0",
+      ].join("\n");
+      expect(ids(source, { processors: ["mc68000"] })).not.toContain(ID);
+    });
+  });
+
   test("tracks constants through simple full-register arithmetic", () => {
     const source = ["moveq #4,d7", "sub.l #4,d7", "clr.l -(a0)", "rts"].join("\n");
     const ctx = fixtureContext(source);
