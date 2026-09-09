@@ -89,7 +89,7 @@ import { arithmeticImmediateViaScratch } from "./optimization/arithmetic-immedia
 import { deadRegisterWrite } from "./suspicious/dead-register-write.js";
 import { dataRegisterSignBitToTas } from "./optimization/data-register-sign-bit-to-tas.js";
 import { foldIndexIntoEffectiveAddress } from "./optimization/fold-index-into-effective-address.js";
-import { foldLoadIntoOperation, foldLoadIntoMove } from "./optimization/fold-load-into-operation.js";
+import { foldRedundantIntermediate } from "./optimization/fold-redundant-intermediate.js";
 import { cancelMultiplePredecrementMoves } from "./optimization/cancel-multiple-predecrement-moves.js";
 import { cancelStackPeaSequence } from "./optimization/cancel-stack-pea-sequence.js";
 import { multiplyLongByOne } from "./optimization/multiply-long-by-one.js";
@@ -176,8 +176,7 @@ export {
   deadRegisterWrite,
   dataRegisterSignBitToTas,
   foldIndexIntoEffectiveAddress,
-  foldLoadIntoOperation,
-  foldLoadIntoMove,
+  foldRedundantIntermediate,
   compareLongImmediateViaMoveq,
   destructiveSmallCompareBranch,
   jsrJmpDispatch,
@@ -421,8 +420,7 @@ export const defaultRules: readonly Rule[] = [
   deadRegisterWrite,
   dataRegisterSignBitToTas,
   foldIndexIntoEffectiveAddress,
-  foldLoadIntoOperation,
-  foldLoadIntoMove,
+  foldRedundantIntermediate,
   selfMove,
   suspiciousNop,
   staleConditionCode,

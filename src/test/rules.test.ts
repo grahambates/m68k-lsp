@@ -839,8 +839,8 @@ describe("v0.11 register-driven rules", () => {
     });
   });
 
-  describe("fold a load into the operation that consumes it", () => {
-    const ID = "optimization/fold-load-into-operation";
+  describe("fold an intermediate register that only carries a value onward", () => {
+    const ID = "optimization/fold-redundant-intermediate";
 
     test("folds a load whose scratch register dies at the operation", () => {
       const diagnostic = lint(["move.w x_speed,d1", "add.w d1,d0", "moveq #0,d1", "rts"].join("\n")).find(
@@ -883,13 +883,9 @@ describe("v0.11 register-driven rules", () => {
     });
 
     test("does not fold a byte-sized load into an address-register destination", () => {
-      // ADDA.B does not exist.
+      // ADDA.B/MOVEA.B do not exist.
       expect(ids(["move.b (a0),d1", "add.b d1,a1", "moveq #0,d1", "rts"].join("\n"))).not.toContain(ID);
     });
-  });
-
-  describe("fold a load and its store into one move", () => {
-    const ID = "optimization/fold-load-into-move";
 
     test("collapses a load/store pair into a memory-to-memory move", () => {
       const diagnostic = lint(["move.w (a1,d1.w),d3", "move.w d3,(a0)", "moveq #0,d3", "rts"].join("\n")).find(
@@ -916,9 +912,18 @@ describe("v0.11 register-driven rules", () => {
       expect(lint(live).find((d) => d.ruleId === ID)?.suggestion?.applicability).toBe("conditional");
     });
 
-    test("stays out of the arithmetic rule's way", () => {
-      expect(ids(["move.w (a0),d1", "move.w d1,d0", "moveq #0,d1", "rts"].join("\n"))).toContain(ID);
-      expect(ids(["move.w (a0),d1", "add.w d1,d0", "moveq #0,d1", "rts"].join("\n"))).not.toContain(ID);
+    test("reaches memory only through MOVE, which is the encoding that allows it", () => {
+      // A memory destination is reachable for a copy and not for arithmetic,
+      // because of how the 68k encodes each, not because of the shape matched.
+      expect(ids(["move.w (a0),d1", "move.w d1,(a1)", "moveq #0,d1", "rts"].join("\n"))).toContain(ID);
+      expect(ids(["move.w (a0),d1", "add.w d1,(a1)", "moveq #0,d1", "rts"].join("\n"))).not.toContain(ID);
+    });
+
+    test("reports each site once, whichever consumer it is", () => {
+      for (const consumer of ["add.w d1,d0", "move.w d1,(a1)", "cmp.w d1,d0"]) {
+        const hits = lint(["move.w (a0),d1", consumer, "moveq #0,d1", "rts"].join("\n")).filter((d) => d.ruleId === ID);
+        expect(hits).toHaveLength(1);
+      }
     });
   });
 
@@ -954,35 +959,31 @@ describe("v0.11 register-driven rules", () => {
   });
 
   describe("intermediate registers that carry a value nothing else needs", () => {
-    const OP = "optimization/fold-load-into-operation";
-    const MOVE = "optimization/fold-load-into-move";
-    const rep = (lines: string[], id: string) =>
-      lint(lines.join("\n")).find((d) => d.ruleId === id)?.suggestion?.replacement;
+    const ID = "optimization/fold-redundant-intermediate";
+    const rep = (lines: string[]) => lint(lines.join("\n")).find((d) => d.ruleId === ID)?.suggestion?.replacement;
 
     test("folds a register copy that only feeds the next instruction", () => {
-      expect(rep(["move.w d2,d1", "add.w d1,d0", "moveq #0,d1", "rts"], OP)).toBe("\tadd.w d2,d0");
-      expect(rep(["move.w d4,d6", "move.w d6,4(a3)", "moveq #0,d6", "rts"], MOVE)).toBe("\tmove.w d4,4(a3)");
-      expect(rep(["move.l a0,d0", "move.l d0,d1", "moveq #0,d0", "rts"], MOVE)).toBe("\tmove.l a0,d1");
+      expect(rep(["move.w d2,d1", "add.w d1,d0", "moveq #0,d1", "rts"])).toBe("\tadd.w d2,d0");
+      expect(rep(["move.w d4,d6", "move.w d6,4(a3)", "moveq #0,d6", "rts"])).toBe("\tmove.w d4,4(a3)");
+      expect(rep(["move.l a0,d0", "move.l d0,d1", "moveq #0,d0", "rts"])).toBe("\tmove.l a0,d1");
     });
 
     test("folds an immediate that pays for its own extension word either way", () => {
-      expect(rep(["move.w #$7fe,d3", "and.w d3,d0", "moveq #0,d3", "rts"], OP)).toBe("\tand.w #$7fe,d0");
-      expect(rep(["move.w #$7fff,d2", "move.w d2,$96(a6)", "moveq #0,d2", "rts"], MOVE)).toBe(
-        "\tmove.w #$7fff,$96(a6)",
-      );
+      expect(rep(["move.w #$7fe,d3", "and.w d3,d0", "moveq #0,d3", "rts"])).toBe("\tand.w #$7fe,d0");
+      expect(rep(["move.w #$7fff,d2", "move.w d2,$96(a6)", "moveq #0,d2", "rts"])).toBe("\tmove.w #$7fff,$96(a6)");
     });
 
     test("leaves the MOVEQ-via-scratch idiom alone, which is smaller than folding", () => {
       // move-immediate-via-scratch recommends exactly this shape; folding it
       // back measures 2 bytes and 4 cycles worse on 68000.
-      expect(ids(["moveq #-1,d0", "move.l d0,$44(a6)", "moveq #0,d0", "rts"].join("\n"))).not.toContain(MOVE);
-      expect(ids(["moveq #15,d3", "and.l d3,d0", "moveq #0,d3", "rts"].join("\n"))).not.toContain(OP);
+      expect(ids(["moveq #-1,d0", "move.l d0,$44(a6)", "moveq #0,d0", "rts"].join("\n"))).not.toContain(ID);
+      expect(ids(["moveq #15,d3", "and.l d3,d0", "moveq #0,d3", "rts"].join("\n"))).not.toContain(ID);
       // A long immediate MOVEQ could have carried is the same story however it
       // is spelled, since prefer-moveq will rewrite the load itself.
-      expect(ids(["move.l #20,d3", "add.l d3,d0", "moveq #0,d3", "rts"].join("\n"))).not.toContain(OP);
+      expect(ids(["move.l #20,d3", "add.l d3,d0", "moveq #0,d3", "rts"].join("\n"))).not.toContain(ID);
       // Out of MOVEQ's reach, the immediate costs its extension word regardless,
       // so folding drops a whole instruction.
-      expect(rep(["move.l #$12345,d3", "add.l d3,d0", "moveq #0,d3", "rts"], OP)).toBe("\tadd.l #$12345,d0");
+      expect(rep(["move.l #$12345,d3", "add.l d3,d0", "moveq #0,d3", "rts"])).toBe("\tadd.l #$12345,d0");
     });
   });
 
