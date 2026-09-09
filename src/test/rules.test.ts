@@ -839,6 +839,55 @@ describe("v0.11 register-driven rules", () => {
     });
   });
 
+  describe("fold a load into the operation that consumes it", () => {
+    const ID = "optimization/fold-load-into-operation";
+
+    test("folds a load whose scratch register dies at the operation", () => {
+      const diagnostic = lint(["move.w x_speed,d1", "add.w d1,d0", "moveq #0,d1", "rts"].join("\n")).find(
+        (d) => d.ruleId === ID,
+      );
+      expect(diagnostic?.suggestion?.replacement).toBe("\tadd.w x_speed,d0");
+      expect(diagnostic?.suggestion?.applicability).toBe("safe");
+    });
+
+    test("covers the addressing modes that read the same value either way", () => {
+      const rep = (first: string, second: string) =>
+        lint([first, second, "moveq #0,d1", "rts"].join("\n")).find((d) => d.ruleId === ID)?.suggestion?.replacement;
+      expect(rep("move.w 2(a3),d1", "cmp.w d1,d4")).toBe("\tcmp.w 2(a3),d4");
+      expect(rep("move.w (a1,d2.w),d1", "and.w d1,d5")).toBe("\tand.w (a1,d2.w),d5");
+      expect(rep("move.b (a0),d1", "sub.b d1,d3")).toBe("\tsub.b (a0),d3");
+      expect(rep("move.w table(pc),d1", "or.w d1,d5")).toBe("\tor.w table(pc),d5");
+    });
+
+    test("does not fold into EOR, which has no source-EA form", () => {
+      // The 68k only encodes EOR Dn,<ea>; `eor.w (a1),d3` is not an instruction.
+      expect(ids(["move.w (a1),d1", "eor.w d1,d3", "moveq #0,d1", "rts"].join("\n"))).not.toContain(ID);
+    });
+
+    test("keeps the load when the scratch register is still needed", () => {
+      expect(ids(["move.w x_speed,d1", "add.w d1,d0", "move.w d1,d5", "rts"].join("\n"))).not.toContain(ID);
+    });
+
+    test("does not fold when the operation writes a register the load addresses through", () => {
+      expect(ids(["move.w (a0),d1", "add.w d1,a0", "moveq #0,d1", "rts"].join("\n"))).not.toContain(ID);
+    });
+
+    test("requires the flags to be dead when folding into ADDA, which preserves CCR", () => {
+      // MOVE sets N/Z/V/C and ADDA leaves them alone, so the folded form drops
+      // flags the original pair left behind.
+      const live = ["move.w section,d1", "add.w d1,a0", "beq .x", ".x:", "moveq #0,d1", "rts"].join("\n");
+      expect(lint(live).find((d) => d.ruleId === ID)?.suggestion?.applicability).toBe("conditional");
+
+      const dead = ["move.w section,d1", "add.w d1,a0", "moveq #0,d1", "rts"].join("\n");
+      expect(lint(dead).find((d) => d.ruleId === ID)?.suggestion?.applicability).toBe("safe");
+    });
+
+    test("does not fold a byte-sized load into an address-register destination", () => {
+      // ADDA.B does not exist.
+      expect(ids(["move.b (a0),d1", "add.b d1,a1", "moveq #0,d1", "rts"].join("\n"))).not.toContain(ID);
+    });
+  });
+
   test("tracks constants through simple full-register arithmetic", () => {
     const source = ["moveq #4,d7", "sub.l #4,d7", "clr.l -(a0)", "rts"].join("\n");
     const ctx = fixtureContext(source);
