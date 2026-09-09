@@ -327,12 +327,22 @@ export function analyzeRegisters(
       // the register. Dividing after writing only the low word is the classic
       // way to get a wrong answer, and modelling the read as 16 bits hid it.
       const longDividend = mnemonic === "divu" || mnemonic === "divs";
+      // EXT and EXTB read a narrower operand than their suffix names: the
+      // suffix is the width of the *result*. EXT.W reads the low byte and
+      // writes the low word, EXT.L reads the low word, EXTB.L reads the low
+      // byte. Modelling the read at the result's width made the bits the
+      // instruction is about to overwrite look observed, which reported the
+      // ordinary `move.b (a0)+,d0 / ext.w d0` sign-extension as a partial
+      // write whose preserved bits are used.
+      const extendedSourceMask =
+        mnemonic === "extb" ? 0xff : mnemonic === "ext" ? (size === "l" ? 0xffff : 0xff) : undefined;
       let readMask = 0;
       let saw = false;
       for (const [position, op] of (line.operands ?? []).entries()) {
         if (op.type === "data-register" && normalizeRegister(op.register) === target) {
           saw = true;
           if (longDividend && position === 1) readMask = 0xffffffff;
+          else if (extendedSourceMask !== undefined) readMask |= extendedSourceMask;
           else if (size === "b") readMask |= 0xff;
           else if (size === "w") readMask |= 0xffff;
           else if (size === "l") readMask = 0xffffffff;

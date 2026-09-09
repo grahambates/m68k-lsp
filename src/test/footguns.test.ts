@@ -107,4 +107,35 @@ describe("correctness and suspicious footgun rules", () => {
     const source = ["Routine:", "    move.b (a2),d2", "    move.l d2,d3", "    rts"].join("\n");
     expect(ids(source)).toContain("suspicious/partial-register-write");
   });
+
+  // EXT and EXTB name the width of their *result*, not of what they read:
+  // EXT.W reads the low byte, EXT.L the low word, EXTB.L the low byte. Reading
+  // them at the result width made the bits they are about to overwrite look
+  // observed, which reported the ordinary sign-extension idiom as a footgun.
+  test("does not flag a sign-extension that defines every bit later read", () => {
+    const widened = [
+      "Routine:",
+      "    move.b (a0),d0",
+      "    ext.w d0",
+      "    muls.w #40,d0",
+      "    move.w d0,(a1)",
+      "    rts",
+    ];
+    expect(ids(widened.join("\n"))).not.toContain("suspicious/partial-register-write");
+
+    for (const extend of ["extb.l d0", "ext.l d0"]) {
+      const load = extend === "ext.l d0" ? "move.w (a0),d0" : "move.b (a0),d0";
+      const source = ["Routine:", `    ${load}`, `    ${extend}`, "    move.l d0,d1", "    rts"].join("\n");
+      expect([extend, ids(source).includes("suspicious/partial-register-write")]).toEqual([extend, false]);
+    }
+  });
+
+  test("still flags bits the extension does not reach", () => {
+    // EXT.W defines bits 8-15 and no further, so reading the register as a
+    // long afterwards still observes whatever bits 16-31 held on entry. This
+    // is the footgun, not a false positive: the fix narrows what EXT is taken
+    // to read, it does not excuse the register.
+    const source = ["Routine:", "    move.b (a0),d0", "    ext.w d0", "    move.l d0,d1", "    rts"].join("\n");
+    expect(ids(source)).toContain("suspicious/partial-register-write");
+  });
 });
