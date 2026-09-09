@@ -85,6 +85,7 @@ export const ruleImpactAuditCases: readonly RuleImpactAuditCase[] = [
   },
   { ruleId: "optimization/combine-consecutive-shift", source: "lsl.w #2,d0\nlsl.w #6,d0" },
   { ruleId: "optimization/fold-load-into-operation", source: "move.w (a0),d1\nadd.w d1,d0\nmoveq #0,d1" },
+  { ruleId: "optimization/fold-load-into-move", source: "move.w (a0),d1\nmove.w d1,(a1)\nmoveq #0,d1" },
   { ruleId: "optimization/multiply-word-by-zero", source: "mulu.w #0,d0\nmoveq #0,d7" },
   { ruleId: "optimization/muls-word-by-one", source: "muls.w #1,d0\nmoveq #0,d7" },
   { ruleId: "optimization/mulu-word-by-one", source: "mulu.w #1,d0\nmoveq #0,d7" },

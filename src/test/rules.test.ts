@@ -888,6 +888,39 @@ describe("v0.11 register-driven rules", () => {
     });
   });
 
+  describe("fold a load and its store into one move", () => {
+    const ID = "optimization/fold-load-into-move";
+
+    test("collapses a load/store pair into a memory-to-memory move", () => {
+      const diagnostic = lint(["move.w (a1,d1.w),d3", "move.w d3,(a0)", "moveq #0,d3", "rts"].join("\n")).find(
+        (d) => d.ruleId === ID,
+      );
+      expect(diagnostic?.suggestion?.replacement).toBe("\tmove.w (a1,d1.w),(a0)");
+      expect(diagnostic?.suggestion?.applicability).toBe("safe");
+
+      expect(
+        lint(["move.l planes+4,d1", "move.l d1,planes+0", "moveq #0,d1", "rts"].join("\n")).find((d) => d.ruleId === ID)
+          ?.suggestion?.replacement,
+      ).toBe("\tmove.l planes+4,planes+0");
+    });
+
+    test("does not fold when the store addresses through the scratch register", () => {
+      // The store currently reads the freshly loaded value to form its address;
+      // folded, it would index with whatever the register held before.
+      expect(ids(["move.w (a1),d3", "move.w d3,(a0,d3.w)", "moveq #0,d3", "rts"].join("\n"))).not.toContain(ID);
+    });
+
+    test("requires flags to be dead when the destination is an address register", () => {
+      // MOVEA does not set condition codes, so folding drops the MOVE's.
+      const live = ["move.w (a1),d3", "move.w d3,a2", "beq .x", ".x:", "moveq #0,d3", "rts"].join("\n");
+      expect(lint(live).find((d) => d.ruleId === ID)?.suggestion?.applicability).toBe("conditional");
+    });
+
+    test("stays out of the arithmetic rule's way", () => {
+      expect(ids(["move.w (a0),d1", "add.w d1,d0", "moveq #0,d1", "rts"].join("\n"))).not.toContain(ID);
+    });
+  });
+
   test("tracks constants through simple full-register arithmetic", () => {
     const source = ["moveq #4,d7", "sub.l #4,d7", "clr.l -(a0)", "rts"].join("\n");
     const ctx = fixtureContext(source);
