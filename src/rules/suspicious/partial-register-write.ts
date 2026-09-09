@@ -31,41 +31,41 @@ function enclosingBlock(ctx: RuleContext, index: number): { start: number; end: 
 }
 
 /**
- * Whether the routine writes the whole register anywhere.
+ * Which bits of the register the routine puts a value into.
  *
- * Putting a long into the register somewhere in the routine -- a MOVE.L, a
- * CLR.L, a MOVEQ -- means the author has decided what the upper half holds,
- * whatever it is, and a later narrow write over part of it is construction
- * rather than an oversight.
+ * The question this rule is really asking is not whether some single
+ * instruction writes the register whole, but whether the preserved bits hold
+ * something the author put there. Building a long out of several narrow writes
+ * is ordinary: `move.w d3,d4` then `move.b d2,d4` defines the whole low word
+ * between them, and the byte write preserving bits 8-15 is the point of it.
+ * Only bits that nothing in the routine ever writes are effectively undefined,
+ * and those are what is worth reporting.
  *
- * It has to be a write that does not also read. DIVU takes a 32-bit dividend
+ * A write only counts if it does not also read. DIVU takes a 32-bit dividend
  * and writes a 32-bit result, so it both consumes the upper half and replaces
  * it; counting that as establishing the register excused the exact bug this
  * rule exists to catch, a divide after only the low word was set.
  *
- * SWAP counts, though it reads what it writes. It is how the upper half is
- * addressed at all, so a routine containing one is working both halves on
- * purpose: `move.w` / `swap` / `move.w` defines all 32 bits, the unknown half
- * having been rotated down and overwritten. Seeing that from the second write
- * would need a backward bit analysis; the presence of the SWAP is the same
- * answer for far less.
+ * SWAP counts for everything, though it reads what it writes. It is how the
+ * upper half is addressed at all, so a routine containing one is working both
+ * halves on purpose: `move.w` / `swap` / `move.w` defines all 32 bits, the
+ * unknown half having been rotated down and overwritten.
  */
-function establishesWholeRegisterInBlock(
-  ctx: RuleContext,
-  register: Register,
-  block: { start: number; end: number },
-): boolean {
+function establishedBitsInBlock(ctx: RuleContext, register: Register, block: { start: number; end: number }): number {
+  let established = 0;
   for (let i = block.start; i < block.end; i++) {
     const line = ctx.line(i);
     if (!line || line.mnemonic?.type !== "instruction") continue;
     if (semanticMnemonic(line) === "swap" && dataRegisterOperand(line, 0)?.register.toLowerCase() === register) {
-      return true;
+      return 0xffffffff;
     }
     const semantics = getRegisterSemantics(line);
-    if (semantics.reads.has(register)) continue;
-    if (semantics.writes.has(register) && !semantics.partialWrites.has(register)) return true;
+    if (semantics.reads.has(register) || !semantics.writes.has(register)) continue;
+    if (!semantics.partialWrites.has(register)) return 0xffffffff;
+    const size = instructionSize(line);
+    established |= size === "b" ? 0xff : size === "w" ? 0xffff : 0;
   }
-  return false;
+  return established >>> 0;
 }
 
 export const partialRegisterWrite: Rule = {
@@ -87,10 +87,6 @@ export const partialRegisterWrite: Rule = {
     const destination = dataRegisterOperand(line, 1);
     if (!destination) return;
 
-    const upperMask = size === "b" ? 0xffffff00 : 0xffff0000;
-    const use = ctx.registers.registerBitsUseAfter(index, destination.register, upperMask);
-    if (use !== "used") return;
-
     // Seeding the register with a known value and then writing part of it is
     // the ordinary way to zero- or sign-extend a narrow load:
     //
@@ -102,14 +98,20 @@ export const partialRegisterWrite: Rule = {
     // instruction, and CLR works as well as MOVEQ.
     if (ctx.registers.knownConstantBefore(index, destination.register) !== undefined) return;
 
-    // Writing the halves separately is a common way to build a long, and every
-    // write in that pattern is partial. The question is whether the routine
-    // puts a whole value into the register anywhere, which settles what the
-    // upper half holds.
+    // Narrow the question to the bits nothing in the routine ever writes.
+    // Populating a register across several narrow writes is construction, so
+    // only what is left effectively undefined is worth asking about.
     const register = destination.register.toLowerCase() as Register;
-    if (establishesWholeRegisterInBlock(ctx, register, enclosingBlock(ctx, index))) return;
+    const established = establishedBitsInBlock(ctx, register, enclosingBlock(ctx, index));
+    const upperMask = size === "b" ? 0xffffff00 : 0xffff0000;
+    const undefinedBits = (upperMask & ~established) >>> 0;
+    if (undefinedBits === 0) return;
 
-    const preserved = size === "b" ? "upper 24 bits" : "upper 16 bits";
+    const use = ctx.registers.registerBitsUseAfter(index, destination.register, undefinedBits);
+    if (use !== "used") return;
+
+    const preserved =
+      undefinedBits === 0xffffff00 ? "upper 24 bits" : undefinedBits === 0xffff0000 ? "upper 16 bits" : "upper bits";
     ctx.report({
       ruleId: this.meta.id,
       category: this.meta.category,

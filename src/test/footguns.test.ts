@@ -103,6 +103,46 @@ describe("correctness and suspicious footgun rules", () => {
     expect(ids(source)).not.toContain("suspicious/partial-register-write");
   });
 
+  // What matters is whether the bits hold something the author put there, not
+  // whether one instruction wrote the register whole. Populating it across
+  // several narrow writes is construction, and the preserved bits are the point.
+  test("narrow writes that between them define the bits later read are allowed", () => {
+    const composed = [
+      "Routine:",
+      "    move.w d3,d4",
+      "    move.b d2,d4",
+      "    and.w d6,d4",
+      "    move.w d4,(a3)",
+      "    rts",
+    ];
+    expect(ids(composed.join("\n"))).not.toContain("suspicious/partial-register-write");
+
+    // The low byte and high byte used as two independent accumulators, which
+    // is why the byte write preserves bits 8-15 on purpose.
+    const accumulators = [
+      "Routine:",
+      "    move.w -$e(a4),d0",
+      "    add.w -$5e(a6),d0",
+      "    move.b -$e(a1),d0",
+      "    add.b -$5e(a3),d0",
+      "    add.w d7,d0",
+      "    move.w d0,(a1)",
+      "    rts",
+    ];
+    expect(ids(accumulators.join("\n"))).not.toContain("suspicious/partial-register-write");
+  });
+
+  test("still flags a read that reaches past what the narrow writes define", () => {
+    // The pair defines the low word between them, but nothing defines bits
+    // 16-31, and this reads the register as a long.
+    const source = ["Routine:", "    move.w d3,d4", "    move.b d2,d4", "    move.l d4,(a3)", "    rts"].join("\n");
+    expect(ids(source)).toContain("suspicious/partial-register-write");
+
+    // The shape this rule is really for: a word write feeding long arithmetic.
+    const widened = ["Routine:", "    move.w d0,d1", "    add.l FaceMaskBuffer,d1", "    rts"].join("\n");
+    expect(ids(widened)).toContain("suspicious/partial-register-write");
+  });
+
   test("still flags bits nothing in the routine ever writes", () => {
     const source = ["Routine:", "    move.b (a2),d2", "    move.l d2,d3", "    rts"].join("\n");
     expect(ids(source)).toContain("suspicious/partial-register-write");
