@@ -33,7 +33,7 @@ interface RegisterUsageResult {
     read: boolean;
     written: boolean;
     input?: boolean;
-    available?: boolean;
+    availability?: "available" | "unavailable" | "unknown";
   }>;
 }
 

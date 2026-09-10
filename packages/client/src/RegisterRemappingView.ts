@@ -6,7 +6,7 @@ export interface RegisterViewUsage {
   read: boolean;
   written: boolean;
   input?: boolean;
-  available?: boolean;
+  availability?: "available" | "unavailable" | "unknown";
 }
 
 export interface RegisterRemappingModel {
@@ -202,7 +202,8 @@ function webviewHtml(webview: Webview): string {
       const access = usage.read && usage.written ? 'read/write' : usage.read ? 'read' : usage.written ? 'write' : 'unknown';
       const parts = [access];
       if (usage.input) parts.push('input');
-      if (usage.available) parts.push('available');
+      if (usage.availability === 'available') parts.push('available');
+      if (usage.availability === 'unknown') parts.push('availability unknown');
       return parts.join(', ');
     }
 

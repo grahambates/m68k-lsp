@@ -102,6 +102,7 @@ const conditionalBranches = new Set([
 ]);
 
 export type RegisterAccess = "read" | "write" | "readwrite" | "unknown";
+export type RegisterAvailability = "available" | "unavailable" | "unknown";
 
 export interface RegisterUsageReference {
   range: lsp.Range;
@@ -117,7 +118,7 @@ export interface RegisterUsage {
   read: boolean;
   written: boolean;
   input?: boolean;
-  available?: boolean;
+  availability?: RegisterAvailability;
 }
 
 export interface RegisterUsageResult {
@@ -356,7 +357,7 @@ export default class DocumentHighlightProvider implements Provider {
       );
     }
 
-    const reachable = params.position
+    const reachability = params.position
       ? reachableLinesAfterPosition(
           document.parsed.lines,
           params.range,
@@ -367,10 +368,14 @@ export default class DocumentHighlightProvider implements Provider {
       documentVersion: document.document.version,
       registers: Array.from(usages, ([name, references]) => {
         const usage = summariseUsage(name, references);
-        if (reachable) {
-          usage.available = !references.some((reference) =>
-            reachable.has(reference.range.start.line),
-          );
+        if (reachability) {
+          usage.availability = references.some((reference) =>
+            reachability.lines.has(reference.range.start.line),
+          )
+            ? "unavailable"
+            : reachability.unknown
+              ? "unknown"
+              : "available";
         }
         return usage;
       }),
@@ -601,15 +606,16 @@ function reachableLinesAfterPosition(
   lines: ParsedLine[],
   scope: lsp.Range,
   position: lsp.Position,
-): Set<number> {
+): { lines: Set<number>; unknown: boolean } {
   const startLine = Math.max(scope.start.line, position.line + 1);
   const endLine = Math.min(scope.end.line, lines.length - 1);
   if (startLine > endLine) {
-    return new Set();
+    return { lines: new Set(), unknown: false };
   }
 
   const labels = collectControlFlowLabels(lines, scope.start.line, endLine);
   const reachable = new Set<number>();
+  let unknown = false;
   const pending = [startLine];
   while (pending.length) {
     const lineIndex = pending.pop()!;
@@ -626,6 +632,9 @@ function reachableLinesAfterPosition(
       line.mnemonic?.type === "instruction"
         ? line.mnemonic.instruction.toLowerCase()
         : undefined;
+    if (mnemonic === "bsr" || mnemonic === "jsr") {
+      unknown = true;
+    }
     if (!mnemonic || !routineReturns.has(mnemonic)) {
       if (mnemonic && isBranchMnemonic(mnemonic)) {
         const target = branchTarget(line);
@@ -634,12 +643,15 @@ function reachableLinesAfterPosition(
             ? undefined
             : labels.get(labelKey(target, labels.globalAt[lineIndex]));
         if (targetLine === undefined) {
-          return new Set(
-            Array.from(
-              { length: endLine - scope.start.line + 1 },
-              (_, offset) => scope.start.line + offset,
+          return {
+            lines: new Set(
+              Array.from(
+                { length: endLine - scope.start.line + 1 },
+                (_, offset) => scope.start.line + offset,
+              ),
             ),
-          );
+            unknown: false,
+          };
         }
         pending.push(targetLine);
       }
@@ -648,7 +660,7 @@ function reachableLinesAfterPosition(
       }
     }
   }
-  return reachable;
+  return { lines: reachable, unknown };
 }
 
 interface ControlFlowLabels extends Map<string, number> {
