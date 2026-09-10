@@ -334,6 +334,9 @@ export default class DocumentHighlightProvider implements Provider {
       const arguments_ = (line.operands ?? []).map((operand) => ({
         text: lineText.slice(operand.loc.start, operand.loc.end),
         sourceRange: locationAsRange(operand.loc),
+        literalRegister: !!canonicalGeneralPurposeRegister(
+          lineText.slice(operand.loc.start, operand.loc.end),
+        ),
       }));
       expandMacro(
         definition,
@@ -435,7 +438,10 @@ export default class DocumentHighlightProvider implements Provider {
         ),
       );
     });
-    return { documentVersion: document.document.version, edits };
+    return {
+      documentVersion: document.document.version,
+      edits: uniqueEdits(edits),
+    };
   }
 
   onRegisterRemap(
@@ -503,7 +509,10 @@ export default class DocumentHighlightProvider implements Provider {
         ),
       ),
     ).flat();
-    return { documentVersion: document.document.version, edits };
+    return {
+      documentVersion: document.document.version,
+      edits: uniqueEdits(edits),
+    };
   }
 
   onRoutineRange(params: RoutineRangeParams): RoutineRangeResult | undefined {
@@ -790,6 +799,7 @@ function addReference(
 }
 
 interface MacroArgument {
+  literalRegister?: boolean;
   text: string;
   sourceRange?: lsp.Range;
 }
@@ -801,6 +811,7 @@ interface MacroInvocation {
 }
 
 interface ExpansionSpan {
+  literalRegister?: boolean;
   start: number;
   end: number;
   sourceRange: lsp.Range;
@@ -886,6 +897,7 @@ function expandMacro(
       if (nested) {
         const nestedArguments = (line.operands ?? []).map((operand) => ({
           text: expanded.text.slice(operand.loc.start, operand.loc.end),
+          literalRegister: !!literalRegisterSpan(operand.loc, expanded.spans),
           sourceRange:
             sourceRangeForLocation(operand.loc, expanded.spans) ?? callRange,
         }));
@@ -939,6 +951,7 @@ function substituteMacroParameters(
         start: replacementStart,
         end: output.length,
         sourceRange: substitution.sourceRange,
+        literalRegister: substitution.literalRegister,
       });
     }
     cursor = start + match[0].length;
@@ -1009,7 +1022,9 @@ function addExpandedRegisters(
       addReference(usages, register, {
         range: sourceRangeForLocation(node.loc, expanded.spans) ?? callRange,
         spelling: expanded.text.slice(node.loc.start, node.loc.end),
-        kind: "macro-expansion",
+        kind: literalRegisterSpan(node.loc, expanded.spans)
+          ? "explicit"
+          : "macro-expansion",
         access: registerAccess(node, line),
       });
       continue;
@@ -1034,6 +1049,26 @@ function addExpandedRegisters(
       }
     }
   }
+}
+
+// Only a whole, unchanged register argument can safely be edited at its source.
+// Overlapping spans still provide useful navigation for constructed registers.
+function literalRegisterSpan(
+  location: AstNode["loc"],
+  spans: ExpansionSpan[],
+): ExpansionSpan | undefined {
+  return spans.find(
+    (span) =>
+      span.literalRegister &&
+      span.start === location.start &&
+      span.end === location.end,
+  );
+}
+
+function uniqueEdits(edits: lsp.TextEdit[]): lsp.TextEdit[] {
+  return Array.from(
+    new Map(edits.map((edit) => [JSON.stringify(edit), edit])).values(),
+  );
 }
 
 function sourceRangeForLocation(

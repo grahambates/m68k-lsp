@@ -654,7 +654,7 @@ Outer macro
         {
           range: range(3, 6, 3, 8),
           spelling: "d5",
-          kind: "macro-expansion",
+          kind: "explicit",
           access: "read",
         },
       ]);
@@ -1150,6 +1150,101 @@ Second:
           { range: range(1, 8, 1, 10), newText: "d1" },
         ],
       });
+    });
+
+    it("remaps literal macro arguments once, preserving case and aliases", async () => {
+      const textDocument = await createDoc(
+        "literal-remap.s",
+        `Use macro
+ move.l \\1,\\2
+ add.l \\1,\\2
+ endm
+ Use D0,sp
+`,
+      );
+      expect(
+        provider.onRegisterRemap({
+          textDocument,
+          documentVersion: 0,
+          range: range(4, 0, 5, 0),
+          mappings: { d0: "d2", a7: "a3" },
+        }),
+      ).toEqual({
+        documentVersion: 0,
+        edits: [
+          { range: range(4, 5, 4, 7), newText: "D2" },
+          { range: range(4, 8, 4, 10), newText: "a3" },
+        ],
+      });
+    });
+
+    it("remaps literal arguments forwarded through nested macros", async () => {
+      const textDocument = await createDoc(
+        "nested-literal-remap.s",
+        `Inner macro
+ move.l \\1,d7
+ endm
+Outer macro
+ Inner \\1
+ endm
+ Outer d0
+`,
+      );
+      expect(
+        provider.onRegisterRemap({
+          textDocument,
+          documentVersion: 0,
+          range: range(6, 0, 7, 0),
+          mappings: { d0: "d2" },
+        }),
+      ).toEqual({
+        documentVersion: 0,
+        edits: [{ range: range(6, 7, 6, 9), newText: "d2" }],
+      });
+    });
+
+    it.each(["d0", "\\1/d1"])(
+      "rejects unsafe nested arguments: %s",
+      async (argument) => {
+        const textDocument = await createDoc(
+          "unsafe-nested-remap.s",
+          `Inner macro
+ movem.l \\1,-(sp)
+ endm
+Outer macro
+ Inner ${argument}
+ endm
+ Outer d0
+`,
+        );
+        expect(
+          provider.onRegisterRemap({
+            textDocument,
+            documentVersion: 0,
+            range: range(6, 0, 7, 0),
+            mappings: { d0: "d2", d1: "d3" },
+          }),
+        ).toMatchObject({ edits: [], error: "unsupported-reference" });
+      },
+    );
+
+    it("returns no partial edits when a register is also fixed in the macro body", async () => {
+      const textDocument = await createDoc(
+        "mixed-remap.s",
+        `Use macro
+ move.l \\1,d0
+ endm
+ Use d0
+`,
+      );
+      expect(
+        provider.onRegisterRemap({
+          textDocument,
+          documentVersion: 0,
+          range: range(3, 0, 4, 0),
+          mappings: { d0: "d2" },
+        }),
+      ).toMatchObject({ edits: [], error: "unsupported-reference" });
     });
 
     it("rejects unsupported mapped references", async () => {
