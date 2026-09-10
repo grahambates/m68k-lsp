@@ -49,8 +49,21 @@
       {
         "command": "m68k.toggleRegisterColours",
         "title": "M68k: Toggle Register Colours"
+      },
+      {
+        "command": "m68k.listRegistersInSelection",
+        "title": "M68k: List Used/Unused Registers"
       }
     ],
+    "menus": {
+      "editor/context": [
+        {
+          "command": "m68k.listRegistersInSelection",
+          "when": "editorHasSelection && (editorLangId == m68k || editorLangId == vasmmot)",
+          "group": "navigation"
+        }
+      ]
+    },
     "snippets": [
       {
         "language": "m68k",

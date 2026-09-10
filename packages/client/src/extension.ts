@@ -2,6 +2,8 @@ import * as path from "path";
 import {
   DecorationRangeBehavior,
   ExtensionContext,
+  QuickPickItem,
+  QuickPickItemKind,
   Range,
   TextEditor,
   commands,
@@ -17,6 +19,25 @@ import {
 } from "vscode-languageclient/node";
 
 let client: LanguageClient;
+
+const generalPurposeRegisters = [
+  "d0",
+  "d1",
+  "d2",
+  "d3",
+  "d4",
+  "d5",
+  "d6",
+  "d7",
+  "a0",
+  "a1",
+  "a2",
+  "a3",
+  "a4",
+  "a5",
+  "a6",
+  "a7",
+];
 
 const registerColours = new Map([
   ["d0", "#e06c75"],
@@ -105,6 +126,56 @@ export function activate(context: ExtensionContext): void {
     }
   };
 
+  const listRegistersInSelection = async () => {
+    const editor = window.activeTextEditor;
+    if (!editor || !["m68k", "vasmmot"].includes(editor.document.languageId)) {
+      void window.showWarningMessage("Open an M68k assembly file first.");
+      return;
+    }
+    if (editor.selection.isEmpty) {
+      void window.showWarningMessage("Select a range to inspect first.");
+      return;
+    }
+
+    const ranges = await client.sendRequest<Record<string, Range[]>>(
+      "m68k/registerRanges",
+      { uri: editor.document.uri.toString() },
+    );
+    const used = new Set<string>();
+    for (const [name, occurrences] of Object.entries(ranges)) {
+      const register = name === "sp" ? "a7" : name;
+      if (
+        generalPurposeRegisters.includes(register) &&
+        occurrences.some((range) => rangesOverlap(editor.selection, range))
+      ) {
+        used.add(register);
+      }
+    }
+
+    const usedRegisters = generalPurposeRegisters.filter((register) =>
+      used.has(register),
+    );
+    const unusedRegisters = generalPurposeRegisters.filter(
+      (register) => !used.has(register),
+    );
+    const items: QuickPickItem[] = [
+      {
+        label: `Used (${usedRegisters.length})`,
+        kind: QuickPickItemKind.Separator,
+      },
+      ...usedRegisters.map(registerItem),
+      {
+        label: `Unused (${unusedRegisters.length})`,
+        kind: QuickPickItemKind.Separator,
+      },
+      ...unusedRegisters.map(registerItem),
+    ];
+    await window.showQuickPick(items, {
+      title: "M68k Registers in Selection",
+      placeHolder: `${usedRegisters.length} used, ${unusedRegisters.length} unused`,
+    });
+  };
+
   context.subscriptions.push(
     ...decorations.values(),
     window.onDidChangeActiveTextEditor(refresh),
@@ -130,6 +201,10 @@ export function activate(context: ExtensionContext): void {
       enabled = !enabled;
       refresh();
     }),
+    commands.registerCommand(
+      "m68k.listRegistersInSelection",
+      listRegistersInSelection,
+    ),
   );
 
   // The server bundle is copied next to the extension at build time, so the
@@ -180,4 +255,22 @@ export function deactivate(): Thenable<void> | undefined {
     return undefined;
   }
   return client.stop();
+}
+
+function registerItem(register: string): QuickPickItem {
+  return { label: register.toUpperCase() };
+}
+
+function rangesOverlap(left: Range, right: Range): boolean {
+  return (
+    comparePositions(left.start, right.end) < 0 &&
+    comparePositions(right.start, left.end) < 0
+  );
+}
+
+function comparePositions(
+  left: { line: number; character: number },
+  right: { line: number; character: number },
+): number {
+  return left.line - right.line || left.character - right.character;
 }
