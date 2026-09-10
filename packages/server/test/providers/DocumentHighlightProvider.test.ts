@@ -41,6 +41,10 @@ describe("DocumentHighlightProvider", () => {
         "m68k/registerUsage",
         expect.any(Function),
       );
+      expect(conn.onRequest).toHaveBeenCalledWith(
+        "m68k/registerSwap",
+        expect.any(Function),
+      );
       expect(capabilities).toHaveProperty("documentHighlightProvider");
     });
   });
@@ -543,6 +547,142 @@ Select macro
           range: range(0, 0, 1, 0),
         }),
       ).toBeUndefined();
+    });
+  });
+
+  describe("#onRegisterSwap()", () => {
+    it("plans both directions atomically and preserves token case", async () => {
+      const textDocument = await createDoc(
+        "swap.s",
+        ` move.w D0,d1
+ add.w d1,D0
+`,
+      );
+
+      const result = provider.onRegisterSwap({
+        textDocument,
+        documentVersion: 0,
+        range: range(0, 0, 2, 0),
+        registers: ["d0", "d1"],
+      });
+
+      expect(result).toEqual({
+        documentVersion: 0,
+        edits: [
+          { range: range(0, 8, 0, 10), newText: "D1" },
+          { range: range(1, 10, 1, 12), newText: "D1" },
+          { range: range(0, 11, 0, 13), newText: "d0" },
+          { range: range(1, 7, 1, 9), newText: "d0" },
+        ],
+      });
+    });
+
+    it("treats SP as A7 when swapping address registers", async () => {
+      const textDocument = await createDoc("swap-sp.s", " move SP,a0\n");
+
+      const result = provider.onRegisterSwap({
+        textDocument,
+        documentVersion: 0,
+        range: range(0, 0, 1, 0),
+        registers: ["a7", "a0"],
+      });
+
+      expect(result?.edits).toEqual([
+        { range: range(0, 6, 0, 8), newText: "A0" },
+        { range: range(0, 9, 0, 11), newText: "a7" },
+      ]);
+    });
+
+    it("allows an unused destination register", async () => {
+      const textDocument = await createDoc(
+        "unused-swap.s",
+        " move d0,d1\n add d0,d1\n",
+      );
+
+      const result = provider.onRegisterSwap({
+        textDocument,
+        documentVersion: 0,
+        range: range(0, 0, 2, 0),
+        registers: ["d0", "d2"],
+      });
+
+      expect(result).toEqual({
+        documentVersion: 0,
+        edits: [
+          { range: range(0, 6, 0, 8), newText: "d2" },
+          { range: range(1, 5, 1, 7), newText: "d2" },
+        ],
+      });
+    });
+
+    it("rejects stale document versions", async () => {
+      const textDocument = await createDoc("stale-swap.s", " move d0,d1\n");
+
+      expect(
+        provider.onRegisterSwap({
+          textDocument,
+          documentVersion: 1,
+          range: range(0, 0, 1, 0),
+          registers: ["d0", "d1"],
+        }),
+      ).toMatchObject({ edits: [], error: "stale-document" });
+    });
+
+    it("rejects identical or invalid registers", async () => {
+      const textDocument = await createDoc("invalid-swap.s", " move d0,d1\n");
+
+      expect(
+        provider.onRegisterSwap({
+          textDocument,
+          documentVersion: 0,
+          range: range(0, 0, 1, 0),
+          registers: ["d0", "d0"],
+        }),
+      ).toMatchObject({ edits: [], error: "invalid-registers" });
+    });
+
+    it("returns no partial edits for register lists", async () => {
+      const textDocument = await createDoc(
+        "list-swap.s",
+        " movem.l d0-d1,-(sp)\n",
+      );
+
+      const result = provider.onRegisterSwap({
+        textDocument,
+        documentVersion: 0,
+        range: range(0, 0, 1, 0),
+        registers: ["d0", "d1"],
+      });
+
+      expect(result).toMatchObject({
+        edits: [],
+        error: "unsupported-reference",
+      });
+      expect(result?.unsupported).toHaveLength(2);
+    });
+
+    it("returns no partial edits for macro-generated references", async () => {
+      const textDocument = await createDoc(
+        "macro-swap.s",
+        `Copy macro
+ move.w d\\1,d0
+ endm
+ Copy 1
+`,
+      );
+
+      const result = provider.onRegisterSwap({
+        textDocument,
+        documentVersion: 0,
+        range: range(3, 0, 4, 0),
+        registers: ["d0", "d1"],
+      });
+
+      expect(result).toMatchObject({
+        edits: [],
+        error: "unsupported-reference",
+      });
+      expect(result?.unsupported).toHaveLength(2);
     });
   });
 });

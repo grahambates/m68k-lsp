@@ -53,12 +53,21 @@
       {
         "command": "m68k.listRegistersInSelection",
         "title": "M68k: List Used/Unused Registers"
+      },
+      {
+        "command": "m68k.swapRegistersInSelection",
+        "title": "M68k: Swap Registers in Selection"
       }
     ],
     "menus": {
       "editor/context": [
         {
           "command": "m68k.listRegistersInSelection",
+          "when": "editorHasSelection && (editorLangId == m68k || editorLangId == vasmmot)",
+          "group": "navigation"
+        },
+        {
+          "command": "m68k.swapRegistersInSelection",
           "when": "editorHasSelection && (editorLangId == m68k || editorLangId == vasmmot)",
           "group": "navigation"
         }

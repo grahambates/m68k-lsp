@@ -102,6 +102,21 @@ export interface RegisterUsageParams {
   range: lsp.Range;
 }
 
+export interface RegisterSwapParams extends RegisterUsageParams {
+  documentVersion: number;
+  registers: [string, string];
+}
+
+export type RegisterSwapError =
+  "invalid-registers" | "stale-document" | "unsupported-reference";
+
+export interface RegisterSwapResult {
+  documentVersion: number;
+  edits: lsp.TextEdit[];
+  error?: RegisterSwapError;
+  unsupported?: RegisterUsageReference[];
+}
+
 export default class DocumentHighlightProvider implements Provider {
   constructor(protected readonly ctx: Context) {}
 
@@ -171,6 +186,7 @@ export default class DocumentHighlightProvider implements Provider {
       this.registerRanges(uri),
     );
     connection.onRequest("m68k/registerUsage", this.onRegisterUsage.bind(this));
+    connection.onRequest("m68k/registerSwap", this.onRegisterSwap.bind(this));
     return {
       documentHighlightProvider: true,
     };
@@ -288,6 +304,60 @@ export default class DocumentHighlightProvider implements Provider {
     };
   }
 
+  onRegisterSwap(params: RegisterSwapParams): RegisterSwapResult | undefined {
+    const document = this.ctx.store.get(params.textDocument.uri);
+    if (!isProcessed(document)) {
+      return;
+    }
+    if (document.document.version !== params.documentVersion) {
+      return {
+        documentVersion: document.document.version,
+        edits: [],
+        error: "stale-document",
+      };
+    }
+
+    const first = canonicalGeneralPurposeRegister(params.registers[0]);
+    const second = canonicalGeneralPurposeRegister(params.registers[1]);
+    if (!first || !second || first === second) {
+      return {
+        documentVersion: document.document.version,
+        edits: [],
+        error: "invalid-registers",
+      };
+    }
+    const registers: [string, string] = [first, second];
+
+    const usage = this.onRegisterUsage(params);
+    if (!usage) {
+      return;
+    }
+    const byName = new Map(usage.registers.map((item) => [item.name, item]));
+    const selected = registers.flatMap(
+      (register) => byName.get(register)?.references ?? [],
+    );
+    const unsupported = selected.filter(({ kind }) => kind !== "explicit");
+    if (unsupported.length) {
+      return {
+        documentVersion: document.document.version,
+        edits: [],
+        error: "unsupported-reference",
+        unsupported,
+      };
+    }
+
+    const edits = registers.flatMap((register, index) => {
+      const replacement = registers[index === 0 ? 1 : 0]!;
+      return (byName.get(register)?.references ?? []).map((reference) =>
+        lsp.TextEdit.replace(
+          reference.range,
+          matchRegisterCase(reference.spelling, replacement),
+        ),
+      );
+    });
+    return { documentVersion: document.document.version, edits };
+  }
+
   private registerRanges(uri: string): Record<string, lsp.Range[]> {
     const document = this.ctx.store.get(uri);
     if (!isProcessed(document)) {
@@ -319,6 +389,12 @@ function canonicalGeneralPurposeRegister(value: unknown): string | undefined {
   }
   const register = value.toLowerCase() === "sp" ? "a7" : value.toLowerCase();
   return generalPurposeRegisters.has(register) ? register : undefined;
+}
+
+function matchRegisterCase(spelling: string, register: string): string {
+  return spelling === spelling.toUpperCase()
+    ? register.toUpperCase()
+    : register.toLowerCase();
 }
 
 function addReference(

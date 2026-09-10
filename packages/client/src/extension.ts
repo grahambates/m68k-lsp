@@ -30,6 +30,15 @@ interface RegisterUsageResult {
   }>;
 }
 
+interface RegisterSwapResult {
+  documentVersion: number;
+  edits: Array<{ range: Range; newText: string }>;
+  error?: "invalid-registers" | "stale-document" | "unsupported-reference";
+  unsupported?: Array<{
+    kind: "explicit" | "register-list" | "macro-expansion";
+  }>;
+}
+
 const generalPurposeRegisters = [
   "d0",
   "d1",
@@ -184,6 +193,112 @@ export function activate(context: ExtensionContext): void {
     });
   };
 
+  const swapRegistersInSelection = async () => {
+    const editor = window.activeTextEditor;
+    if (!editor || !["m68k", "vasmmot"].includes(editor.document.languageId)) {
+      void window.showWarningMessage("Open an M68k assembly file first.");
+      return;
+    }
+    if (editor.selection.isEmpty) {
+      void window.showWarningMessage("Select a range to modify first.");
+      return;
+    }
+
+    const usage = await client.sendRequest<RegisterUsageResult | undefined>(
+      "m68k/registerUsage",
+      {
+        textDocument: { uri: editor.document.uri.toString() },
+        range: editor.selection,
+      },
+    );
+    const used = usage?.registers ?? [];
+    if (!used.length) {
+      void window.showWarningMessage(
+        "The selection does not use any general-purpose registers.",
+      );
+      return;
+    }
+
+    const first =
+      used.length === 1
+        ? used[0].name
+        : await pickRegister("Select the source register", used);
+    if (!first) {
+      return;
+    }
+    const usageByName = new Map(used.map((item) => [item.name, item]));
+    const second = await pickDestinationRegister(first, usageByName);
+    if (!second) {
+      return;
+    }
+    const pair: [string, string] = [first, second];
+
+    const planned = await client.sendRequest<RegisterSwapResult | undefined>(
+      "m68k/registerSwap",
+      {
+        textDocument: { uri: editor.document.uri.toString() },
+        documentVersion: usage!.documentVersion,
+        range: editor.selection,
+        registers: pair,
+      },
+    );
+    if (!planned) {
+      void window.showErrorMessage("Register swap analysis is unavailable.");
+      return;
+    }
+    if (planned.error === "stale-document") {
+      void window.showWarningMessage(
+        "The document changed during analysis. Run the command again.",
+      );
+      return;
+    }
+    if (planned.error === "unsupported-reference") {
+      const kinds = Array.from(
+        new Set(planned.unsupported?.map(({ kind }) => kind)),
+      ).join(", ");
+      void window.showWarningMessage(
+        `This swap includes references that cannot be edited safely yet${kinds ? `: ${kinds}` : "."}`,
+      );
+      return;
+    }
+    if (planned.error || !planned.edits.length) {
+      void window.showWarningMessage("No safe register swap was found.");
+      return;
+    }
+
+    const destinationIsUsed = usageByName.has(second);
+    const action = destinationIsUsed
+      ? `Swap ${first.toUpperCase()} and ${second.toUpperCase()}`
+      : `Replace ${first.toUpperCase()} with ${second.toUpperCase()}`;
+    const confirmation = await window.showWarningMessage(
+      `${action} in ${planned.edits.length} places?`,
+      { modal: true },
+      "Swap",
+    );
+    if (confirmation !== "Swap") {
+      return;
+    }
+    if (editor.document.version !== planned.documentVersion) {
+      void window.showWarningMessage(
+        "The document changed during analysis. Run the command again.",
+      );
+      return;
+    }
+
+    const applied = await editor.edit((edit) => {
+      for (const replacement of planned.edits) {
+        const { start, end } = replacement.range;
+        edit.replace(
+          new Range(start.line, start.character, end.line, end.character),
+          replacement.newText,
+        );
+      }
+    });
+    if (!applied) {
+      void window.showErrorMessage("Unable to apply the register swap.");
+    }
+  };
+
   context.subscriptions.push(
     ...decorations.values(),
     window.onDidChangeActiveTextEditor(refresh),
@@ -212,6 +327,10 @@ export function activate(context: ExtensionContext): void {
     commands.registerCommand(
       "m68k.listRegistersInSelection",
       listRegistersInSelection,
+    ),
+    commands.registerCommand(
+      "m68k.swapRegistersInSelection",
+      swapRegistersInSelection,
     ),
   );
 
@@ -284,4 +403,53 @@ function registerItem(
     label: register.toUpperCase(),
     description: usage.input ? `${access}, input` : access,
   };
+}
+
+async function pickRegister(
+  title: string,
+  registers: RegisterUsageResult["registers"],
+): Promise<string | undefined> {
+  const picked = await window.showQuickPick(
+    registers.map((usage) => ({
+      ...registerItem(usage.name, usage),
+      register: usage.name,
+    })),
+    { title },
+  );
+  return picked?.register;
+}
+
+async function pickDestinationRegister(
+  source: string,
+  usageByName: Map<string, RegisterUsageResult["registers"][number]>,
+): Promise<string | undefined> {
+  const available = generalPurposeRegisters.filter(
+    (register) => register !== source,
+  );
+  const used = available.filter((register) => usageByName.has(register));
+  const unused = available.filter((register) => !usageByName.has(register));
+  const picked = await window.showQuickPick(
+    [
+      {
+        label: `Used (${used.length})`,
+        kind: QuickPickItemKind.Separator,
+      },
+      ...used.map((register) => ({
+        ...registerItem(register, usageByName.get(register)),
+        register,
+      })),
+      {
+        label: `Unused (${unused.length})`,
+        kind: QuickPickItemKind.Separator,
+      },
+      ...unused.map((register) => ({
+        ...registerItem(register),
+        register,
+      })),
+    ],
+    {
+      title: `Select the destination for ${source.toUpperCase()}`,
+    },
+  );
+  return picked && "register" in picked ? picked.register : undefined;
 }
