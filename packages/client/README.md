@@ -21,6 +21,7 @@ Adds language support for Motorola 68000 Assembly to Visual Studio Code.
 - Document Symbols
 - Used/unused data and address registers for a selected range
 - Swap two registers throughout a selected range
+- Register remapping view
 - Find References
 - Go to definition
 - Hover

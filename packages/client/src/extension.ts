@@ -17,6 +17,11 @@ import {
   ServerOptions,
   TransportKind,
 } from "vscode-languageclient/node";
+import {
+  RegisterRemappingModel,
+  RegisterRemappingResult,
+  RegisterRemappingView,
+} from "./RegisterRemappingView";
 
 let client: LanguageClient;
 
@@ -37,6 +42,26 @@ interface RegisterSwapResult {
   unsupported?: Array<{
     kind: "explicit" | "register-list" | "macro-expansion";
   }>;
+}
+
+interface RegisterRemapResult {
+  documentVersion: number;
+  edits: Array<{ range: Range; newText: string }>;
+  error?:
+    | "invalid-mappings"
+    | "mapping-conflict"
+    | "stale-document"
+    | "unsupported-reference";
+  conflicts?: string[];
+  unsupported?: Array<{
+    kind: "explicit" | "register-list" | "macro-expansion";
+  }>;
+}
+
+interface RemappingContext {
+  uri: string;
+  range: Range;
+  documentVersion: number;
 }
 
 const generalPurposeRegisters = [
@@ -112,6 +137,8 @@ export function activate(context: ExtensionContext): void {
   let enabled = workspace
     .getConfiguration("m68k.registerColours")
     .get<boolean>("enabled", false);
+  let clientReady = false;
+  let remappingContext: RemappingContext | undefined;
 
   const clearDecorations = (editor: TextEditor) => {
     for (const decoration of decorations.values()) {
@@ -145,9 +172,110 @@ export function activate(context: ExtensionContext): void {
     }
   };
 
+  const loadRemappingModel = async (): Promise<
+    RegisterRemappingModel | undefined
+  > => {
+    if (!clientReady) {
+      return;
+    }
+    const editor = window.activeTextEditor;
+    if (!editor || !isM68kEditor(editor)) {
+      remappingContext = undefined;
+      return;
+    }
+    const range = await registerCommandRange(editor, false);
+    if (!range) {
+      remappingContext = undefined;
+      return;
+    }
+    const usage = await client.sendRequest<RegisterUsageResult | undefined>(
+      "m68k/registerUsage",
+      {
+        textDocument: { uri: editor.document.uri.toString() },
+        range,
+      },
+    );
+    if (!usage) {
+      remappingContext = undefined;
+      return;
+    }
+    remappingContext = {
+      uri: editor.document.uri.toString(),
+      range,
+      documentVersion: usage.documentVersion,
+    };
+    return {
+      scope: `${path.basename(editor.document.fileName)} · lines ${range.start.line + 1}-${range.end.line + 1}`,
+      registers: usage.registers,
+    };
+  };
+
+  const applyRemappings = async (
+    mappings: Record<string, string>,
+  ): Promise<RegisterRemappingResult> => {
+    const editor = window.activeTextEditor;
+    const snapshot = remappingContext;
+    if (
+      !editor ||
+      !snapshot ||
+      editor.document.uri.toString() !== snapshot.uri ||
+      editor.document.version !== snapshot.documentVersion
+    ) {
+      return {
+        ok: false,
+        message: "The editor scope changed. Refresh and try again.",
+      };
+    }
+    const planned = await client.sendRequest<RegisterRemapResult | undefined>(
+      "m68k/registerRemap",
+      {
+        textDocument: { uri: snapshot.uri },
+        documentVersion: snapshot.documentVersion,
+        range: snapshot.range,
+        mappings,
+      },
+    );
+    if (!planned) {
+      return { ok: false, message: "Register analysis is unavailable." };
+    }
+    if (planned.error === "mapping-conflict") {
+      return {
+        ok: false,
+        message: `Conflicting destination: ${(planned.conflicts ?? []).map((item) => item.toUpperCase()).join(", ")}`,
+      };
+    }
+    if (planned.error === "unsupported-reference") {
+      const kinds = Array.from(
+        new Set(planned.unsupported?.map(({ kind }) => kind)),
+      ).join(", ");
+      return {
+        ok: false,
+        message: `Cannot safely edit ${kinds || "one or more references"}.`,
+      };
+    }
+    if (planned.error || !planned.edits.length) {
+      return {
+        ok: false,
+        message:
+          planned.error === "stale-document"
+            ? "The document changed. Refresh and try again."
+            : "No register changes to apply.",
+      };
+    }
+    const applied = await applyProtocolEdits(editor, planned.edits);
+    return applied
+      ? { ok: true, message: `Applied ${planned.edits.length} replacements.` }
+      : { ok: false, message: "Unable to apply register mappings." };
+  };
+
+  const remappingView = new RegisterRemappingView(
+    loadRemappingModel,
+    applyRemappings,
+  );
+
   const listRegistersInSelection = async () => {
     const editor = window.activeTextEditor;
-    if (!editor || !["m68k", "vasmmot"].includes(editor.document.languageId)) {
+    if (!editor || !isM68kEditor(editor)) {
       void window.showWarningMessage("Open an M68k assembly file first.");
       return;
     }
@@ -195,7 +323,7 @@ export function activate(context: ExtensionContext): void {
 
   const swapRegistersInSelection = async () => {
     const editor = window.activeTextEditor;
-    if (!editor || !["m68k", "vasmmot"].includes(editor.document.languageId)) {
+    if (!editor || !isM68kEditor(editor)) {
       void window.showWarningMessage("Open an M68k assembly file first.");
       return;
     }
@@ -285,15 +413,7 @@ export function activate(context: ExtensionContext): void {
       return;
     }
 
-    const applied = await editor.edit((edit) => {
-      for (const replacement of planned.edits) {
-        const { start, end } = replacement.range;
-        edit.replace(
-          new Range(start.line, start.character, end.line, end.character),
-          replacement.newText,
-        );
-      }
-    });
+    const applied = await applyProtocolEdits(editor, planned.edits);
     if (!applied) {
       void window.showErrorMessage("Unable to apply the register swap.");
     }
@@ -302,7 +422,9 @@ export function activate(context: ExtensionContext): void {
   context.subscriptions.push(
     ...decorations.values(),
     window.onDidChangeActiveTextEditor(refresh),
+    window.onDidChangeActiveTextEditor(() => void remappingView.refresh()),
     window.onDidChangeVisibleTextEditors(refresh),
+    window.onDidChangeTextEditorSelection(() => void remappingView.refresh()),
     workspace.onDidChangeTextDocument(({ document }) => {
       const editor = window.visibleTextEditors.find(
         ({ document: visible }) =>
@@ -310,6 +432,12 @@ export function activate(context: ExtensionContext): void {
       );
       if (editor) {
         void applyDecorations(editor);
+      }
+      if (
+        document.uri.toString() ===
+        window.activeTextEditor?.document.uri.toString()
+      ) {
+        void remappingView.refresh();
       }
     }),
     workspace.onDidChangeConfiguration((event) => {
@@ -374,7 +502,19 @@ export function activate(context: ExtensionContext): void {
     clientOptions,
   );
 
-  void client.start().then(refresh);
+  context.subscriptions.push(
+    remappingView,
+    window.registerWebviewViewProvider(
+      RegisterRemappingView.viewType,
+      remappingView,
+    ),
+  );
+
+  void client.start().then(() => {
+    clientReady = true;
+    refresh();
+    void remappingView.refresh();
+  });
 }
 
 export function deactivate(): Thenable<void> | undefined {
@@ -421,6 +561,7 @@ async function pickRegister(
 
 async function registerCommandRange(
   editor: TextEditor,
+  showWarning = true,
 ): Promise<Range | undefined> {
   if (!editor.selection.isEmpty) {
     return editor.selection;
@@ -432,7 +573,7 @@ async function registerCommandRange(
       position: editor.selection.active,
     },
   );
-  if (!range) {
+  if (!range && showWarning) {
     void window.showWarningMessage(
       "Could not find a preceding non-local label and following RTS.",
     );
@@ -473,4 +614,23 @@ async function pickDestinationRegister(
     },
   );
   return picked && "register" in picked ? picked.register : undefined;
+}
+
+function isM68kEditor(editor: TextEditor): boolean {
+  return ["m68k", "vasmmot"].includes(editor.document.languageId);
+}
+
+function applyProtocolEdits(
+  editor: TextEditor,
+  replacements: Array<{ range: Range; newText: string }>,
+): Thenable<boolean> {
+  return editor.edit((edit) => {
+    for (const replacement of replacements) {
+      const { start, end } = replacement.range;
+      edit.replace(
+        new Range(start.line, start.character, end.line, end.character),
+        replacement.newText,
+      );
+    }
+  });
 }

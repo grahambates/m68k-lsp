@@ -45,6 +45,16 @@
   ],
   "main": "./out/extension",
   "contributes": {
+    "views": {
+      "explorer": [
+        {
+          "type": "webview",
+          "id": "m68k.registerRemapping",
+          "name": "M68k Register Remapping",
+          "icon": "icon.png"
+        }
+      ]
+    },
     "commands": [
       {
         "command": "m68k.toggleRegisterColours",

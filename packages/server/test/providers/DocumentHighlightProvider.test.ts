@@ -46,6 +46,10 @@ describe("DocumentHighlightProvider", () => {
         expect.any(Function),
       );
       expect(conn.onRequest).toHaveBeenCalledWith(
+        "m68k/registerRemap",
+        expect.any(Function),
+      );
+      expect(conn.onRequest).toHaveBeenCalledWith(
         "m68k/routineRange",
         expect.any(Function),
       );
@@ -759,6 +763,89 @@ Second:
           position: lsp.Position.create(1, 2),
         }),
       ).toBeUndefined();
+    });
+  });
+
+  describe("#onRegisterRemap()", () => {
+    it("plans multiple mappings against the original source", async () => {
+      const textDocument = await createDoc(
+        "remap.s",
+        " move d0,d1\n add d1,d2\n",
+      );
+
+      const result = provider.onRegisterRemap({
+        textDocument,
+        documentVersion: 0,
+        range: range(0, 0, 2, 0),
+        mappings: { d0: "d3", d1: "d0", d2: "d1" },
+      });
+
+      expect(result).toEqual({
+        documentVersion: 0,
+        edits: [
+          { range: range(0, 6, 0, 8), newText: "d3" },
+          { range: range(0, 9, 0, 11), newText: "d0" },
+          { range: range(1, 5, 1, 7), newText: "d0" },
+          { range: range(1, 8, 1, 10), newText: "d1" },
+        ],
+      });
+    });
+
+    it("rejects an occupied destination that is not remapped", async () => {
+      const textDocument = await createDoc("occupied-remap.s", " move d0,d1\n");
+
+      expect(
+        provider.onRegisterRemap({
+          textDocument,
+          documentVersion: 0,
+          range: range(0, 0, 1, 0),
+          mappings: { d0: "d1" },
+        }),
+      ).toMatchObject({
+        edits: [],
+        error: "mapping-conflict",
+        conflicts: ["d1"],
+      });
+    });
+
+    it("rejects duplicate destinations", async () => {
+      const textDocument = await createDoc(
+        "duplicate-remap.s",
+        " move d0,d1\n",
+      );
+
+      expect(
+        provider.onRegisterRemap({
+          textDocument,
+          documentVersion: 0,
+          range: range(0, 0, 1, 0),
+          mappings: { d0: "d2", d1: "d2" },
+        }),
+      ).toMatchObject({
+        edits: [],
+        error: "mapping-conflict",
+        conflicts: ["d2"],
+      });
+    });
+
+    it("rejects unsupported mapped references", async () => {
+      const textDocument = await createDoc(
+        "macro-remap.s",
+        `Copy macro
+ move d\\1,d0
+ endm
+ Copy 1
+`,
+      );
+
+      expect(
+        provider.onRegisterRemap({
+          textDocument,
+          documentVersion: 0,
+          range: range(3, 0, 4, 0),
+          mappings: { d1: "d2" },
+        }),
+      ).toMatchObject({ edits: [], error: "unsupported-reference" });
     });
   });
 });

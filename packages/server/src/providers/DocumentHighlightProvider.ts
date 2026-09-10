@@ -112,13 +112,32 @@ export interface RegisterSwapParams extends RegisterUsageParams {
   registers: [string, string];
 }
 
+export interface RegisterRemapParams extends RegisterUsageParams {
+  documentVersion: number;
+  mappings: Record<string, string>;
+}
+
 export type RegisterSwapError =
   "invalid-registers" | "stale-document" | "unsupported-reference";
+
+export type RegisterRemapError =
+  | "invalid-mappings"
+  | "mapping-conflict"
+  | "stale-document"
+  | "unsupported-reference";
 
 export interface RegisterSwapResult {
   documentVersion: number;
   edits: lsp.TextEdit[];
   error?: RegisterSwapError;
+  unsupported?: RegisterUsageReference[];
+}
+
+export interface RegisterRemapResult {
+  documentVersion: number;
+  edits: lsp.TextEdit[];
+  error?: RegisterRemapError;
+  conflicts?: string[];
   unsupported?: RegisterUsageReference[];
 }
 
@@ -192,6 +211,7 @@ export default class DocumentHighlightProvider implements Provider {
     );
     connection.onRequest("m68k/registerUsage", this.onRegisterUsage.bind(this));
     connection.onRequest("m68k/registerSwap", this.onRegisterSwap.bind(this));
+    connection.onRequest("m68k/registerRemap", this.onRegisterRemap.bind(this));
     connection.onRequest("m68k/routineRange", this.onRoutineRange.bind(this));
     return {
       documentHighlightProvider: true,
@@ -361,6 +381,92 @@ export default class DocumentHighlightProvider implements Provider {
         ),
       );
     });
+    return { documentVersion: document.document.version, edits };
+  }
+
+  onRegisterRemap(
+    params: RegisterRemapParams,
+  ): RegisterRemapResult | undefined {
+    const document = this.ctx.store.get(params.textDocument.uri);
+    if (!isProcessed(document)) {
+      return;
+    }
+    if (document.document.version !== params.documentVersion) {
+      return {
+        documentVersion: document.document.version,
+        edits: [],
+        error: "stale-document",
+      };
+    }
+
+    const mappings = new Map<string, string>();
+    for (const [rawSource, rawDestination] of Object.entries(params.mappings)) {
+      const source = canonicalGeneralPurposeRegister(rawSource);
+      const destination = canonicalGeneralPurposeRegister(rawDestination);
+      if (!source || !destination) {
+        return {
+          documentVersion: document.document.version,
+          edits: [],
+          error: "invalid-mappings",
+        };
+      }
+      if (source !== destination) {
+        mappings.set(source, destination);
+      }
+    }
+    if (!mappings.size) {
+      return {
+        documentVersion: document.document.version,
+        edits: [],
+        error: "invalid-mappings",
+      };
+    }
+
+    const destinations = Array.from(mappings.values());
+    const duplicateDestinations = destinations.filter(
+      (destination, index) => destinations.indexOf(destination) !== index,
+    );
+    const usage = this.onRegisterUsage(params);
+    if (!usage) {
+      return;
+    }
+    const byName = new Map(usage.registers.map((item) => [item.name, item]));
+    const occupiedDestinations = destinations.filter(
+      (destination) => byName.has(destination) && !mappings.has(destination),
+    );
+    const conflicts = Array.from(
+      new Set([...duplicateDestinations, ...occupiedDestinations]),
+    );
+    if (conflicts.length) {
+      return {
+        documentVersion: document.document.version,
+        edits: [],
+        error: "mapping-conflict",
+        conflicts,
+      };
+    }
+
+    const references = Array.from(mappings.keys()).flatMap(
+      (source) => byName.get(source)?.references ?? [],
+    );
+    const unsupported = references.filter(({ kind }) => kind !== "explicit");
+    if (unsupported.length) {
+      return {
+        documentVersion: document.document.version,
+        edits: [],
+        error: "unsupported-reference",
+        unsupported,
+      };
+    }
+
+    const edits = Array.from(mappings, ([source, destination]) =>
+      (byName.get(source)?.references ?? []).map((reference) =>
+        lsp.TextEdit.replace(
+          reference.range,
+          matchRegisterCase(reference.spelling, destination),
+        ),
+      ),
+    ).flat();
     return { documentVersion: document.document.version, edits };
   }
 
