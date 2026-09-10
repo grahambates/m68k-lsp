@@ -82,4 +82,34 @@ describe("DocumentHighlightProvider", () => {
 
     expect(hightlights).toHaveLength(0);
   });
+
+  it("highlights numbered and named registers", async () => {
+    const textDocument = await createDoc(
+      "registers.s",
+      ` move d0,(a0,d0.w)
+ move D0,d1
+ move sr,CCR
+ fmove fp0,fpcr
+`,
+    );
+
+    const cases = [
+      { position: [0, 7], length: 3 },
+      { position: [0, 11], length: 1 },
+      { position: [0, 14], length: 3 },
+      { position: [2, 7], length: 1 },
+      { position: [2, 11], length: 1 },
+      { position: [3, 8], length: 1 },
+      { position: [3, 12], length: 1 },
+    ];
+
+    for (const { position, length } of cases) {
+      const highlights = await provider.onDocumentHighlight({
+        position: lsp.Position.create(position[0], position[1]),
+        textDocument,
+      });
+
+      expect(highlights).toHaveLength(length);
+    }
+  });
 });
