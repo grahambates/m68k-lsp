@@ -151,8 +151,8 @@ export function activate(context: ExtensionContext): void {
       void window.showWarningMessage("Open an M68k assembly file first.");
       return;
     }
-    if (editor.selection.isEmpty) {
-      void window.showWarningMessage("Select a range to inspect first.");
+    const range = await registerCommandRange(editor);
+    if (!range) {
       return;
     }
 
@@ -160,7 +160,7 @@ export function activate(context: ExtensionContext): void {
       "m68k/registerUsage",
       {
         textDocument: { uri: editor.document.uri.toString() },
-        range: editor.selection,
+        range,
       },
     );
     const usageByName = new Map(
@@ -199,8 +199,8 @@ export function activate(context: ExtensionContext): void {
       void window.showWarningMessage("Open an M68k assembly file first.");
       return;
     }
-    if (editor.selection.isEmpty) {
-      void window.showWarningMessage("Select a range to modify first.");
+    const range = await registerCommandRange(editor);
+    if (!range) {
       return;
     }
 
@@ -208,7 +208,7 @@ export function activate(context: ExtensionContext): void {
       "m68k/registerUsage",
       {
         textDocument: { uri: editor.document.uri.toString() },
-        range: editor.selection,
+        range,
       },
     );
     const used = usage?.registers ?? [];
@@ -238,7 +238,7 @@ export function activate(context: ExtensionContext): void {
       {
         textDocument: { uri: editor.document.uri.toString() },
         documentVersion: usage!.documentVersion,
-        range: editor.selection,
+        range,
         registers: pair,
       },
     );
@@ -417,6 +417,27 @@ async function pickRegister(
     { title },
   );
   return picked?.register;
+}
+
+async function registerCommandRange(
+  editor: TextEditor,
+): Promise<Range | undefined> {
+  if (!editor.selection.isEmpty) {
+    return editor.selection;
+  }
+  const range = await client.sendRequest<Range | undefined>(
+    "m68k/routineRange",
+    {
+      textDocument: { uri: editor.document.uri.toString() },
+      position: editor.selection.active,
+    },
+  );
+  if (!range) {
+    void window.showWarningMessage(
+      "Could not find a preceding non-local label and following RTS.",
+    );
+  }
+  return range;
 }
 
 async function pickDestinationRegister(

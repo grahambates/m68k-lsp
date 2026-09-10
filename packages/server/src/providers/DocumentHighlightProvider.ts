@@ -102,6 +102,11 @@ export interface RegisterUsageParams {
   range: lsp.Range;
 }
 
+export interface RoutineRangeParams {
+  textDocument: lsp.TextDocumentIdentifier;
+  position: lsp.Position;
+}
+
 export interface RegisterSwapParams extends RegisterUsageParams {
   documentVersion: number;
   registers: [string, string];
@@ -187,6 +192,7 @@ export default class DocumentHighlightProvider implements Provider {
     );
     connection.onRequest("m68k/registerUsage", this.onRegisterUsage.bind(this));
     connection.onRequest("m68k/registerSwap", this.onRegisterSwap.bind(this));
+    connection.onRequest("m68k/routineRange", this.onRoutineRange.bind(this));
     return {
       documentHighlightProvider: true,
     };
@@ -356,6 +362,57 @@ export default class DocumentHighlightProvider implements Provider {
       );
     });
     return { documentVersion: document.document.version, edits };
+  }
+
+  onRoutineRange(params: RoutineRangeParams): lsp.Range | undefined {
+    const document = this.ctx.store.get(params.textDocument.uri);
+    if (!isProcessed(document)) {
+      return;
+    }
+
+    let startLine: number | undefined;
+    for (
+      let index = Math.min(
+        params.position.line,
+        document.parsed.lines.length - 1,
+      );
+      index >= 0;
+      index--
+    ) {
+      const label = document.parsed.lines[index].label;
+      if (label && label.scope !== "local") {
+        startLine = index;
+        break;
+      }
+    }
+    if (startLine === undefined) {
+      return;
+    }
+
+    for (
+      let index = params.position.line;
+      index < document.parsed.lines.length;
+      index++
+    ) {
+      const line = document.parsed.lines[index];
+      if (
+        index > params.position.line &&
+        line.label &&
+        line.label.scope !== "local"
+      ) {
+        return;
+      }
+      const mnemonic = line.mnemonic;
+      if (
+        mnemonic?.type === "instruction" &&
+        mnemonic.instruction.toLowerCase() === "rts"
+      ) {
+        return lsp.Range.create(
+          lsp.Position.create(startLine, 0),
+          lsp.Position.create(index, mnemonic.loc.end),
+        );
+      }
+    }
   }
 
   private registerRanges(uri: string): Record<string, lsp.Range[]> {

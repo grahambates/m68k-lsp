@@ -63,12 +63,12 @@
       "editor/context": [
         {
           "command": "m68k.listRegistersInSelection",
-          "when": "editorHasSelection && (editorLangId == m68k || editorLangId == vasmmot)",
+          "when": "editorLangId == m68k || editorLangId == vasmmot",
           "group": "navigation"
         },
         {
           "command": "m68k.swapRegistersInSelection",
-          "when": "editorHasSelection && (editorLangId == m68k || editorLangId == vasmmot)",
+          "when": "editorLangId == m68k || editorLangId == vasmmot",
           "group": "navigation"
         }
       ]

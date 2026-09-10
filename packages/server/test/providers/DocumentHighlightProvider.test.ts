@@ -45,6 +45,10 @@ describe("DocumentHighlightProvider", () => {
         "m68k/registerSwap",
         expect.any(Function),
       );
+      expect(conn.onRequest).toHaveBeenCalledWith(
+        "m68k/routineRange",
+        expect.any(Function),
+      );
       expect(capabilities).toHaveProperty("documentHighlightProvider");
     });
   });
@@ -683,6 +687,78 @@ Select macro
         error: "unsupported-reference",
       });
       expect(result?.unsupported).toHaveLength(2);
+    });
+  });
+
+  describe("#onRoutineRange()", () => {
+    it("returns the previous non-local label through the next RTS", async () => {
+      const textDocument = await createDoc(
+        "routine.s",
+        `First:
+ moveq #1,d0
+ rts
+
+Second:
+ moveq #2,d1
+.loop:
+ addq #1,d1
+ rts
+`,
+      );
+
+      expect(
+        provider.onRoutineRange({
+          textDocument,
+          position: lsp.Position.create(7, 4),
+        }),
+      ).toEqual(range(4, 0, 8, 4));
+    });
+
+    it("returns undefined without a preceding non-local label", async () => {
+      const textDocument = await createDoc(
+        "no-label.s",
+        " moveq #1,d0\n rts\n",
+      );
+
+      expect(
+        provider.onRoutineRange({
+          textDocument,
+          position: lsp.Position.create(0, 2),
+        }),
+      ).toBeUndefined();
+    });
+
+    it("returns undefined without a following RTS", async () => {
+      const textDocument = await createDoc(
+        "no-rts.s",
+        "Start:\n moveq #1,d0\n",
+      );
+
+      expect(
+        provider.onRoutineRange({
+          textDocument,
+          position: lsp.Position.create(1, 2),
+        }),
+      ).toBeUndefined();
+    });
+
+    it("does not use an RTS beyond the next non-local label", async () => {
+      const textDocument = await createDoc(
+        "next-routine.s",
+        `First:
+ moveq #1,d0
+Second:
+ moveq #2,d1
+ rts
+`,
+      );
+
+      expect(
+        provider.onRoutineRange({
+          textDocument,
+          position: lsp.Position.create(1, 2),
+        }),
+      ).toBeUndefined();
     });
   });
 });
