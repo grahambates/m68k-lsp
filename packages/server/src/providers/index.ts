@@ -16,6 +16,7 @@ import FileOperationsProvider from "./FileOperationsProvider";
 import FoldingRangeProvider from "./FoldingRangeProvider";
 import HoverProvider from "./HoverProvider";
 import ReferencesProvider from "./ReferencesProvider";
+import RegisterProvider from "./RegisterProvider";
 import RenameProvider from "./RenameProvider";
 import SignatureHelpProvider from "./SignatureHelpProvider";
 import TextDocumentSyncProvider from "./TextDocumentSyncProvider";
@@ -39,6 +40,7 @@ const providers = [
   FoldingRangeProvider,
   HoverProvider,
   ReferencesProvider,
+  RegisterProvider,
   RenameProvider,
   SignatureHelpProvider,
   TextDocumentSyncProvider,

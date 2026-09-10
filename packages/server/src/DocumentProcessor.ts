@@ -100,6 +100,12 @@ export default class DocumentProcessor {
     }
 
     const document = await readDocumentFromUri(uri);
+    // Opening a document while the disk read is pending installs its current
+    // text and syntax tree. Never replace that entry with the disk index.
+    const current = this.ctx.store.get(uri);
+    if (isProcessed(current)) {
+      return current;
+    }
     if (!document) {
       return undefined;
     }

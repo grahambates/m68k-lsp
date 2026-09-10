@@ -7,6 +7,8 @@ import * as lsp from "vscode-languageserver";
 import { createContext } from "../src/context";
 import DocumentProcessor from "../src/DocumentProcessor";
 import { indexWorkspace } from "../src/workspace";
+import RegisterProvider from "../src/providers/RegisterProvider";
+import { TextDocument } from "vscode-languageserver-textdocument";
 import { getEntryPoints, getEntryPointsFor } from "../src/files";
 import { NullLogger } from "./helpers";
 
@@ -106,6 +108,34 @@ describe("indexWorkspace", () => {
 
     // Still the processed entry, with its tree intact.
     expect(ctx.store.get(uri)).toHaveProperty("parsed");
+  });
+
+  it("preserves register analysis when a document opens during indexing", async () => {
+    const uri = await write("main.s", "Start:\n move d0,d1\n rts\n");
+    const ctx = await contextFor();
+    const processor = new DocumentProcessor(ctx);
+
+    // The disk read yields before indexing stores its result. Opening the
+    // editor in that interval must keep the newer text and its syntax tree.
+    const indexing = processor.index(uri);
+    const opened = await processor.process(
+      TextDocument.create(uri, "m68k", 1, "Start:\n move d2,d3\n rts\n"),
+    );
+    await indexing;
+
+    expect(ctx.store.get(uri)).toBe(opened);
+    const provider = new RegisterProvider(ctx);
+    const textDocument = { uri };
+    const scope = provider.onRoutineRange({
+      textDocument,
+      position: { line: 1, character: 2 },
+    });
+    expect(scope?.label).toBe("Start");
+    expect(
+      provider
+        .onRegisterUsage({ textDocument, range: scope!.range })
+        ?.registers.map(({ name }) => name),
+    ).toEqual(["d2", "d3"]);
   });
 
   describe("entry points", () => {
