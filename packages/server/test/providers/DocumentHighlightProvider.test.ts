@@ -29,9 +29,14 @@ describe("DocumentHighlightProvider", () => {
     it("regsiters", () => {
       const conn = {
         onDocumentHighlight: jest.fn(),
+        onRequest: jest.fn(),
       };
       const capabilities = provider.register(conn as unknown as lsp.Connection);
       expect(conn.onDocumentHighlight).toHaveBeenCalled();
+      expect(conn.onRequest).toHaveBeenCalledWith(
+        "m68k/registerRanges",
+        expect.any(Function),
+      );
       expect(capabilities).toHaveProperty("documentHighlightProvider");
     });
   });

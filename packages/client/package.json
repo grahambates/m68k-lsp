@@ -38,12 +38,19 @@
     "m68k"
   ],
   "activationEvents": [
+    "onCommand:m68k.toggleRegisterColours",
     "onLanguage:m68k",
     "onLanguage:vasmmot",
     "workspaceContains:**/*.{s,S,asm,ASM}"
   ],
   "main": "./out/extension",
   "contributes": {
+    "commands": [
+      {
+        "command": "m68k.toggleRegisterColours",
+        "title": "M68k: Toggle Register Colours"
+      }
+    ],
     "snippets": [
       {
         "language": "m68k",
@@ -102,6 +109,11 @@
       "type": "object",
       "title": "M68k",
       "properties": {
+        "m68k.registerColours.enabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable distinct colours for registers by default"
+        },
         "m68k.format.align.mnemonic": {
           "type": "number",
           "default": 8,

@@ -79,9 +79,28 @@ export default class DocumentHighlightProvider implements Provider {
 
   register(connection: lsp.Connection) {
     connection.onDocumentHighlight(this.onDocumentHighlight.bind(this));
+    connection.onRequest("m68k/registerRanges", ({ uri }: { uri: string }) =>
+      this.registerRanges(uri),
+    );
     return {
       documentHighlightProvider: true,
     };
+  }
+
+  private registerRanges(uri: string): Record<string, lsp.Range[]> {
+    const document = this.ctx.store.get(uri);
+    if (!isProcessed(document)) {
+      return {};
+    }
+
+    const ranges: Record<string, lsp.Range[]> = {};
+    for (const { node } of walkFile(document.parsed)) {
+      const register = registerName(node);
+      if (register) {
+        (ranges[register] ??= []).push(locationAsRange(node.loc));
+      }
+    }
+    return ranges;
   }
 }
 
