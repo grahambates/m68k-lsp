@@ -369,13 +369,15 @@ export default class DocumentHighlightProvider implements Provider {
       registers: Array.from(usages, ([name, references]) => {
         const usage = summariseUsage(name, references);
         if (reachability) {
-          usage.availability = references.some((reference) =>
-            reachability.lines.has(reference.range.start.line),
-          )
-            ? "unavailable"
-            : reachability.unknown
-              ? "unknown"
-              : "available";
+          usage.availability =
+            reachability.touched.has(name) ||
+            references.some((reference) =>
+              reachability.lines.has(reference.range.start.line),
+            )
+              ? "unavailable"
+              : reachability.unknown
+                ? "unknown"
+                : "available";
         }
         return usage;
       }),
@@ -474,29 +476,11 @@ export default class DocumentHighlightProvider implements Provider {
       };
     }
 
-    const destinations = Array.from(mappings.values());
-    const duplicateDestinations = destinations.filter(
-      (destination, index) => destinations.indexOf(destination) !== index,
-    );
     const usage = this.onRegisterUsage(params);
     if (!usage) {
       return;
     }
     const byName = new Map(usage.registers.map((item) => [item.name, item]));
-    const occupiedDestinations = destinations.filter(
-      (destination) => byName.has(destination) && !mappings.has(destination),
-    );
-    const conflicts = Array.from(
-      new Set([...duplicateDestinations, ...occupiedDestinations]),
-    );
-    if (conflicts.length) {
-      return {
-        documentVersion: document.document.version,
-        edits: [],
-        error: "mapping-conflict",
-        conflicts,
-      };
-    }
 
     const references = Array.from(mappings.keys()).flatMap(
       (source) => byName.get(source)?.references ?? [],
@@ -606,34 +590,45 @@ function reachableLinesAfterPosition(
   lines: ParsedLine[],
   scope: lsp.Range,
   position: lsp.Position,
-): { lines: Set<number>; unknown: boolean } {
+): { lines: Set<number>; touched: Set<string>; unknown: boolean } {
   const startLine = Math.max(scope.start.line, position.line + 1);
   const endLine = Math.min(scope.end.line, lines.length - 1);
   if (startLine > endLine) {
-    return { lines: new Set(), unknown: false };
+    return { lines: new Set(), touched: new Set(), unknown: false };
   }
 
-  const labels = collectControlFlowLabels(lines, scope.start.line, endLine);
+  const labels = collectControlFlowLabels(lines, 0, lines.length - 1);
   const reachable = new Set<number>();
+  const touched = new Set<string>();
   let unknown = false;
   const pending = [startLine];
   while (pending.length) {
     const lineIndex = pending.pop()!;
     if (
-      lineIndex < scope.start.line ||
-      lineIndex > endLine ||
+      lineIndex < 0 ||
+      lineIndex >= lines.length ||
       reachable.has(lineIndex)
     ) {
       continue;
     }
     reachable.add(lineIndex);
     const line = lines[lineIndex];
+    addTouchedRegisters(line, touched);
     const mnemonic =
       line.mnemonic?.type === "instruction"
         ? line.mnemonic.instruction.toLowerCase()
         : undefined;
     if (mnemonic === "bsr" || mnemonic === "jsr") {
-      unknown = true;
+      const target = controlFlowTarget(line);
+      const targetLine =
+        target === undefined
+          ? undefined
+          : labels.get(labelKey(target, labels.globalAt[lineIndex]));
+      if (targetLine === undefined) {
+        unknown = true;
+      } else {
+        pending.push(targetLine);
+      }
     }
     if (!mnemonic || !routineReturns.has(mnemonic)) {
       if (mnemonic && isBranchMnemonic(mnemonic)) {
@@ -650,6 +645,7 @@ function reachableLinesAfterPosition(
                 (_, offset) => scope.start.line + offset,
               ),
             ),
+            touched: new Set(generalPurposeRegisters),
             unknown: false,
           };
         }
@@ -660,7 +656,29 @@ function reachableLinesAfterPosition(
       }
     }
   }
-  return { lines: reachable, unknown };
+  return { lines: reachable, touched, unknown };
+}
+
+function addTouchedRegisters(line: ParsedLine, touched: Set<string>): void {
+  for (const node of walkLine(line)) {
+    const register = canonicalGeneralPurposeRegister(registerName(node));
+    if (register) {
+      touched.add(register);
+      continue;
+    }
+    if (node.type !== "register-list") {
+      continue;
+    }
+    const registers = (node as AstNode & { registers?: unknown }).registers;
+    if (Array.isArray(registers)) {
+      for (const item of registers) {
+        const listed = canonicalGeneralPurposeRegister(item);
+        if (listed) {
+          touched.add(listed);
+        }
+      }
+    }
+  }
 }
 
 interface ControlFlowLabels extends Map<string, number> {
@@ -705,6 +723,10 @@ function branchTarget(line: ParsedLine): string | undefined {
   if (!mnemonic || !isBranchMnemonic(mnemonic)) {
     return;
   }
+  return controlFlowTarget(line);
+}
+
+function controlFlowTarget(line: ParsedLine): string | undefined {
   const operand = line.operands?.at(-1);
   if (!operand) {
     return;

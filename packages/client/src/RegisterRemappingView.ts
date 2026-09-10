@@ -12,6 +12,7 @@ export interface RegisterViewUsage {
 export interface RegisterRemappingModel {
   scope: string;
   registers: RegisterViewUsage[];
+  colors?: { [k: string]: string | undefined };
 }
 
 export interface RegisterRemappingResult {
@@ -109,14 +110,22 @@ function webviewHtml(webview: Webview): string {
       display: flex;
       align-items: center;
       gap: 6px;
-      margin-top: 7px;
       color: var(--vscode-foreground);
     }
     .options input { margin: 0; }
-    main { padding: 4px 12px 72px; }
+    .header-row {
+      margin-top: 7px;
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .remap-label { font-weight: bold; }
+    main { padding: 4px 12px 4px; }
+    .unsaved main { padding-bottom: 44px; }
     .row {
       display: grid;
-      grid-template-columns: 34px minmax(62px, 1fr) minmax(76px, 1.2fr);
+      grid-template-columns: 2rem 1fr 6.5rem;
       align-items: center;
       min-height: 34px;
       border-bottom: 1px solid color-mix(in srgb, var(--vscode-widget-border) 55%, transparent);
@@ -140,10 +149,16 @@ function webviewHtml(webview: Webview): string {
       padding: 8px 12px 10px;
       background: var(--vscode-sideBar-background);
       border-top: 1px solid var(--vscode-sideBarSectionHeader-border, var(--vscode-widget-border));
+      flex-drection: row;
+      justify-content: space-between;
+      display: none;
     }
-    #status { min-height: 18px; margin-bottom: 6px; color: var(--vscode-descriptionForeground); }
-    #status.error { color: var(--vscode-errorForeground); }
-    .actions { display: flex; gap: 6px; }
+    .unsaved footer {
+      display: flex;
+    }
+    #status { color: var(--vscode-descriptionForeground); }
+    #status.error { color: var(--vscode-editorWarning-foreground); }
+    .actions { display: flex; gap: 6px; flex-direction: row; }
     button { padding: 0 10px; cursor: pointer; }
     button.primary { color: var(--vscode-button-foreground); background: var(--vscode-button-background); border-color: transparent; }
     button.primary:hover { background: var(--vscode-button-hoverBackground); }
@@ -154,15 +169,17 @@ function webviewHtml(webview: Webview): string {
 <body>
   <header>
     <div id="scope">No M68k scope</div>
-    <label class="options"><input id="sort-first-use" type="checkbox"> Sort by first use</label>
+    <div class="header-row">
+      <label class="options"><input id="sort-first-use" type="checkbox"> Sort by first use</label>
+      <span class="remap-label">Remap:</span>
+    </div>
   </header>
   <main><div id="rows"></div><div id="empty">Open an M68k file to begin.</div></main>
   <footer>
     <div id="status"></div>
     <div class="actions">
-      <button class="primary" id="apply" disabled>Remap</button>
-      <button id="reset" disabled>Reset</button>
-      <button id="refresh">Refresh</button>
+      <button id="reset">Reset</button>
+      <button class="primary" id="apply">Apply</button>
     </div>
   </footer>
   <script nonce="${nonce}">
@@ -217,8 +234,12 @@ function webviewHtml(webview: Webview): string {
       const conflict = duplicate || occupied;
       status.textContent = conflict ? conflict.toUpperCase() + ' has conflicting mappings' : '';
       status.className = conflict ? 'error' : '';
-      apply.disabled = changed.length === 0 || !!conflict;
-      reset.disabled = changed.length === 0;
+      const hasUnsavedChanges = changed.length > 0;
+      if (hasUnsavedChanges) {
+        document.body.classList.add('unsaved');
+      } else {
+        document.body.classList.remove('unsaved');
+      }
     }
 
     function renderRows() {
@@ -237,6 +258,7 @@ function webviewHtml(webview: Webview): string {
         const name = document.createElement('div');
         name.className = 'register';
         name.textContent = register.toUpperCase();
+        name.style = 'color: ' + model.colors[usage.name];
         const access = document.createElement('div');
         access.className = 'access';
         access.textContent = accessLabel(usage);
@@ -256,6 +278,7 @@ function webviewHtml(webview: Webview): string {
           select.classList.toggle('changed', select.value !== register);
           validate();
         });
+        select.style = 'color: ' + model.colors[usage.name];
         row.append(name, access, select);
         rows.append(row);
       }
@@ -266,7 +289,7 @@ function webviewHtml(webview: Webview): string {
       model = nextModel;
       mappings = {};
       rows.replaceChildren();
-      scope.textContent = model?.scope || 'No M68k scope';
+      scope.textContent = 'Scope: ' + (model?.scope || 'none');
       empty.textContent = model ? 'No registers used in this scope.' : 'Open an M68k file to begin.';
       empty.hidden = !!model?.registers.length;
       if (!model) {
@@ -283,7 +306,6 @@ function webviewHtml(webview: Webview): string {
       vscode.setState({ sortByFirstUse });
       if (model) renderRows();
     });
-    document.getElementById('refresh').addEventListener('click', () => vscode.postMessage({ type: 'refresh' }));
     window.addEventListener('message', ({ data }) => {
       if (data.type === 'model') render(data.model);
       if (data.type === 'result') {

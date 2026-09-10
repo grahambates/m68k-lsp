@@ -143,7 +143,7 @@ export function activate(context: ExtensionContext): void {
   );
   let enabled = workspace
     .getConfiguration("m68k.registerColours")
-    .get<boolean>("enabled", false);
+    .get<boolean>("enabled", true);
   let clientReady = false;
   let remappingContext: RemappingContext | undefined;
 
@@ -218,6 +218,14 @@ export function activate(context: ExtensionContext): void {
     return {
       scope: `${scope.label ? `${scope.label} · ` : ""}lines ${range.start.line + 1}-${range.end.line + 1}`,
       registers: usage.registers,
+      colors: enabled
+        ? Object.fromEntries(
+            generalPurposeRegisters.map((register) => [
+              register,
+              registerColours.get(register),
+            ]),
+          )
+        : undefined,
     };
   };
 
@@ -457,13 +465,15 @@ export function activate(context: ExtensionContext): void {
       if (event.affectsConfiguration("m68k.registerColours.enabled")) {
         enabled = workspace
           .getConfiguration("m68k.registerColours")
-          .get<boolean>("enabled", false);
+          .get<boolean>("enabled", true);
         refresh();
+        void remappingView.refresh();
       }
     }),
     commands.registerCommand("m68k.toggleRegisterColours", () => {
       enabled = !enabled;
       refresh();
+      void remappingView.refresh();
     }),
     commands.registerCommand(
       "m68k.listRegistersInSelection",

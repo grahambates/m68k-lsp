@@ -432,6 +432,88 @@ Done:
       expect(byName.get("a0")?.availability).toBe("unavailable");
     });
 
+    it("follows a known subroutine and preserves untouched availability", async () => {
+      const textDocument = await createDoc(
+        "known-call.s",
+        `Start:
+ move.w d0,d1
+ bsr Helper
+ rts
+Helper:
+ move.w d2,d3
+ rts
+`,
+      );
+
+      const result = provider.onRegisterUsage({
+        textDocument,
+        range: range(0, 0, 3, 4),
+        position: lsp.Position.create(1, 5),
+      });
+      const byName = new Map(
+        result?.registers.map((usage) => [usage.name, usage]),
+      );
+
+      expect(byName.get("d0")?.availability).toBe("available");
+      expect(byName.get("d1")?.availability).toBe("available");
+    });
+
+    it("combines register touches across multiple callee return paths", async () => {
+      const textDocument = await createDoc(
+        "multiple-call-returns.s",
+        `Start:
+ move.w d0,d1
+ bsr Helper
+ rts
+Helper:
+ beq .preserved
+ move.w d0,d2
+ rts
+.preserved:
+ rts
+`,
+      );
+
+      const result = provider.onRegisterUsage({
+        textDocument,
+        range: range(0, 0, 3, 4),
+        position: lsp.Position.create(1, 5),
+      });
+      const byName = new Map(
+        result?.registers.map((usage) => [usage.name, usage]),
+      );
+
+      expect(byName.get("d0")?.availability).toBe("unavailable");
+      expect(byName.get("d1")?.availability).toBe("available");
+    });
+
+    it("terminates recursive call traversal and keeps later touches", async () => {
+      const textDocument = await createDoc(
+        "recursive-call.s",
+        `Start:
+ move.w d0,d1
+ bsr Helper
+ rts
+Helper:
+ bsr Helper
+ move.w d0,d2
+ rts
+`,
+      );
+
+      const result = provider.onRegisterUsage({
+        textDocument,
+        range: range(0, 0, 3, 4),
+        position: lsp.Position.create(1, 5),
+      });
+      const byName = new Map(
+        result?.registers.map((usage) => [usage.name, usage]),
+      );
+
+      expect(byName.get("d0")?.availability).toBe("unavailable");
+      expect(byName.get("d1")?.availability).toBe("available");
+    });
+
     it("ignores a subroutine call skipped by an unconditional branch", async () => {
       const textDocument = await createDoc(
         "skipped-call.s",
@@ -1067,43 +1149,6 @@ Second:
           { range: range(1, 5, 1, 7), newText: "d0" },
           { range: range(1, 8, 1, 10), newText: "d1" },
         ],
-      });
-    });
-
-    it("rejects an occupied destination that is not remapped", async () => {
-      const textDocument = await createDoc("occupied-remap.s", " move d0,d1\n");
-
-      expect(
-        provider.onRegisterRemap({
-          textDocument,
-          documentVersion: 0,
-          range: range(0, 0, 1, 0),
-          mappings: { d0: "d1" },
-        }),
-      ).toMatchObject({
-        edits: [],
-        error: "mapping-conflict",
-        conflicts: ["d1"],
-      });
-    });
-
-    it("rejects duplicate destinations", async () => {
-      const textDocument = await createDoc(
-        "duplicate-remap.s",
-        " move d0,d1\n",
-      );
-
-      expect(
-        provider.onRegisterRemap({
-          textDocument,
-          documentVersion: 0,
-          range: range(0, 0, 1, 0),
-          mappings: { d0: "d2", d1: "d2" },
-        }),
-      ).toMatchObject({
-        edits: [],
-        error: "mapping-conflict",
-        conflicts: ["d2"],
       });
     });
 

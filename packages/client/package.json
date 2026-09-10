@@ -50,7 +50,7 @@
         {
           "type": "webview",
           "id": "m68k.registerRemapping",
-          "name": "M68k Register Remapping",
+          "name": "M68k Registers",
           "icon": "icon.png"
         }
       ]
@@ -143,7 +143,7 @@
       "properties": {
         "m68k.registerColours.enabled": {
           "type": "boolean",
-          "default": false,
+          "default": true,
           "description": "Enable distinct colours for registers by default"
         },
         "m68k.format.align.mnemonic": {
