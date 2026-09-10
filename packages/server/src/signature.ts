@@ -1,4 +1,4 @@
-import { Size } from "./syntax";
+import type { Size } from "m68k-parser";
 import { Component } from "./parse";
 
 export interface SignatureInfo {

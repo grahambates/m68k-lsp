@@ -23,7 +23,7 @@
     "directory": "packages/server"
   },
   "dependencies": {
-    "m68k-parser": "^1.9.0",
+    "m68k-parser": "^1.10.0",
     "minimatch": "^10.0.1",
     "vscode-languageserver": "^9.0.1",
     "vscode-languageserver-textdocument": "^1.0.12",

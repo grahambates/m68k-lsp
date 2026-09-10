@@ -2,6 +2,8 @@ import * as lsp from "vscode-languageserver";
 import { promises as fsp } from "fs";
 import { relative } from "path";
 import { fileURLToPath } from "url";
+import { memoryTypes, sizes } from "m68k-parser";
+import type { Size } from "m68k-parser";
 
 import { Provider } from ".";
 import * as syntax from "../syntax";
@@ -121,7 +123,7 @@ export default class CompletionProvider implements Provider {
           case "<sec_type>":
             return enumValues(syntax.sectionTypes);
           case "<mem_type>":
-            return enumValues(syntax.memoryTypes);
+            return enumValues(memoryTypes);
           case "<cpu_type>":
             return enumValues(syntax.cpuTypes);
           case "<label>": {
@@ -174,10 +176,10 @@ export default class CompletionProvider implements Provider {
     return item;
   }
 
-  private completeSizes(uppercase: boolean, sizes?: syntax.Size[]) {
-    return (sizes || syntax.sizes).map((label, i) => ({
+  private completeSizes(uppercase: boolean, sizeValues?: Size[]) {
+    return (sizeValues || sizes).map((label, i) => ({
       label: uppercase ? label.toUpperCase() : label,
-      detail: sizeDocs[label as syntax.Size],
+      detail: sizeDocs[label],
       kind: lsp.CompletionItemKind.Keyword,
       sortText: String(i), // Preserve size order from docs
       preselect: label === "w", // Word is normally default
@@ -345,7 +347,7 @@ export default class CompletionProvider implements Provider {
   }
 }
 
-function enumValues(values: string[]): lsp.CompletionItem[] {
+function enumValues(values: readonly string[]): lsp.CompletionItem[] {
   return values.map((label) => ({
     label,
     kind: lsp.CompletionItemKind.Enum,

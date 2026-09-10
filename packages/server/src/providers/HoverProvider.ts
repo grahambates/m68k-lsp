@@ -15,7 +15,8 @@ import { locationAsRange } from "../geometry";
 import { resolveInclude } from "../files";
 import { DefinitionType, getDefinitions } from "../symbols";
 import { mnemonicDocs, registerDocs, sizeDocs } from "../docs/index";
-import { RegisterName, Size } from "../syntax";
+import type { Size } from "m68k-parser";
+import { RegisterName } from "../syntax";
 import { Context } from "../context";
 import { isProcessed } from "../DocumentProcessor";
 import {
