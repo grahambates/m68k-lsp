@@ -25,9 +25,13 @@ export interface RegisterRemapParams extends RegisterUsageParams {
 }
 
 export type RegisterSwapError =
-  "invalid-registers" | "stale-document" | "unsupported-reference";
+  | "invalid-registers"
+  | "stale-document"
+  | "unsupported-reference"
+  | "analysis-incomplete";
 
 export type RegisterRemapError =
+  | "analysis-incomplete"
   | "invalid-mappings"
   | "mapping-conflict"
   | "stale-document"
@@ -100,6 +104,13 @@ export default class RegisterProvider implements Provider {
     if (!usage) {
       return;
     }
+    if (usage.incomplete) {
+      return {
+        documentVersion: document.document.version,
+        edits: [],
+        error: "analysis-incomplete",
+      };
+    }
     const byName = new Map(usage.registers.map((item) => [item.name, item]));
     const selected = registers.flatMap(
       (register) => byName.get(register)?.references ?? [],
@@ -170,6 +181,13 @@ export default class RegisterProvider implements Provider {
     const usage = this.onRegisterUsage(params);
     if (!usage) {
       return;
+    }
+    if (usage.incomplete) {
+      return {
+        documentVersion: document.document.version,
+        edits: [],
+        error: "analysis-incomplete",
+      };
     }
     const byName = new Map(usage.registers.map((item) => [item.name, item]));
 

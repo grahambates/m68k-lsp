@@ -1,6 +1,6 @@
 import * as lsp from "vscode-languageserver";
 import { FileOperationFilter } from "vscode-languageserver-protocol/lib/common/protocol.fileOperations";
-import { basename } from "path";
+import { Definition, Symbols } from "../symbols";
 
 import { Provider } from ".";
 import { Context } from "../context";
@@ -64,6 +64,7 @@ export default class FileOperationsProvider implements Provider {
       const processed = this.ctx.store.get(file.oldUri);
       if (processed) {
         processed.uri = file.newUri;
+        relocateSymbols(processed.symbols, file.newUri);
         this.ctx.store.set(file.newUri, processed);
         this.ctx.store.delete(file.oldUri);
         // Replace TextDocument with correct uri
@@ -100,9 +101,10 @@ export default class FileOperationsProvider implements Provider {
         if (await isDir(newUri)) {
           const filesInDir = await getAsmFilesInDir(newUri);
           return filesInDir.map((fileUrl) => {
-            const separator = oldUri.endsWith("/") ? "" : "/";
+            const oldPrefix = oldUri.replace(/\/$/, "");
+            const newPrefix = newUri.replace(/\/$/, "");
             return {
-              oldUri: oldUri + separator + basename(fileUrl.toString()),
+              oldUri: oldPrefix + fileUrl.slice(newPrefix.length),
               newUri: fileUrl.toString(),
             };
           });
@@ -150,5 +152,26 @@ export default class FileOperationsProvider implements Provider {
         },
       },
     };
+  }
+}
+
+/** Symbol ranges stay valid across a rename, including unsaved editor text. */
+function relocateSymbols(symbols: Symbols, uri: string): void {
+  const relocateDefinition = (definition: Definition) => {
+    definition.location.uri = uri;
+    for (const local of definition.locals?.values() ?? []) {
+      relocateDefinition(local);
+    }
+  };
+  for (const definition of symbols.definitions.values()) {
+    relocateDefinition(definition);
+  }
+  for (const references of symbols.references.values()) {
+    for (const reference of references) {
+      reference.location.uri = uri;
+    }
+  }
+  for (const literal of [...symbols.includes, ...symbols.incDirs]) {
+    literal.location.uri = uri;
   }
 }

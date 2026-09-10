@@ -258,7 +258,8 @@ function webviewHtml(webview: Webview): string {
         const name = document.createElement('div');
         name.className = 'register';
         name.textContent = register.toUpperCase();
-        name.style = 'color: ' + model.colors[usage.name];
+        const color = model.colors?.[usage.name];
+        if (color) name.style.color = color;
         const access = document.createElement('div');
         access.className = 'access';
         access.textContent = accessLabel(usage);
@@ -278,7 +279,7 @@ function webviewHtml(webview: Webview): string {
           select.classList.toggle('changed', select.value !== register);
           validate();
         });
-        select.style = 'color: ' + model.colors[usage.name];
+        if (color) select.style.color = color;
         row.append(name, access, select);
         rows.append(row);
       }

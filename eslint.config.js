@@ -39,7 +39,7 @@ module.exports = tseslint.config(
     rules: { "@typescript-eslint/no-require-imports": "off" },
   },
   {
-    files: ["packages/server/test/**/*.ts"],
+    files: ["packages/*/test/**/*.ts"],
     languageOptions: {
       globals: { ...globals.jest },
     },

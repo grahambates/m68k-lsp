@@ -40,7 +40,11 @@ interface RegisterUsageResult {
 interface RegisterSwapResult {
   documentVersion: number;
   edits: Array<{ range: Range; newText: string }>;
-  error?: "invalid-registers" | "stale-document" | "unsupported-reference";
+  error?:
+    | "invalid-registers"
+    | "stale-document"
+    | "unsupported-reference"
+    | "analysis-incomplete";
   unsupported?: Array<{
     kind: "explicit" | "register-list" | "macro-expansion";
   }>;
@@ -50,6 +54,7 @@ interface RegisterRemapResult {
   documentVersion: number;
   edits: Array<{ range: Range; newText: string }>;
   error?:
+    | "analysis-incomplete"
     | "invalid-mappings"
     | "mapping-conflict"
     | "stale-document"
@@ -263,6 +268,13 @@ export function activate(context: ExtensionContext): void {
         message: `Conflicting destination: ${(planned.conflicts ?? []).map((item) => item.toUpperCase()).join(", ")}`,
       };
     }
+    if (planned.error === "analysis-incomplete") {
+      return {
+        ok: false,
+        message:
+          "Macro analysis reached an expansion limit. No registers were changed.",
+      };
+    }
     if (planned.error === "unsupported-reference") {
       const kinds = Array.from(
         new Set(planned.unsupported?.map(({ kind }) => kind)),
@@ -279,6 +291,12 @@ export function activate(context: ExtensionContext): void {
           planned.error === "stale-document"
             ? "The document changed. Refresh and try again."
             : "No register changes to apply.",
+      };
+    }
+    if (editor.document.version !== planned.documentVersion) {
+      return {
+        ok: false,
+        message: "The document changed during analysis. Refresh and try again.",
       };
     }
     const applied = await applyProtocolEdits(editor, planned.edits);
@@ -398,6 +416,12 @@ export function activate(context: ExtensionContext): void {
     if (planned.error === "stale-document") {
       void window.showWarningMessage(
         "The document changed during analysis. Run the command again.",
+      );
+      return;
+    }
+    if (planned.error === "analysis-incomplete") {
+      void window.showWarningMessage(
+        "Macro analysis reached an expansion limit. No registers were changed.",
       );
       return;
     }

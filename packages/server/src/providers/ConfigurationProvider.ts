@@ -2,8 +2,9 @@ import * as lsp from "vscode-languageserver";
 import { DidChangeConfigurationNotification } from "vscode-languageserver";
 import { URI } from "vscode-uri";
 import { Provider } from ".";
-import { Config, mergeConfig } from "../config";
+import { Config, defaultConfig, mergeConfig } from "../config";
 import { Context } from "../context";
+import { join } from "path";
 import { readdirSync, readFileSync, watch } from "fs";
 
 export default class ConfiguratonProvider implements Provider {
@@ -30,7 +31,7 @@ export default class ConfiguratonProvider implements Provider {
       if (foundPath) {
         this.ctx.logger.info("Found workspace config " + foundPath);
         try {
-          const configJson = readFileSync(foundPath).toString();
+          const configJson = readFileSync(join(path, foundPath)).toString();
           return JSON.parse(configJson);
         } catch (err) {
           if (err instanceof Error) {
@@ -44,10 +45,9 @@ export default class ConfiguratonProvider implements Provider {
   }
 
   async onDidChangeConfiguration() {
-    const oldConfig = this.clientConfig;
     const newConfig =
       await this.ctx.connection.workspace.getConfiguration("m68k");
-    this.clientConfig = mergeConfig(newConfig, oldConfig);
+    this.clientConfig = mergeConfig(newConfig, defaultConfig);
     this.updateConfig();
   }
 

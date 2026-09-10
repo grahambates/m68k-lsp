@@ -114,6 +114,8 @@ export interface RegisterUsage {
 }
 
 export interface RegisterUsageResult {
+  /** At least one macro expansion was truncated; edits must not use this result. */
+  incomplete?: boolean;
   documentVersion: number;
   registers: RegisterUsage[];
 }
@@ -144,6 +146,7 @@ export function analyzeRegisterUsage(
   }
 
   const usages = new Map<string, RegisterUsageReference[]>();
+  let incomplete = false;
   for (const { node, line } of walkFile(document.parsed)) {
     const range = locationAsRange(node.loc);
     if (!rangesOverlap(params.range, range)) {
@@ -216,6 +219,12 @@ export function analyzeRegisterUsage(
         lineText.slice(operand.loc.start, operand.loc.end),
       ),
     }));
+    const state: ExpansionState = {
+      depth: 0,
+      remainingLines: 1000,
+      stack: new Set(),
+      incomplete: false,
+    };
     expandMacro(
       definition,
       {
@@ -235,7 +244,9 @@ export function analyzeRegisterUsage(
       params.textDocument.uri,
       ctx,
       usages,
+      state,
     );
+    incomplete ||= state.incomplete;
   }
 
   const reachability = params.position
@@ -247,6 +258,7 @@ export function analyzeRegisterUsage(
     : undefined;
   return {
     documentVersion: document.document.version,
+    ...(incomplete ? { incomplete: true } : {}),
     registers: Array.from(usages, ([name, references]) => {
       const usage = summariseUsage(name, references);
       if (reachability) {
@@ -256,7 +268,7 @@ export function analyzeRegisterUsage(
             reachability.lines.has(reference.range.start.line),
           )
             ? "unavailable"
-            : reachability.unknown
+            : incomplete || reachability.unknown
               ? "unknown"
               : "available";
       }
@@ -573,6 +585,7 @@ interface ExpandedLine {
 }
 
 interface ExpansionState {
+  incomplete: boolean;
   depth: number;
   remainingLines: number;
   stack: Set<MacroDefinition>;
@@ -618,17 +631,14 @@ function expandMacro(
   documentUri: string,
   ctx: Context,
   usages: Map<string, RegisterUsageReference[]>,
-  state: ExpansionState = {
-    depth: 0,
-    remainingLines: 1000,
-    stack: new Set(),
-  },
+  state: ExpansionState,
 ) {
   if (
     state.depth >= 10 ||
     state.remainingLines <= 0 ||
     state.stack.has(definition)
   ) {
+    state.incomplete = true;
     return;
   }
 
@@ -636,6 +646,7 @@ function expandMacro(
   state.depth++;
   for (const bodyLine of definition.body) {
     if (state.remainingLines-- <= 0) {
+      state.incomplete = true;
       break;
     }
     const expanded = substituteMacroParameters(bodyLine, invocation);

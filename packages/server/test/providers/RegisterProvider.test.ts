@@ -731,7 +731,7 @@ Select macro
           textDocument,
           range: range(3, 0, 4, 0),
         }),
-      ).toEqual({ documentVersion: 0, registers: [] });
+      ).toEqual({ documentVersion: 0, registers: [], incomplete: true });
     });
 
     it("returns undefined for a document without a syntax tree", () => {
@@ -1044,6 +1044,76 @@ Second:
       ).toEqual({
         range: range(0, 0, 2, 4),
         label: "Handler",
+      });
+    });
+  });
+
+  describe("incomplete macro analysis", () => {
+    const cases = [
+      [
+        "line limit",
+        "Use macro\n move \\1,d7\n" +
+          " nop\n".repeat(999) +
+          " move d0,d6\n endm\n",
+      ],
+      ["recursion", "Use macro\n move \\1,d7\n Use \\1\n endm\n"],
+      [
+        "depth limit",
+        Array.from(
+          { length: 11 },
+          (_, i) =>
+            `${i === 0 ? "Use" : `Nested${i}`} macro\n${i < 10 ? ` Nested${i + 1} \\1` : " move d0,d6"}\n endm\n`,
+        ).join(""),
+      ],
+    ];
+    it.each(cases)(
+      "rejects remapping and swapping after reaching the %s",
+      async (name, definitions) => {
+        const callLine = definitions.split("\n").length - 1;
+        const textDocument = await createDoc(
+          `${name}.s`,
+          definitions + " Use d0\n move d0,d1\n",
+        );
+        const params = {
+          textDocument,
+          documentVersion: 0,
+          range: range(callLine, 0, callLine + 2, 0),
+        };
+        expect(provider.onRegisterUsage(params)?.incomplete).toBe(true);
+        expect(
+          provider.onRegisterRemap({ ...params, mappings: { d0: "d2" } }),
+        ).toMatchObject({
+          edits: [],
+          error: "analysis-incomplete",
+        });
+        expect(
+          provider.onRegisterSwap({ ...params, registers: ["d0", "d2"] }),
+        ).toMatchObject({
+          edits: [],
+          error: "analysis-incomplete",
+        });
+      },
+    );
+
+    it("allows a macro that finishes exactly at the line limit", async () => {
+      const definitions =
+        "Use macro\n move \\1,d7\n" + " nop\n".repeat(999) + " endm\n";
+      const callLine = definitions.split("\n").length - 1;
+      const textDocument = await createDoc(
+        "exact-limit.s",
+        definitions + " Use d0\n",
+      );
+      const params = {
+        textDocument,
+        documentVersion: 0,
+        range: range(callLine, 0, callLine + 1, 0),
+      };
+      expect(provider.onRegisterUsage(params)?.incomplete).toBeUndefined();
+      expect(
+        provider.onRegisterRemap({ ...params, mappings: { d0: "d2" } }),
+      ).toEqual({
+        documentVersion: 0,
+        edits: [{ range: range(callLine, 5, callLine, 7), newText: "d2" }],
       });
     });
   });
