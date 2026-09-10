@@ -154,6 +154,7 @@ describe("DocumentHighlightProvider", () => {
         registers: [
           {
             name: "d0",
+            firstUse: { line: 0, character: 6 },
             references: [
               {
                 range: range(0, 6, 0, 8),
@@ -168,6 +169,7 @@ describe("DocumentHighlightProvider", () => {
           },
           {
             name: "d1",
+            firstUse: { line: 0, character: 9 },
             references: [
               {
                 range: range(0, 9, 0, 11),
@@ -182,6 +184,7 @@ describe("DocumentHighlightProvider", () => {
           },
           {
             name: "a7",
+            firstUse: { line: 1, character: 7 },
             references: [
               {
                 range: range(1, 7, 1, 9),
@@ -196,6 +199,7 @@ describe("DocumentHighlightProvider", () => {
           },
           {
             name: "d2",
+            firstUse: { line: 1, character: 11 },
             references: [
               {
                 range: range(1, 11, 1, 13),
@@ -715,10 +719,13 @@ Second:
           textDocument,
           position: lsp.Position.create(7, 4),
         }),
-      ).toEqual(range(4, 0, 8, 4));
+      ).toEqual({
+        range: range(4, 0, 8, 4),
+        label: "Second",
+      });
     });
 
-    it("returns undefined without a preceding non-local label", async () => {
+    it("uses the start of the file before the first non-local label", async () => {
       const textDocument = await createDoc(
         "no-label.s",
         " moveq #1,d0\n rts\n",
@@ -729,24 +736,89 @@ Second:
           textDocument,
           position: lsp.Position.create(0, 2),
         }),
-      ).toBeUndefined();
+      ).toEqual({
+        range: range(0, 0, 1, 4),
+        label: "Start of file",
+      });
     });
 
-    it("returns undefined without a following RTS", async () => {
+    it("includes preamble code through the first routine RTS", async () => {
       const textDocument = await createDoc(
-        "no-rts.s",
-        "Start:\n moveq #1,d0\n",
+        "preamble-label.s",
+        ` moveq #1,d0
+Start:
+ moveq #2,d1
+ rts
+`,
       );
 
-      expect(
-        provider.onRoutineRange({
-          textDocument,
-          position: lsp.Position.create(1, 2),
-        }),
-      ).toBeUndefined();
+      const scope = provider.onRoutineRange({
+        textDocument,
+        position: lsp.Position.create(0, 2),
+      });
+
+      expect(scope).toEqual({
+        range: range(0, 0, 3, 4),
+        label: "Start of file",
+      });
+      const usage = provider.onRegisterUsage({
+        textDocument,
+        range: scope!.range,
+      });
+      expect(usage?.registers.map(({ name }) => name)).toEqual(["d0", "d1"]);
     });
 
-    it("does not use an RTS beyond the next non-local label", async () => {
+    it("does not treat an RS offset definition as a code label", async () => {
+      const textDocument = await createDoc(
+        "offset-definition.s",
+        `Tr_SIZEOF       rs.w    0
+                move.w d0,d1
+`,
+      );
+
+      const scope = provider.onRoutineRange({
+        textDocument,
+        position: lsp.Position.create(1, 20),
+      });
+
+      expect(scope).toEqual({
+        range: range(0, 0, 2, 0),
+        label: "Start of file",
+      });
+      const usage = provider.onRegisterUsage({
+        textDocument,
+        range: scope!.range,
+      });
+      expect(usage?.registers.map(({ name }) => name)).toEqual(["d0", "d1"]);
+    });
+
+    it("continues through the end of the file without a return", async () => {
+      const textDocument = await createDoc(
+        "no-rts.s",
+        `Start:
+ moveq #1,d0
+Tail:
+ moveq #2,d1
+`,
+      );
+
+      const scope = provider.onRoutineRange({
+        textDocument,
+        position: lsp.Position.create(1, 2),
+      });
+
+      expect(scope).toEqual({
+        range: range(0, 0, 4, 0),
+        label: "Start",
+      });
+      const usage = provider.onRegisterUsage({
+        textDocument,
+        range: scope!.range,
+      });
+      expect(usage?.registers.map(({ name }) => name)).toEqual(["d0", "d1"]);
+    });
+
+    it("falls through later labeled regions until a return", async () => {
       const textDocument = await createDoc(
         "next-routine.s",
         `First:
@@ -757,12 +829,40 @@ Second:
 `,
       );
 
+      const scope = provider.onRoutineRange({
+        textDocument,
+        position: lsp.Position.create(1, 2),
+      });
+
+      expect(scope).toEqual({
+        range: range(0, 0, 4, 4),
+        label: "First",
+      });
+      const usage = provider.onRegisterUsage({
+        textDocument,
+        range: scope!.range,
+      });
+      expect(usage?.registers.map(({ name }) => name)).toEqual(["d0", "d1"]);
+    });
+
+    it.each(["rte", "rtr"])("ends an inferred scope at %s", async (return_) => {
+      const textDocument = await createDoc(
+        `routine-${return_}.s`,
+        `Handler:
+ moveq #1,d0
+ ${return_}
+`,
+      );
+
       expect(
         provider.onRoutineRange({
           textDocument,
           position: lsp.Position.create(1, 2),
         }),
-      ).toBeUndefined();
+      ).toEqual({
+        range: range(0, 0, 2, 4),
+        label: "Handler",
+      });
     });
   });
 

@@ -29,6 +29,7 @@ interface RegisterUsageResult {
   documentVersion: number;
   registers: Array<{
     name: string;
+    firstUse: { line: number; character: number };
     read: boolean;
     written: boolean;
     input?: boolean;
@@ -62,6 +63,11 @@ interface RemappingContext {
   uri: string;
   range: Range;
   documentVersion: number;
+}
+
+interface RegisterCommandScope {
+  range: Range;
+  label?: string;
 }
 
 const generalPurposeRegisters = [
@@ -183,11 +189,12 @@ export function activate(context: ExtensionContext): void {
       remappingContext = undefined;
       return;
     }
-    const range = await registerCommandRange(editor, false);
-    if (!range) {
+    const scope = await registerCommandScope(editor, false);
+    if (!scope) {
       remappingContext = undefined;
       return;
     }
+    const { range } = scope;
     const usage = await client.sendRequest<RegisterUsageResult | undefined>(
       "m68k/registerUsage",
       {
@@ -205,7 +212,7 @@ export function activate(context: ExtensionContext): void {
       documentVersion: usage.documentVersion,
     };
     return {
-      scope: `${path.basename(editor.document.fileName)} · lines ${range.start.line + 1}-${range.end.line + 1}`,
+      scope: `${scope.label ? `${scope.label} · ` : ""}lines ${range.start.line + 1}-${range.end.line + 1}`,
       registers: usage.registers,
     };
   };
@@ -279,10 +286,11 @@ export function activate(context: ExtensionContext): void {
       void window.showWarningMessage("Open an M68k assembly file first.");
       return;
     }
-    const range = await registerCommandRange(editor);
-    if (!range) {
+    const scope = await registerCommandScope(editor);
+    if (!scope) {
       return;
     }
+    const { range } = scope;
 
     const usage = await client.sendRequest<RegisterUsageResult | undefined>(
       "m68k/registerUsage",
@@ -327,10 +335,11 @@ export function activate(context: ExtensionContext): void {
       void window.showWarningMessage("Open an M68k assembly file first.");
       return;
     }
-    const range = await registerCommandRange(editor);
-    if (!range) {
+    const scope = await registerCommandScope(editor);
+    if (!scope) {
       return;
     }
+    const { range } = scope;
 
     const usage = await client.sendRequest<RegisterUsageResult | undefined>(
       "m68k/registerUsage",
@@ -559,26 +568,26 @@ async function pickRegister(
   return picked?.register;
 }
 
-async function registerCommandRange(
+async function registerCommandScope(
   editor: TextEditor,
   showWarning = true,
-): Promise<Range | undefined> {
+): Promise<RegisterCommandScope | undefined> {
   if (!editor.selection.isEmpty) {
-    return editor.selection;
+    return { range: editor.selection };
   }
-  const range = await client.sendRequest<Range | undefined>(
+  const scope = await client.sendRequest<RegisterCommandScope | undefined>(
     "m68k/routineRange",
     {
       textDocument: { uri: editor.document.uri.toString() },
       position: editor.selection.active,
     },
   );
-  if (!range && showWarning) {
+  if (!scope && showWarning) {
     void window.showWarningMessage(
-      "Could not find a preceding non-local label and following RTS.",
+      "Could not determine a register analysis scope.",
     );
   }
-  return range;
+  return scope;
 }
 
 async function pickDestinationRegister(

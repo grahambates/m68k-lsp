@@ -2,6 +2,7 @@ import { Disposable, Webview, WebviewView, WebviewViewProvider } from "vscode";
 
 export interface RegisterViewUsage {
   name: string;
+  firstUse: { line: number; character: number };
   read: boolean;
   written: boolean;
   input?: boolean;
@@ -103,6 +104,14 @@ function webviewHtml(webview: Webview): string {
       text-overflow: ellipsis;
       white-space: nowrap;
     }
+    .options {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 7px;
+      color: var(--vscode-foreground);
+    }
+    .options input { margin: 0; }
     main { padding: 4px 12px 72px; }
     .row {
       display: grid;
@@ -111,7 +120,6 @@ function webviewHtml(webview: Webview): string {
       min-height: 34px;
       border-bottom: 1px solid color-mix(in srgb, var(--vscode-widget-border) 55%, transparent);
     }
-    .row.unused { color: var(--vscode-disabledForeground); }
     .register { font-family: var(--vscode-editor-font-family); font-weight: 600; }
     .access { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     select, button {
@@ -143,12 +151,15 @@ function webviewHtml(webview: Webview): string {
   </style>
 </head>
 <body>
-  <header><div id="scope">No M68k scope</div></header>
+  <header>
+    <div id="scope">No M68k scope</div>
+    <label class="options"><input id="sort-first-use" type="checkbox"> Sort by first use</label>
+  </header>
   <main><div id="rows"></div><div id="empty">Open an M68k file to begin.</div></main>
   <footer>
     <div id="status"></div>
     <div class="actions">
-      <button class="primary" id="apply" disabled>Apply</button>
+      <button class="primary" id="apply" disabled>Remap</button>
       <button id="reset" disabled>Reset</button>
       <button id="refresh">Refresh</button>
     </div>
@@ -175,12 +186,15 @@ function webviewHtml(webview: Webview): string {
     ])};
     let model;
     let mappings = {};
+    let sortByFirstUse = vscode.getState()?.sortByFirstUse || false;
     const rows = document.getElementById('rows');
     const empty = document.getElementById('empty');
     const scope = document.getElementById('scope');
     const status = document.getElementById('status');
     const apply = document.getElementById('apply');
     const reset = document.getElementById('reset');
+    const sortToggle = document.getElementById('sort-first-use');
+    sortToggle.checked = sortByFirstUse;
 
     function accessLabel(usage) {
       if (!usage) return 'unused';
@@ -202,21 +216,19 @@ function webviewHtml(webview: Webview): string {
       reset.disabled = changed.length === 0;
     }
 
-    function render(nextModel) {
-      model = nextModel;
-      mappings = {};
+    function renderRows() {
       rows.replaceChildren();
-      scope.textContent = model?.scope || 'No M68k scope';
-      empty.hidden = !!model;
-      if (!model) {
-        validate();
-        return;
-      }
       const usageByName = new Map(model.registers.map((usage) => [usage.name, usage]));
-      for (const register of allRegisters) {
-        const usage = usageByName.get(register);
+      const usages = [...model.registers];
+      if (sortByFirstUse) {
+        usages.sort((left, right) => left.firstUse.line - right.firstUse.line || left.firstUse.character - right.firstUse.character);
+      } else {
+        usages.sort((left, right) => allRegisters.indexOf(left.name) - allRegisters.indexOf(right.name));
+      }
+      for (const usage of usages) {
+        const register = usage.name;
         const row = document.createElement('div');
-        row.className = 'row' + (usage ? '' : ' unused');
+        row.className = 'row';
         const name = document.createElement('div');
         name.className = 'register';
         name.textContent = register.toUpperCase();
@@ -224,15 +236,16 @@ function webviewHtml(webview: Webview): string {
         access.className = 'access';
         access.textContent = accessLabel(usage);
         const select = document.createElement('select');
-        select.disabled = !usage;
+        const selectedDestination = mappings[register] || register;
         select.setAttribute('aria-label', 'Map ' + register.toUpperCase());
         for (const destination of allRegisters) {
           const option = document.createElement('option');
           option.value = destination;
           option.textContent = destination.toUpperCase() + (usageByName.has(destination) ? '' : ' (unused)');
-          option.selected = destination === register;
+          option.selected = destination === selectedDestination;
           select.append(option);
         }
+        select.classList.toggle('changed', selectedDestination !== register);
         select.addEventListener('change', () => {
           mappings[register] = select.value;
           select.classList.toggle('changed', select.value !== register);
@@ -244,8 +257,27 @@ function webviewHtml(webview: Webview): string {
       validate();
     }
 
+    function render(nextModel) {
+      model = nextModel;
+      mappings = {};
+      rows.replaceChildren();
+      scope.textContent = model?.scope || 'No M68k scope';
+      empty.textContent = model ? 'No registers used in this scope.' : 'Open an M68k file to begin.';
+      empty.hidden = !!model?.registers.length;
+      if (!model) {
+        validate();
+        return;
+      }
+      renderRows();
+    }
+
     apply.addEventListener('click', () => vscode.postMessage({ type: 'apply', mappings }));
     reset.addEventListener('click', () => render(model));
+    sortToggle.addEventListener('change', () => {
+      sortByFirstUse = sortToggle.checked;
+      vscode.setState({ sortByFirstUse });
+      if (model) renderRows();
+    });
     document.getElementById('refresh').addEventListener('click', () => vscode.postMessage({ type: 'refresh' }));
     window.addEventListener('message', ({ data }) => {
       if (data.type === 'model') render(data.model);

@@ -75,6 +75,8 @@ const writeOnlyDestinations = new Set([
   "svs",
 ]);
 
+const routineReturns = new Set(["rts", "rte", "rtr"]);
+
 export type RegisterAccess = "read" | "write" | "readwrite" | "unknown";
 
 export interface RegisterUsageReference {
@@ -87,6 +89,7 @@ export interface RegisterUsageReference {
 export interface RegisterUsage {
   name: string;
   references: RegisterUsageReference[];
+  firstUse: lsp.Position;
   read: boolean;
   written: boolean;
   input?: boolean;
@@ -105,6 +108,11 @@ export interface RegisterUsageParams {
 export interface RoutineRangeParams {
   textDocument: lsp.TextDocumentIdentifier;
   position: lsp.Position;
+}
+
+export interface RoutineRangeResult {
+  range: lsp.Range;
+  label: string;
 }
 
 export interface RegisterSwapParams extends RegisterUsageParams {
@@ -470,7 +478,7 @@ export default class DocumentHighlightProvider implements Provider {
     return { documentVersion: document.document.version, edits };
   }
 
-  onRoutineRange(params: RoutineRangeParams): lsp.Range | undefined {
+  onRoutineRange(params: RoutineRangeParams): RoutineRangeResult | undefined {
     const document = this.ctx.store.get(params.textDocument.uri);
     if (!isProcessed(document)) {
       return;
@@ -485,15 +493,15 @@ export default class DocumentHighlightProvider implements Provider {
       index >= 0;
       index--
     ) {
-      const label = document.parsed.lines[index].label;
-      if (label && label.scope !== "local") {
+      const line = document.parsed.lines[index];
+      if (isNonLocalCodeLabel(line)) {
         startLine = index;
         break;
       }
     }
-    if (startLine === undefined) {
-      return;
-    }
+    startLine ??= 0;
+    const start = document.parsed.lines[startLine];
+    const label = isNonLocalCodeLabel(start) ? start.label : undefined;
 
     for (
       let index = params.position.line;
@@ -501,24 +509,28 @@ export default class DocumentHighlightProvider implements Provider {
       index++
     ) {
       const line = document.parsed.lines[index];
-      if (
-        index > params.position.line &&
-        line.label &&
-        line.label.scope !== "local"
-      ) {
-        return;
-      }
       const mnemonic = line.mnemonic;
       if (
         mnemonic?.type === "instruction" &&
-        mnemonic.instruction.toLowerCase() === "rts"
+        routineReturns.has(mnemonic.instruction.toLowerCase())
       ) {
-        return lsp.Range.create(
-          lsp.Position.create(startLine, 0),
-          lsp.Position.create(index, mnemonic.loc.end),
-        );
+        return {
+          range: lsp.Range.create(
+            lsp.Position.create(startLine, 0),
+            lsp.Position.create(index, mnemonic.loc.end),
+          ),
+          label: label?.label ?? "Start of file",
+        };
       }
     }
+
+    return {
+      range: lsp.Range.create(
+        lsp.Position.create(startLine, 0),
+        document.document.positionAt(document.document.getText().length),
+      ),
+      label: label?.label ?? "Start of file",
+    };
   }
 
   private registerRanges(uri: string): Record<string, lsp.Range[]> {
@@ -536,6 +548,14 @@ export default class DocumentHighlightProvider implements Provider {
     }
     return ranges;
   }
+}
+
+function isNonLocalCodeLabel(line: ParsedLine): boolean {
+  return (
+    line.label !== undefined &&
+    line.label.scope !== "local" &&
+    line.mnemonic?.type !== "directive"
+  );
 }
 
 function registerName(node: AstNode) {
@@ -834,6 +854,13 @@ function summariseUsage(
   return {
     name,
     references,
+    firstUse: references.reduce(
+      (first, reference) =>
+        comparePositions(reference.range.start, first) < 0
+          ? reference.range.start
+          : first,
+      references[0].range.start,
+    ),
     read: references.some(({ access }) => includesRead(access)),
     written: references.some(({ access }) => includesWrite(access)),
     input:
