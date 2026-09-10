@@ -32,6 +32,8 @@ export type {
   AddressSize,
   BinaryOp,
   UnaryOp,
+  SectionType,
+  MemoryType,
   ParseError,
   ParseErrorCode,
 };
