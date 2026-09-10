@@ -1,9 +1,11 @@
 import * as lsp from "vscode-languageserver";
-import type { ParsedLine } from "m68k-parser";
+import { parseLine } from "m68k-parser";
+import type { Block, ParsedLine } from "m68k-parser";
 import { Provider } from ".";
-import { AstNode, nodeAtPosition, walkFile } from "../ast";
+import { AstNode, nodeAtPosition, walkFile, walkLine } from "../ast";
 import { Context } from "../context";
-import { isProcessed } from "../DocumentProcessor";
+import { isProcessed, MacroDefinition } from "../DocumentProcessor";
+import { getUnitFilesByDistance } from "../files";
 import { locationAsRange } from "../geometry";
 import { symbolAtPosition } from "../symbols";
 
@@ -78,7 +80,7 @@ export type RegisterAccess = "read" | "write" | "readwrite" | "unknown";
 export interface RegisterUsageReference {
   range: lsp.Range;
   spelling: string;
-  kind: "explicit" | "register-list";
+  kind: "explicit" | "register-list" | "macro-expansion";
   access: RegisterAccess;
 }
 
@@ -189,6 +191,17 @@ export default class DocumentHighlightProvider implements Provider {
         continue;
       }
 
+      if (
+        line.mnemonic?.type === "macro" &&
+        findMacroDefinition(
+          line.mnemonic.macro,
+          params.textDocument.uri,
+          this.ctx,
+        )
+      ) {
+        continue;
+      }
+
       const register = canonicalGeneralPurposeRegister(registerName(node));
       if (register) {
         addReference(usages, register, {
@@ -218,6 +231,53 @@ export default class DocumentHighlightProvider implements Provider {
           }
         }
       }
+    }
+
+    const lineTexts = document.document.getText().split(/\r?\n/g);
+    const macroDefinitionLines = collectMacroDefinitionLines(
+      document.blocks.blocks,
+    );
+    for (const [index, line] of document.parsed.lines.entries()) {
+      if (line.mnemonic?.type !== "macro" || macroDefinitionLines.has(index)) {
+        continue;
+      }
+      const callRange = locationAsRange(line.mnemonic.loc);
+      if (!rangesOverlap(params.range, callRange)) {
+        continue;
+      }
+      const definition = findMacroDefinition(
+        line.mnemonic.macro,
+        params.textDocument.uri,
+        this.ctx,
+      );
+      if (!definition) {
+        continue;
+      }
+      const lineText = lineTexts[index] ?? "";
+      const arguments_ = (line.operands ?? []).map((operand) => ({
+        text: lineText.slice(operand.loc.start, operand.loc.end),
+        sourceRange: locationAsRange(operand.loc),
+      }));
+      expandMacro(
+        definition,
+        {
+          arguments: arguments_,
+          qualifier: line.qualifier
+            ? {
+                text: lineText.slice(
+                  line.qualifier.loc.start,
+                  line.qualifier.loc.end,
+                ),
+                sourceRange: locationAsRange(line.qualifier.loc),
+              }
+            : undefined,
+          carg: 1,
+        },
+        callRange,
+        params.textDocument.uri,
+        this.ctx,
+        usages,
+      );
     }
 
     return {
@@ -269,6 +329,262 @@ function addReference(
   (usages.get(register) ?? usages.set(register, []).get(register)!).push(
     reference,
   );
+}
+
+interface MacroArgument {
+  text: string;
+  sourceRange?: lsp.Range;
+}
+
+interface MacroInvocation {
+  arguments: MacroArgument[];
+  qualifier?: MacroArgument;
+  carg: number;
+}
+
+interface ExpansionSpan {
+  start: number;
+  end: number;
+  sourceRange: lsp.Range;
+}
+
+interface ExpandedLine {
+  text: string;
+  spans: ExpansionSpan[];
+}
+
+interface ExpansionState {
+  depth: number;
+  remainingLines: number;
+  stack: Set<MacroDefinition>;
+}
+
+function collectMacroDefinitionLines(blocks: Block[]): Set<number> {
+  const lines = new Set<number>();
+  const visit = (items: Block[]) => {
+    for (const block of items) {
+      if (block.kind === "macro" && block.end !== undefined) {
+        for (let index = block.start; index <= block.end; index++) {
+          lines.add(index);
+        }
+      }
+      visit(block.children);
+    }
+  };
+  visit(blocks);
+  return lines;
+}
+
+function findMacroDefinition(
+  name: string,
+  documentUri: string,
+  ctx: Context,
+): MacroDefinition | undefined {
+  const key = name.toLowerCase();
+  for (const uri of [
+    documentUri,
+    ...getUnitFilesByDistance(documentUri, ctx),
+  ]) {
+    const definition = ctx.store.get(uri)?.macros.get(key);
+    if (definition) {
+      return definition;
+    }
+  }
+}
+
+function expandMacro(
+  definition: MacroDefinition,
+  invocation: MacroInvocation,
+  callRange: lsp.Range,
+  documentUri: string,
+  ctx: Context,
+  usages: Map<string, RegisterUsageReference[]>,
+  state: ExpansionState = {
+    depth: 0,
+    remainingLines: 1000,
+    stack: new Set(),
+  },
+) {
+  if (
+    state.depth >= 10 ||
+    state.remainingLines <= 0 ||
+    state.stack.has(definition)
+  ) {
+    return;
+  }
+
+  state.stack.add(definition);
+  state.depth++;
+  for (const bodyLine of definition.body) {
+    if (state.remainingLines-- <= 0) {
+      break;
+    }
+    const expanded = substituteMacroParameters(bodyLine, invocation);
+    const line = parseLine(expanded.text).value;
+    addExpandedRegisters(line, expanded, callRange, usages);
+
+    if (line.mnemonic?.type === "macro") {
+      const nested = findMacroDefinition(line.mnemonic.macro, documentUri, ctx);
+      if (nested) {
+        const nestedArguments = (line.operands ?? []).map((operand) => ({
+          text: expanded.text.slice(operand.loc.start, operand.loc.end),
+          sourceRange:
+            sourceRangeForLocation(operand.loc, expanded.spans) ?? callRange,
+        }));
+        expandMacro(
+          nested,
+          {
+            arguments: nestedArguments,
+            qualifier: line.qualifier
+              ? {
+                  text: expanded.text.slice(
+                    line.qualifier.loc.start,
+                    line.qualifier.loc.end,
+                  ),
+                  sourceRange: sourceRangeForLocation(
+                    line.qualifier.loc,
+                    expanded.spans,
+                  ),
+                }
+              : undefined,
+            carg: 1,
+          },
+          callRange,
+          documentUri,
+          ctx,
+          usages,
+          state,
+        );
+      }
+    }
+  }
+  state.depth--;
+  state.stack.delete(definition);
+}
+
+function substituteMacroParameters(
+  text: string,
+  invocation: MacroInvocation,
+): ExpandedLine {
+  let output = "";
+  let cursor = 0;
+  const spans: ExpansionSpan[] = [];
+  const pattern = /\\(\?([1-9a-z])|[0-9a-z#.+-])|\b(NARG|CARG)\b/gi;
+  for (const match of text.matchAll(pattern)) {
+    const start = match.index;
+    output += text.slice(cursor, start);
+    const substitution = macroSubstitution(match, invocation);
+    const replacementStart = output.length;
+    output += substitution?.text ?? match[0];
+    if (substitution?.sourceRange) {
+      spans.push({
+        start: replacementStart,
+        end: output.length,
+        sourceRange: substitution.sourceRange,
+      });
+    }
+    cursor = start + match[0].length;
+  }
+  output += text.slice(cursor);
+  return { text: output, spans };
+}
+
+function macroSubstitution(
+  match: RegExpMatchArray,
+  invocation: MacroInvocation,
+): MacroArgument | undefined {
+  const builtin = match[3]?.toUpperCase();
+  if (builtin === "NARG" || match[1] === "#") {
+    return { text: String(invocation.arguments.length) };
+  }
+  if (builtin === "CARG") {
+    return { text: String(invocation.carg) };
+  }
+
+  const parameter = match[1];
+  if (parameter === "0") {
+    return invocation.qualifier ?? { text: "" };
+  }
+  if (parameter === "." || parameter === "+" || parameter === "-") {
+    const argument = invocation.arguments[invocation.carg - 1] ?? { text: "" };
+    if (parameter === "+") {
+      invocation.carg++;
+    } else if (parameter === "-") {
+      invocation.carg--;
+    }
+    return argument;
+  }
+
+  const query = match[2];
+  if (query) {
+    const index = macroArgumentIndex(query);
+    return {
+      text: String(
+        index === undefined
+          ? 0
+          : (invocation.arguments[index]?.text.length ?? 0),
+      ),
+    };
+  }
+  const index = macroArgumentIndex(parameter);
+  return index === undefined ? undefined : invocation.arguments[index];
+}
+
+function macroArgumentIndex(parameter: string): number | undefined {
+  if (/^[1-9]$/.test(parameter)) {
+    return Number(parameter) - 1;
+  }
+  if (/^[a-z]$/i.test(parameter)) {
+    return parameter.toLowerCase().charCodeAt(0) - "a".charCodeAt(0) + 9;
+  }
+}
+
+function addExpandedRegisters(
+  line: ParsedLine,
+  expanded: ExpandedLine,
+  callRange: lsp.Range,
+  usages: Map<string, RegisterUsageReference[]>,
+) {
+  for (const node of walkLine(line)) {
+    const register = canonicalGeneralPurposeRegister(registerName(node));
+    if (register) {
+      addReference(usages, register, {
+        range: sourceRangeForLocation(node.loc, expanded.spans) ?? callRange,
+        spelling: expanded.text.slice(node.loc.start, node.loc.end),
+        kind: "macro-expansion",
+        access: registerAccess(node, line),
+      });
+      continue;
+    }
+    if (node.type !== "register-list") {
+      continue;
+    }
+    const registers = (node as AstNode & { registers?: unknown }).registers;
+    if (!Array.isArray(registers)) {
+      continue;
+    }
+    const reference: RegisterUsageReference = {
+      range: sourceRangeForLocation(node.loc, expanded.spans) ?? callRange,
+      spelling: expanded.text.slice(node.loc.start, node.loc.end),
+      kind: "macro-expansion",
+      access: registerAccess(node, line),
+    };
+    for (const item of registers) {
+      const listed = canonicalGeneralPurposeRegister(item);
+      if (listed) {
+        addReference(usages, listed, reference);
+      }
+    }
+  }
+}
+
+function sourceRangeForLocation(
+  location: AstNode["loc"],
+  spans: ExpansionSpan[],
+): lsp.Range | undefined {
+  return spans.find(
+    (span) => location.start < span.end && span.start < location.end,
+  )?.sourceRange;
 }
 
 function summariseUsage(

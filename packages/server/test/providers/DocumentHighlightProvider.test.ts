@@ -265,6 +265,277 @@ describe("DocumentHighlightProvider", () => {
       expect(byName.get("d7")?.references[0].access).toBe("write");
     });
 
+    it("expands textual macro parameters and reparses generated registers", async () => {
+      const textDocument = await createDoc(
+        "macro-usage.s",
+        `Paint macro
+ move.w d\\1,d2
+ add.w d3,d\\1
+ endm
+ Paint 4
+`,
+      );
+
+      const result = provider.onRegisterUsage({
+        textDocument,
+        range: range(4, 0, 5, 0),
+      });
+      const byName = new Map(
+        result?.registers.map((usage) => [usage.name, usage]),
+      );
+
+      expect(byName.get("d4")?.references).toEqual([
+        {
+          range: range(4, 7, 4, 8),
+          spelling: "d4",
+          kind: "macro-expansion",
+          access: "read",
+        },
+        {
+          range: range(4, 7, 4, 8),
+          spelling: "d4",
+          kind: "macro-expansion",
+          access: "readwrite",
+        },
+      ]);
+      expect(byName.get("d2")?.references[0]).toEqual({
+        range: range(4, 1, 4, 6),
+        spelling: "d2",
+        kind: "macro-expansion",
+        access: "write",
+      });
+      expect(byName.get("d3")?.references[0].access).toBe("read");
+    });
+
+    it("preserves argument provenance through nested macro calls", async () => {
+      const textDocument = await createDoc(
+        "nested-macro.s",
+        `Inner macro
+ move.w d\\1,d0
+ endm
+Outer macro
+ Inner \\1
+ endm
+ Outer 5
+`,
+      );
+
+      const result = provider.onRegisterUsage({
+        textDocument,
+        range: range(6, 0, 7, 0),
+      });
+      const d5 = result?.registers.find(({ name }) => name === "d5");
+
+      expect(d5?.references).toEqual([
+        {
+          range: range(6, 7, 6, 8),
+          spelling: "d5",
+          kind: "macro-expansion",
+          access: "read",
+        },
+      ]);
+    });
+
+    it("does not execute nested calls when selecting a macro definition", async () => {
+      const textDocument = await createDoc(
+        "macro-definition.s",
+        `Inner macro
+ move.w d6,d0
+ endm
+Outer macro
+ Inner
+ endm
+`,
+      );
+
+      const result = provider.onRegisterUsage({
+        textDocument,
+        range: range(3, 0, 6, 0),
+      });
+
+      expect(result?.registers).toEqual([]);
+    });
+
+    it("classifies direct register arguments from their expanded use only", async () => {
+      const textDocument = await createDoc(
+        "register-argument.s",
+        `Copy macro
+ move.w \\1,d0
+ endm
+ Copy d5
+`,
+      );
+
+      const result = provider.onRegisterUsage({
+        textDocument,
+        range: range(3, 0, 4, 0),
+      });
+      const d5 = result?.registers.find(({ name }) => name === "d5");
+
+      expect(d5).toMatchObject({ read: true, written: false, input: true });
+      expect(d5?.references).toEqual([
+        {
+          range: range(3, 6, 3, 8),
+          spelling: "d5",
+          kind: "macro-expansion",
+          access: "read",
+        },
+      ]);
+    });
+
+    it("expands arguments 10 through 35 using letter parameters", async () => {
+      const arguments_ = Array.from({ length: 35 }, (_, index) =>
+        index === 9 ? "3" : index === 34 ? "4" : "0",
+      ).join(",");
+      const textDocument = await createDoc(
+        "extended-arguments.s",
+        `Extended macro
+ move.w d\\a,d\\z
+ endm
+ Extended ${arguments_}
+`,
+      );
+
+      const result = provider.onRegisterUsage({
+        textDocument,
+        range: range(3, 0, 4, 0),
+      });
+
+      expect(result?.registers.map(({ name }) => name)).toEqual(["d3", "d4"]);
+      expect(result?.registers[0]).toMatchObject({
+        read: true,
+        written: false,
+        input: true,
+      });
+      expect(result?.registers[1]).toMatchObject({
+        read: false,
+        written: true,
+        input: false,
+      });
+    });
+
+    it("expands NARG and the argument-count parameter", async () => {
+      const textDocument = await createDoc(
+        "narg.s",
+        `Use macro
+ move.w d\\1,d0
+ endm
+Count macro
+ Use NARG
+ move.w d0,d\\#
+ endm
+ Count x,y,z
+`,
+      );
+
+      const result = provider.onRegisterUsage({
+        textDocument,
+        range: range(7, 0, 8, 0),
+      });
+      const d3 = result?.registers.find(({ name }) => name === "d3");
+
+      expect(d3?.references.map(({ access }) => access)).toEqual([
+        "read",
+        "write",
+      ]);
+    });
+
+    it("expands qualifier and argument-length parameters", async () => {
+      const textDocument = await createDoc(
+        "qualifier-query.s",
+        `Meta macro
+ move.w d\\0,d\\?1
+ endm
+ Meta.5 abc
+`,
+      );
+
+      const result = provider.onRegisterUsage({
+        textDocument,
+        range: range(3, 0, 4, 0),
+      });
+      const byName = new Map(
+        result?.registers.map((usage) => [usage.name, usage]),
+      );
+
+      expect(byName.get("d5")?.references[0]).toMatchObject({
+        range: range(3, 6, 3, 7),
+        spelling: "d5",
+        access: "read",
+      });
+      expect(byName.get("d3")?.references[0]).toMatchObject({
+        spelling: "d3",
+        access: "write",
+      });
+    });
+
+    it("tracks CARG selectors and mutation across a macro body", async () => {
+      const textDocument = await createDoc(
+        "carg.s",
+        `Use macro
+ move.w d\\1,d0
+ endm
+Select macro
+ move.w d\\.,d0
+ move.w d\\+,d0
+ Use CARG
+ move.w d\\.,d0
+ move.w d\\-,d0
+ move.w d\\.,d0
+ endm
+ Select 2,3
+`,
+      );
+
+      const result = provider.onRegisterUsage({
+        textDocument,
+        range: range(11, 0, 12, 0),
+      });
+      const byName = new Map(
+        result?.registers.map((usage) => [usage.name, usage]),
+      );
+
+      expect(byName.get("d2")?.references).toHaveLength(4);
+      expect(byName.get("d3")?.references).toHaveLength(2);
+    });
+
+    it("resolves macro definitions from included unit documents", async () => {
+      const macroDocument = await createDoc(
+        "macros.i",
+        `Paint macro
+ move.w d\\1,d0
+ endm
+`,
+      );
+      const textDocument = await createDoc("macro-caller.s", " Paint 6\n");
+      ctx.store.get(textDocument.uri)!.referencedUris.push(macroDocument.uri);
+
+      const result = provider.onRegisterUsage({
+        textDocument,
+        range: range(0, 0, 1, 0),
+      });
+
+      expect(result?.registers.map(({ name }) => name)).toEqual(["d6", "d0"]);
+    });
+
+    it("stops recursive macro expansion", async () => {
+      const textDocument = await createDoc(
+        "recursive-macro.s",
+        `Forever macro
+ Forever \\1
+ endm
+ Forever 1
+`,
+      );
+
+      expect(
+        provider.onRegisterUsage({
+          textDocument,
+          range: range(3, 0, 4, 0),
+        }),
+      ).toEqual({ documentVersion: 0, registers: [] });
+    });
+
     it("returns undefined for a document without a syntax tree", () => {
       expect(
         provider.onRegisterUsage({
