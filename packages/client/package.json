@@ -56,7 +56,7 @@
       },
       {
         "command": "m68k.swapRegistersInSelection",
-        "title": "M68k: Swap Registers in Selection"
+        "title": "M68k: Swap Registers"
       }
     ],
     "menus": {

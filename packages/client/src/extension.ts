@@ -188,7 +188,7 @@ export function activate(context: ExtensionContext): void {
       ...unusedRegisters.map((register) => registerItem(register)),
     ];
     await window.showQuickPick(items, {
-      title: "M68k Registers in Selection",
+      title: "M68k Registers",
       placeHolder: `${usedRegisters.length} used, ${unusedRegisters.length} unused`,
     });
   };
