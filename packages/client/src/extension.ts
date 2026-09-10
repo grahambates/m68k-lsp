@@ -20,6 +20,16 @@ import {
 
 let client: LanguageClient;
 
+interface RegisterUsageResult {
+  documentVersion: number;
+  registers: Array<{
+    name: string;
+    read: boolean;
+    written: boolean;
+    input?: boolean;
+  }>;
+}
+
 const generalPurposeRegisters = [
   "d0",
   "d1",
@@ -137,38 +147,36 @@ export function activate(context: ExtensionContext): void {
       return;
     }
 
-    const ranges = await client.sendRequest<Record<string, Range[]>>(
-      "m68k/registerRanges",
-      { uri: editor.document.uri.toString() },
+    const usage = await client.sendRequest<RegisterUsageResult | undefined>(
+      "m68k/registerUsage",
+      {
+        textDocument: { uri: editor.document.uri.toString() },
+        range: editor.selection,
+      },
     );
-    const used = new Set<string>();
-    for (const [name, occurrences] of Object.entries(ranges)) {
-      const register = name === "sp" ? "a7" : name;
-      if (
-        generalPurposeRegisters.includes(register) &&
-        occurrences.some((range) => rangesOverlap(editor.selection, range))
-      ) {
-        used.add(register);
-      }
-    }
+    const usageByName = new Map(
+      usage?.registers.map((register) => [register.name, register]),
+    );
 
     const usedRegisters = generalPurposeRegisters.filter((register) =>
-      used.has(register),
+      usageByName.has(register),
     );
     const unusedRegisters = generalPurposeRegisters.filter(
-      (register) => !used.has(register),
+      (register) => !usageByName.has(register),
     );
     const items: QuickPickItem[] = [
       {
         label: `Used (${usedRegisters.length})`,
         kind: QuickPickItemKind.Separator,
       },
-      ...usedRegisters.map(registerItem),
+      ...usedRegisters.map((register) =>
+        registerItem(register, usageByName.get(register)),
+      ),
       {
         label: `Unused (${unusedRegisters.length})`,
         kind: QuickPickItemKind.Separator,
       },
-      ...unusedRegisters.map(registerItem),
+      ...unusedRegisters.map((register) => registerItem(register)),
     ];
     await window.showQuickPick(items, {
       title: "M68k Registers in Selection",
@@ -257,20 +265,23 @@ export function deactivate(): Thenable<void> | undefined {
   return client.stop();
 }
 
-function registerItem(register: string): QuickPickItem {
-  return { label: register.toUpperCase() };
-}
-
-function rangesOverlap(left: Range, right: Range): boolean {
-  return (
-    comparePositions(left.start, right.end) < 0 &&
-    comparePositions(right.start, left.end) < 0
-  );
-}
-
-function comparePositions(
-  left: { line: number; character: number },
-  right: { line: number; character: number },
-): number {
-  return left.line - right.line || left.character - right.character;
+function registerItem(
+  register: string,
+  usage?: RegisterUsageResult["registers"][number],
+): QuickPickItem {
+  if (!usage) {
+    return { label: register.toUpperCase() };
+  }
+  const access =
+    usage.read && usage.written
+      ? "read/write"
+      : usage.read
+        ? "read"
+        : usage.written
+          ? "write"
+          : "access unknown";
+  return {
+    label: register.toUpperCase(),
+    description: usage.input ? `${access}, input` : access,
+  };
 }
