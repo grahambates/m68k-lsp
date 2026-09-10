@@ -99,5 +99,102 @@ describe("DefinitionProvider", () => {
 
       expect(definitions).toHaveLength(0);
     });
+
+    it("returns the last move to a register", async () => {
+      const textDocument = await createDoc(
+        "register-definition.s",
+        `Start:
+ moveq #1,d0
+ moveq #2,d0
+ add.w d1,d0
+ move.w d0,d2
+`,
+      );
+
+      const definitions = await provider.onDefinition({
+        position: lsp.Position.create(4, 8),
+        textDocument,
+      });
+
+      expect(definitions).toEqual([
+        { uri: textDocument.uri, range: range(2, 10, 2, 12) },
+      ]);
+    });
+
+    it("crosses local labels when finding a register assignment", async () => {
+      const textDocument = await createDoc(
+        "local-register-definition.s",
+        `Start:
+ lea table,a0
+.loop:
+ move.w (a0),d0
+`,
+      );
+
+      const definitions = await provider.onDefinition({
+        position: lsp.Position.create(3, 10),
+        textDocument,
+      });
+
+      expect(definitions).toEqual([
+        { uri: textDocument.uri, range: range(1, 11, 1, 13) },
+      ]);
+    });
+
+    it("does not cross a non-local label", async () => {
+      const textDocument = await createDoc(
+        "scoped-register-definition.s",
+        `First:
+ moveq #1,d0
+Second:
+ add.w d1,d0
+ move.w d0,d2
+`,
+      );
+
+      const definitions = await provider.onDefinition({
+        position: lsp.Position.create(4, 8),
+        textDocument,
+      });
+
+      expect(definitions).toEqual([]);
+    });
+
+    it("finds an assignment on the boundary label line", async () => {
+      const textDocument = await createDoc(
+        "inline-register-definition.s",
+        `First: moveq #1,d0
+ move.w d0,d1
+`,
+      );
+
+      const definitions = await provider.onDefinition({
+        position: lsp.Position.create(1, 8),
+        textDocument,
+      });
+
+      expect(definitions).toEqual([
+        { uri: textDocument.uri, range: range(0, 16, 0, 18) },
+      ]);
+    });
+
+    it("normalises SP to A7", async () => {
+      const textDocument = await createDoc(
+        "stack-register-definition.s",
+        `Start:
+ lea stack,sp
+ move.l a7,d0
+`,
+      );
+
+      const definitions = await provider.onDefinition({
+        position: lsp.Position.create(2, 8),
+        textDocument,
+      });
+
+      expect(definitions).toEqual([
+        { uri: textDocument.uri, range: range(1, 11, 1, 13) },
+      ]);
+    });
   });
 });
