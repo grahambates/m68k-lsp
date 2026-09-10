@@ -6,6 +6,7 @@ export interface RegisterViewUsage {
   read: boolean;
   written: boolean;
   input?: boolean;
+  available?: boolean;
 }
 
 export interface RegisterRemappingModel {
@@ -199,7 +200,10 @@ function webviewHtml(webview: Webview): string {
     function accessLabel(usage) {
       if (!usage) return 'unused';
       const access = usage.read && usage.written ? 'read/write' : usage.read ? 'read' : usage.written ? 'write' : 'unknown';
-      return usage.input ? access + ', input' : access;
+      const parts = [access];
+      if (usage.input) parts.push('input');
+      if (usage.available) parts.push('available');
+      return parts.join(', ');
     }
 
     function validate() {

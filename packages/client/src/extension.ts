@@ -33,6 +33,7 @@ interface RegisterUsageResult {
     read: boolean;
     written: boolean;
     input?: boolean;
+    available?: boolean;
   }>;
 }
 
@@ -200,6 +201,9 @@ export function activate(context: ExtensionContext): void {
       {
         textDocument: { uri: editor.document.uri.toString() },
         range,
+        position: editor.selection.isEmpty
+          ? editor.selection.active
+          : undefined,
       },
     );
     if (!usage) {

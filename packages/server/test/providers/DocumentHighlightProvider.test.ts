@@ -281,6 +281,129 @@ describe("DocumentHighlightProvider", () => {
       expect(byName.get("d7")?.references[0].access).toBe("write");
     });
 
+    it("marks registers available when they are untouched after the cursor line", async () => {
+      const textDocument = await createDoc(
+        "available.s",
+        `Start:
+ move.w d0,d1
+ move.w d2,d3
+ rts
+`,
+      );
+
+      const result = provider.onRegisterUsage({
+        textDocument,
+        range: range(0, 0, 3, 4),
+        position: lsp.Position.create(1, 5),
+      });
+      const byName = new Map(
+        result?.registers.map((usage) => [usage.name, usage]),
+      );
+
+      expect(byName.get("d0")?.available).toBe(true);
+      expect(byName.get("d1")?.available).toBe(true);
+      expect(byName.get("d2")?.available).toBe(false);
+      expect(byName.get("d3")?.available).toBe(false);
+    });
+
+    it("ignores register accesses skipped by an unconditional branch", async () => {
+      const textDocument = await createDoc(
+        "available-branch.s",
+        `Start:
+ move.w d0,d1
+ bra Done
+ move.w d0,d1
+Done:
+ rts
+`,
+      );
+
+      const result = provider.onRegisterUsage({
+        textDocument,
+        range: range(0, 0, 5, 4),
+        position: lsp.Position.create(1, 5),
+      });
+
+      expect(
+        result?.registers.find(({ name }) => name === "d0")?.available,
+      ).toBe(true);
+      expect(
+        result?.registers.find(({ name }) => name === "d1")?.available,
+      ).toBe(true);
+    });
+
+    it("keeps code after BRA reachable through a conditional branch", async () => {
+      const textDocument = await createDoc(
+        "conditional-around-branch.s",
+        `Start:
+ move.w d0,d1
+ beq .afterBra
+ bra .done
+.afterBra:
+ move.w d0,d1
+.done:
+ rts
+`,
+      );
+
+      const result = provider.onRegisterUsage({
+        textDocument,
+        range: range(0, 0, 7, 4),
+        position: lsp.Position.create(1, 5),
+      });
+
+      expect(
+        result?.registers.find(({ name }) => name === "d0")?.available,
+      ).toBe(false);
+      expect(
+        result?.registers.find(({ name }) => name === "d1")?.available,
+      ).toBe(false);
+    });
+
+    it("follows a backward conditional branch that revisits the cursor line", async () => {
+      const textDocument = await createDoc(
+        "unavailable-loop.s",
+        `Start:
+ move.w d0,d1
+ addq.w #1,d2
+ bne Start
+ rts
+`,
+      );
+
+      const result = provider.onRegisterUsage({
+        textDocument,
+        range: range(0, 0, 4, 4),
+        position: lsp.Position.create(1, 5),
+      });
+      const byName = new Map(
+        result?.registers.map((usage) => [usage.name, usage]),
+      );
+
+      expect(byName.get("d0")?.available).toBe(false);
+      expect(byName.get("d1")?.available).toBe(false);
+      expect(byName.get("d2")?.available).toBe(false);
+    });
+
+    it("is conservative when a branch target cannot be resolved", async () => {
+      const textDocument = await createDoc(
+        "unresolved-loop.s",
+        `Start:
+ move.w d0,d1
+ bne *-2
+ rts
+`,
+      );
+
+      const result = provider.onRegisterUsage({
+        textDocument,
+        range: range(0, 0, 3, 4),
+        position: lsp.Position.create(1, 5),
+      });
+
+      expect(result?.registers.every(({ available }) => !available)).toBe(true);
+    });
+
     it("expands textual macro parameters and reparses generated registers", async () => {
       const textDocument = await createDoc(
         "macro-usage.s",

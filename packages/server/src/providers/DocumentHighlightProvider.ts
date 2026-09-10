@@ -2,7 +2,13 @@ import * as lsp from "vscode-languageserver";
 import { parseLine } from "m68k-parser";
 import type { Block, ParsedLine } from "m68k-parser";
 import { Provider } from ".";
-import { AstNode, nodeAtPosition, walkFile, walkLine } from "../ast";
+import {
+  AstNode,
+  childNodes,
+  nodeAtPosition,
+  walkFile,
+  walkLine,
+} from "../ast";
 import { Context } from "../context";
 import { isProcessed, MacroDefinition } from "../DocumentProcessor";
 import { getUnitFilesByDistance } from "../files";
@@ -76,6 +82,24 @@ const writeOnlyDestinations = new Set([
 ]);
 
 const routineReturns = new Set(["rts", "rte", "rtr"]);
+const conditionalBranches = new Set([
+  "bcc",
+  "bcs",
+  "beq",
+  "bge",
+  "bgt",
+  "bhi",
+  "bhs",
+  "ble",
+  "blo",
+  "bls",
+  "blt",
+  "bmi",
+  "bne",
+  "bpl",
+  "bvc",
+  "bvs",
+]);
 
 export type RegisterAccess = "read" | "write" | "readwrite" | "unknown";
 
@@ -93,6 +117,7 @@ export interface RegisterUsage {
   read: boolean;
   written: boolean;
   input?: boolean;
+  available?: boolean;
 }
 
 export interface RegisterUsageResult {
@@ -103,6 +128,7 @@ export interface RegisterUsageResult {
 export interface RegisterUsageParams {
   textDocument: lsp.TextDocumentIdentifier;
   range: lsp.Range;
+  position?: lsp.Position;
 }
 
 export interface RoutineRangeParams {
@@ -330,11 +356,24 @@ export default class DocumentHighlightProvider implements Provider {
       );
     }
 
+    const reachable = params.position
+      ? reachableLinesAfterPosition(
+          document.parsed.lines,
+          params.range,
+          params.position,
+        )
+      : undefined;
     return {
       documentVersion: document.document.version,
-      registers: Array.from(usages, ([name, references]) =>
-        summariseUsage(name, references),
-      ),
+      registers: Array.from(usages, ([name, references]) => {
+        const usage = summariseUsage(name, references);
+        if (reachable) {
+          usage.available = !references.some((reference) =>
+            reachable.has(reference.range.start.line),
+          );
+        }
+        return usage;
+      }),
     };
   }
 
@@ -556,6 +595,132 @@ function isNonLocalCodeLabel(line: ParsedLine): boolean {
     line.label.scope !== "local" &&
     line.mnemonic?.type !== "directive"
   );
+}
+
+function reachableLinesAfterPosition(
+  lines: ParsedLine[],
+  scope: lsp.Range,
+  position: lsp.Position,
+): Set<number> {
+  const startLine = Math.max(scope.start.line, position.line + 1);
+  const endLine = Math.min(scope.end.line, lines.length - 1);
+  if (startLine > endLine) {
+    return new Set();
+  }
+
+  const labels = collectControlFlowLabels(lines, scope.start.line, endLine);
+  const reachable = new Set<number>();
+  const pending = [startLine];
+  while (pending.length) {
+    const lineIndex = pending.pop()!;
+    if (
+      lineIndex < scope.start.line ||
+      lineIndex > endLine ||
+      reachable.has(lineIndex)
+    ) {
+      continue;
+    }
+    reachable.add(lineIndex);
+    const line = lines[lineIndex];
+    const mnemonic =
+      line.mnemonic?.type === "instruction"
+        ? line.mnemonic.instruction.toLowerCase()
+        : undefined;
+    if (!mnemonic || !routineReturns.has(mnemonic)) {
+      if (mnemonic && isBranchMnemonic(mnemonic)) {
+        const target = branchTarget(line);
+        const targetLine =
+          target === undefined
+            ? undefined
+            : labels.get(labelKey(target, labels.globalAt[lineIndex]));
+        if (targetLine === undefined) {
+          return new Set(
+            Array.from(
+              { length: endLine - scope.start.line + 1 },
+              (_, offset) => scope.start.line + offset,
+            ),
+          );
+        }
+        pending.push(targetLine);
+      }
+      if (mnemonic !== "bra" && mnemonic !== "jmp") {
+        pending.push(lineIndex + 1);
+      }
+    }
+  }
+  return reachable;
+}
+
+interface ControlFlowLabels extends Map<string, number> {
+  globalAt: Array<string | undefined>;
+}
+
+function collectControlFlowLabels(
+  lines: ParsedLine[],
+  startLine: number,
+  endLine: number,
+): ControlFlowLabels {
+  const labels = new Map<string, number>() as ControlFlowLabels;
+  labels.globalAt = [];
+  let global: string | undefined;
+  for (let index = startLine; index <= endLine; index++) {
+    const label = lines[index].label;
+    if (label) {
+      if (label.scope === "local") {
+        labels.set(labelKey(label.label, global), index);
+      } else if (isNonLocalCodeLabel(lines[index])) {
+        global = label.label.toLowerCase();
+        labels.set(global, index);
+      }
+    }
+    labels.globalAt[index] = global;
+  }
+  return labels;
+}
+
+function labelKey(label: string, global?: string): string {
+  const name = label.toLowerCase();
+  return name.startsWith(".") || name.endsWith("$")
+    ? `${global ?? ""}:${name}`
+    : name;
+}
+
+function branchTarget(line: ParsedLine): string | undefined {
+  const mnemonic =
+    line.mnemonic?.type === "instruction"
+      ? line.mnemonic.instruction.toLowerCase()
+      : undefined;
+  if (!mnemonic || !isBranchMnemonic(mnemonic)) {
+    return;
+  }
+  const operand = line.operands?.at(-1);
+  if (!operand) {
+    return;
+  }
+  const nodes = [operand as AstNode, ...descendants(operand as AstNode)];
+  const symbol = nodes.find((node) => node.type === "symbol") as
+    (AstNode & { name?: unknown }) | undefined;
+  return typeof symbol?.name === "string" ? symbol.name : undefined;
+}
+
+function isBranchMnemonic(mnemonic: string): boolean {
+  return (
+    mnemonic === "bra" ||
+    mnemonic === "jmp" ||
+    conditionalBranches.has(mnemonic) ||
+    mnemonic.startsWith("db") ||
+    mnemonic.startsWith("fb") ||
+    mnemonic.startsWith("cpb") ||
+    mnemonic.startsWith("cpdb")
+  );
+}
+
+function descendants(node: AstNode): AstNode[] {
+  const result: AstNode[] = [];
+  for (const child of childNodes(node)) {
+    result.push(child, ...descendants(child));
+  }
+  return result;
 }
 
 function registerName(node: AstNode) {
