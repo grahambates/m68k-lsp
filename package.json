@@ -65,7 +65,7 @@
   },
   "dependencies": {
     "68kcounter": "^4.1.0",
-    "m68k-parser": "^1.8.0"
+    "m68k-parser": "^1.10.0"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
