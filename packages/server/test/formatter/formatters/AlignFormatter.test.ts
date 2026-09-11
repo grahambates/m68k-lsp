@@ -10,6 +10,68 @@ async function doFormat(src: string, options: AlignOptions) {
 }
 
 describe("AlignFormatter", () => {
+  it.each(["line", "block", "file"] as const)(
+    "indents mixed nested blocks with %s alignment and is idempotent",
+    async (autoExtend) => {
+      const src =
+        "demo macro\n ifeq 1\n rept 2\nlocal: move.w d0,d1\n endr\n else\n nop\n endif\n endm\n rts";
+      const options: AlignOptions = {
+        mnemonic: 8,
+        operands: 16,
+        autoExtend,
+        indentMacro: 2,
+        indentConditional: 4,
+        indentRept: 6,
+      };
+      const result = await doFormat(src, options);
+      expect(result).toBe(
+        [
+          "demo    macro",
+          "          ifeq    1",
+          "              rept    2",
+          "local:              move.w  d0,d1",
+          "              endr",
+          "          else",
+          "              nop",
+          "          endif",
+          "        endm",
+          "        rts",
+        ].join("\n"),
+      );
+      expect(await doFormat(result, options)).toBe(result);
+    },
+  );
+
+  it.each([
+    [" ifeq 1", " endif", "indentConditional"],
+    [" rept 2", " endr", "indentRept"],
+    ["demo macro", " endm", "indentMacro"],
+  ])("independently enables indentation for %s", async (start, end, option) => {
+    const src = [start, " nop", end, " rts"].join("\n");
+    const result = await doFormat(src, {
+      mnemonic: 8,
+      [option]: 8,
+      indentStyle: "tab",
+    });
+    expect(result.split("\n").slice(1)).toEqual([
+      "\t\tnop",
+      "\t" + end.trim(),
+      "\trts",
+    ]);
+    expect((await doFormat(src, { mnemonic: 8 })).split("\n")[1]).toBe(
+      "        nop",
+    );
+  });
+
+  it("indents an unfinished block and ignores unmatched terminators", async () => {
+    const result = await doFormat(" endif\n ifeq 1\n nop", {
+      mnemonic: 8,
+      operands: 16,
+      indentConditional: 4,
+    });
+    expect(result).toBe("        endif\n        ifeq    1\n            nop");
+  });
+
   it("formats an instruction", async () => {
     const result = await doFormat(`foo:  move d1,d2`, {
       mnemonic: 10,

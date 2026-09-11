@@ -146,6 +146,24 @@
           "default": true,
           "description": "Enable distinct colours for registers by default"
         },
+        "m68k.format.align.indentConditional": {
+          "type": "integer",
+          "default": 0,
+          "minimum": 0,
+          "markdownDescription": "Additional indentation in columns for the content of conditional blocks. Nested indentation adds together; labels remain in column zero."
+        },
+        "m68k.format.align.indentRept": {
+          "type": "integer",
+          "default": 0,
+          "minimum": 0,
+          "markdownDescription": "Additional indentation in columns for the content of rept blocks. Nested indentation adds together; labels remain in column zero."
+        },
+        "m68k.format.align.indentMacro": {
+          "type": "integer",
+          "default": 0,
+          "minimum": 0,
+          "markdownDescription": "Additional indentation in columns for the content of macro definitions. Nested indentation adds together; labels remain in column zero."
+        },
         "m68k.format.align.mnemonic": {
           "type": "number",
           "default": 8,

@@ -22,6 +22,9 @@ export const defaultConfig: Config = {
     quotes: "double",
     operandSpace: "off",
     align: {
+      indentConditional: 0,
+      indentRept: 0,
+      indentMacro: 0,
       mnemonic: 8,
       operands: 16,
       comment: 48,

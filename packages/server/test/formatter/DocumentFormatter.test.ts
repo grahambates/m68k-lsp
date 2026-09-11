@@ -83,6 +83,19 @@ bar:      move.w    d0,d1          ; example
       return applyEdits(src, edits);
     }
 
+    it("uses enclosing blocks outside the selected range", async () => {
+      const src = " ifeq 1\n MOVE.W D0,D1\n endif";
+      const result = await doFormatRange(
+        src,
+        {
+          case: "lower",
+          align: { mnemonic: 8, operands: 16, indentConditional: 4 },
+        },
+        { start: [1, 0], end: [1, 100] },
+      );
+      expect(result).toBe(" ifeq 1\n            move.w  d0,d1\n endif");
+    });
+
     const src = " MOVE.W D0,D1\n ADD.W D0,D1\n SUB.W D0,D1";
 
     it("only formats lines within the requested range", async () => {

@@ -307,6 +307,28 @@ Indents elements to align by type.
 | `tabSize`           | Width of tab character to calculate positions when using `tab` indent style.          |
 | `autoExtend`        | Behaviour when a component exceeds the available space between positions. See below.  |
 
+Block contents can be indented independently with `format.align.indentConditional`,
+`format.align.indentRept`, and `format.align.indentMacro`. Each is an additional
+width in columns, defaulting to `0` (disabled). For example:
+
+```json
+{
+  "format": {
+    "align": {
+      "indentConditional": 4,
+      "indentRept": 4,
+      "indentMacro": 4
+    }
+  }
+}
+```
+
+Nested widths add together. Opening, alternative (`else`/`elseif`), and closing
+directives align at the enclosing level. Mnemonics, operands, assignments, and
+aligned comments shift together; labels remain in column zero. Existing
+`indentStyle` and `tabSize` settings control the whitespace used. Comments in
+column zero and comments configured with `standaloneComment: "ignore"` stay put.
+
 Options for `standaloneComment`:
 
 | Option        | Behaviour                                                                                                            |

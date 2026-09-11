@@ -1,3 +1,4 @@
+import { parseBlocks, type Block } from "m68k-parser";
 import { TextEdit } from "vscode-languageserver";
 
 import { TextDocument } from "vscode-languageserver-textdocument";
@@ -6,6 +7,9 @@ import { ParsedLine, parseLine } from "../../parse";
 import { FormatContext, Formatter } from "../DocumentFormatter";
 
 export type AlignOptions = {
+  indentConditional?: number;
+  indentRept?: number;
+  indentMacro?: number;
   mnemonic?: number;
   operands?: number;
   comment?: number;
@@ -46,7 +50,6 @@ interface LineInfo {
 
 // TODO:
 // label position?
-// indent conditional blocks?
 // disable autoExtend per component?
 
 class AlignFormatter implements Formatter {
@@ -61,7 +64,10 @@ class AlignFormatter implements Formatter {
     this.char = useTab ? "\t" : " ";
   }
 
-  format({ text }: FormatContext, prevEdits: TextEdit[] = []): TextEdit[] {
+  format(
+    { text, parsed }: FormatContext,
+    prevEdits: TextEdit[] = [],
+  ): TextEdit[] {
     const edits: TextEdit[] = [];
     this.block = 0;
 
@@ -77,6 +83,24 @@ class AlignFormatter implements Formatter {
     const lines = lineText.map((text, i) =>
       this.processLine(text, i, prevEdits),
     );
+
+    const indents = new Array<number>(lines.length).fill(0);
+    const visit = (blocks: Block[]) => {
+      for (const block of blocks) {
+        const width =
+          (block.kind === "conditional"
+            ? this.options.indentConditional
+            : block.kind === "repeat"
+              ? this.options.indentRept
+              : this.options.indentMacro) ?? 0;
+        const alternatives = new Set(block.alternatives);
+        for (let i = block.start + 1; i < (block.end ?? lines.length); i++) {
+          if (!alternatives.has(i)) indents[i] += width;
+        }
+        visit(block.children);
+      }
+    };
+    visit(parseBlocks(parsed).blocks);
 
     // For files we only need to calculate adjustments once
     let autoExtended = false;
@@ -197,38 +221,39 @@ class AlignFormatter implements Formatter {
         );
       }
 
+      const indent = indents[line];
       const editor = new LineEditor(text, line, this.shiftWidth, this.char);
 
       if (label) {
         editor.addIndent(labelPosition, label, 0);
       }
       if (mnemonic) {
-        editor.addIndent(mnemonicPosition, mnemonic);
+        editor.addIndent(mnemonicPosition + indent, mnemonic);
       }
       if (operands) {
-        editor.addIndent(operandsPosition, operands);
+        editor.addIndent(operandsPosition + indent, operands);
       }
       if (operator) {
-        editor.addIndent(operatorPosition, operator);
+        editor.addIndent(operatorPosition + indent, operator);
       }
       if (value) {
-        editor.addIndent(valuePosition, value);
+        editor.addIndent(valuePosition + indent, value);
       }
       if (comment) {
         if (!label && !mnemonic && !operands && !operator && !value) {
           if (standaloneComment) {
             if (typeof standaloneComment === "number") {
               // Literal position
-              editor.addIndent(standaloneComment, comment, 0);
+              editor.addIndent(standaloneComment + indent, comment, 0);
             } else if (standaloneComment === "nearest") {
               // Find nearest position:
               const possiblePositions = [
                 labelPosition,
-                mnemonicPosition,
-                operandsPosition,
-                commentPosition,
-                operatorPosition,
-                valuePosition,
+                mnemonicPosition + indent,
+                operandsPosition + indent,
+                commentPosition + indent,
+                operatorPosition + indent,
+                valuePosition + indent,
               ];
               let currentPos = comment.range.start;
               // Adjust position for tab width - can't just just character offset:
@@ -253,14 +278,14 @@ class AlignFormatter implements Formatter {
               const indent =
                 this.options[standaloneComment as keyof AlignOptions];
               if (typeof indent === "number") {
-                editor.addIndent(indent, comment, 0);
+                editor.addIndent(indent + indents[line], comment, 0);
               } else {
                 editor.addIndent(0, comment, 0);
               }
             }
           }
         } else {
-          editor.addIndent(commentPosition, comment);
+          editor.addIndent(commentPosition + indent, comment);
         }
       }
 
