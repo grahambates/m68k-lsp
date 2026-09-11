@@ -32,23 +32,23 @@ describe("RegisterProvider", () => {
       };
       const capabilities = provider.register(conn as unknown as lsp.Connection);
       expect(conn.onRequest).toHaveBeenCalledWith(
-        "m68k/registerRanges",
+        expect.objectContaining({ method: "m68k/registerRanges" }),
         expect.any(Function),
       );
       expect(conn.onRequest).toHaveBeenCalledWith(
-        "m68k/registerUsage",
+        expect.objectContaining({ method: "m68k/registerUsage" }),
         expect.any(Function),
       );
       expect(conn.onRequest).toHaveBeenCalledWith(
-        "m68k/registerSwap",
+        expect.objectContaining({ method: "m68k/registerSwap" }),
         expect.any(Function),
       );
       expect(conn.onRequest).toHaveBeenCalledWith(
-        "m68k/registerRemap",
+        expect.objectContaining({ method: "m68k/registerRemap" }),
         expect.any(Function),
       );
       expect(conn.onRequest).toHaveBeenCalledWith(
-        "m68k/routineRange",
+        expect.objectContaining({ method: "m68k/routineRange" }),
         expect.any(Function),
       );
       expect(capabilities).toEqual({});

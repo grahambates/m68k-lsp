@@ -1,3 +1,17 @@
+import {
+  RegisterRangesRequest,
+  RegisterUsageRequest,
+  RegisterSwapRequest,
+  RegisterRemapRequest,
+  RoutineRangeRequest,
+  IndexChangedNotification,
+} from "@m68k-lsp/protocol";
+import type {
+  RegisterUsageResult,
+  RoutineRangeResult,
+  Range as ProtocolRange,
+  TextEdit,
+} from "@m68k-lsp/protocol";
 import * as path from "path";
 import {
   DecorationRangeBehavior,
@@ -25,57 +39,15 @@ import {
 
 let client: LanguageClient;
 
-interface RegisterUsageResult {
-  documentVersion: number;
-  registers: Array<{
-    name: string;
-    firstUse: { line: number; character: number };
-    read: boolean;
-    written: boolean;
-    input?: boolean;
-    availability?: "available" | "unavailable" | "unknown";
-  }>;
-}
-
-interface RegisterSwapResult {
-  documentVersion: number;
-  edits: Array<{ range: Range; newText: string }>;
-  error?:
-    | "invalid-registers"
-    | "stale-document"
-    | "unsupported-reference"
-    | "analysis-incomplete";
-  unsupported?: Array<{
-    kind: "explicit" | "register-list" | "macro-expansion";
-  }>;
-}
-
-interface RegisterRemapResult {
-  documentVersion: number;
-  edits: Array<{ range: Range; newText: string }>;
-  error?:
-    | "analysis-incomplete"
-    | "invalid-mappings"
-    | "mapping-conflict"
-    | "stale-document"
-    | "unsupported-reference";
-  conflicts?: string[];
-  unsupported?: Array<{
-    kind: "explicit" | "register-list" | "macro-expansion";
-  }>;
-}
-
 interface RemappingContext {
   isCurrent: () => boolean;
   uri: string;
-  range: Range;
+  range: ProtocolRange;
   documentVersion: number;
 }
 
-interface RegisterCommandScope {
-  range: Range;
-  label?: string;
-}
+type RegisterCommandScope = Pick<RoutineRangeResult, "range"> &
+  Partial<Pick<RoutineRangeResult, "label">>;
 
 const generalPurposeRegisters = [
   "d0",
@@ -171,10 +143,9 @@ export function activate(context: ExtensionContext): void {
       return;
     }
 
-    const ranges = await client.sendRequest<Record<string, Range[]>>(
-      "m68k/registerRanges",
-      { uri: editor.document.uri.toString() },
-    );
+    const ranges = await client.sendRequest(RegisterRangesRequest, {
+      uri: editor.document.uri.toString(),
+    });
     if (
       !enabled ||
       editor.document.version !== version ||
@@ -182,7 +153,10 @@ export function activate(context: ExtensionContext): void {
     )
       return;
     for (const [register, decoration] of decorations) {
-      editor.setDecorations(decoration, ranges[register] ?? []);
+      editor.setDecorations(
+        decoration,
+        (ranges[register] ?? []).map(toEditorRange),
+      );
     }
   };
 
@@ -223,14 +197,11 @@ export function activate(context: ExtensionContext): void {
       return;
     }
     const { range } = scope;
-    const usage = await client.sendRequest<RegisterUsageResult | undefined>(
-      "m68k/registerUsage",
-      {
-        textDocument: { uri: editor.document.uri.toString() },
-        range,
-        position: selection.isEmpty ? selection.active : undefined,
-      },
-    );
+    const usage = await client.sendRequest(RegisterUsageRequest, {
+      textDocument: { uri: editor.document.uri.toString() },
+      range,
+      position: selection.isEmpty ? selection.active : undefined,
+    });
     if (!stillCurrent() || !usage || usage.documentVersion !== version) {
       return;
     }
@@ -271,15 +242,12 @@ export function activate(context: ExtensionContext): void {
         message: "The editor scope changed. Refresh and try again.",
       };
     }
-    const planned = await client.sendRequest<RegisterRemapResult | undefined>(
-      "m68k/registerRemap",
-      {
-        textDocument: { uri: snapshot.uri },
-        documentVersion: snapshot.documentVersion,
-        range: snapshot.range,
-        mappings,
-      },
-    );
+    const planned = await client.sendRequest(RegisterRemapRequest, {
+      textDocument: { uri: snapshot.uri },
+      documentVersion: snapshot.documentVersion,
+      range: snapshot.range,
+      mappings,
+    });
     if (!planned) {
       return { ok: false, message: "Register analysis is unavailable." };
     }
@@ -343,13 +311,10 @@ export function activate(context: ExtensionContext): void {
     }
     const { range } = scope;
 
-    const usage = await client.sendRequest<RegisterUsageResult | undefined>(
-      "m68k/registerUsage",
-      {
-        textDocument: { uri: editor.document.uri.toString() },
-        range,
-      },
-    );
+    const usage = await client.sendRequest(RegisterUsageRequest, {
+      textDocument: { uri: editor.document.uri.toString() },
+      range,
+    });
     const usageByName = new Map(
       usage?.registers.map((register) => [register.name, register]),
     );
@@ -392,13 +357,10 @@ export function activate(context: ExtensionContext): void {
     }
     const { range } = scope;
 
-    const usage = await client.sendRequest<RegisterUsageResult | undefined>(
-      "m68k/registerUsage",
-      {
-        textDocument: { uri: editor.document.uri.toString() },
-        range,
-      },
-    );
+    const usage = await client.sendRequest(RegisterUsageRequest, {
+      textDocument: { uri: editor.document.uri.toString() },
+      range,
+    });
     const used = usage?.registers ?? [];
     if (!used.length) {
       void window.showWarningMessage(
@@ -421,15 +383,12 @@ export function activate(context: ExtensionContext): void {
     }
     const pair: [string, string] = [first, second];
 
-    const planned = await client.sendRequest<RegisterSwapResult | undefined>(
-      "m68k/registerSwap",
-      {
-        textDocument: { uri: editor.document.uri.toString() },
-        documentVersion: usage!.documentVersion,
-        range,
-        registers: pair,
-      },
-    );
+    const planned = await client.sendRequest(RegisterSwapRequest, {
+      textDocument: { uri: editor.document.uri.toString() },
+      documentVersion: usage!.documentVersion,
+      range,
+      registers: pair,
+    });
     if (!planned) {
       void window.showErrorMessage("Register swap analysis is unavailable.");
       return;
@@ -570,7 +529,7 @@ export function activate(context: ExtensionContext): void {
     clientOptions,
   );
 
-  client.onNotification("m68k/indexChanged", () => {
+  client.onNotification(IndexChangedNotification, () => {
     refresh();
     void remappingView.refresh();
   });
@@ -639,13 +598,10 @@ async function registerCommandScope(
   if (!editor.selection.isEmpty) {
     return { range: editor.selection };
   }
-  const scope = await client.sendRequest<RegisterCommandScope | undefined>(
-    "m68k/routineRange",
-    {
-      textDocument: { uri: editor.document.uri.toString() },
-      position: editor.selection.active,
-    },
-  );
+  const scope = await client.sendRequest(RoutineRangeRequest, {
+    textDocument: { uri: editor.document.uri.toString() },
+    position: editor.selection.active,
+  });
   if (!scope && showWarning) {
     void window.showWarningMessage(
       "Could not determine a register analysis scope.",
@@ -695,15 +651,16 @@ function isM68kEditor(editor: TextEditor): boolean {
 
 function applyProtocolEdits(
   editor: TextEditor,
-  replacements: Array<{ range: Range; newText: string }>,
+  replacements: TextEdit[],
 ): Thenable<boolean> {
   return editor.edit((edit) => {
     for (const replacement of replacements) {
-      const { start, end } = replacement.range;
-      edit.replace(
-        new Range(start.line, start.character, end.line, end.character),
-        replacement.newText,
-      );
+      edit.replace(toEditorRange(replacement.range), replacement.newText);
     }
   });
+}
+
+/** Wire ranges are plain objects; editor APIs use VS Code Range instances. */
+function toEditorRange({ start, end }: ProtocolRange): Range {
+  return new Range(start.line, start.character, end.line, end.character);
 }

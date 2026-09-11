@@ -1,13 +1,7 @@
+import type { RegisterUsage } from "@m68k-lsp/protocol";
 import { Disposable, Webview, WebviewView, WebviewViewProvider } from "vscode";
 
-export interface RegisterViewUsage {
-  name: string;
-  firstUse: { line: number; character: number };
-  read: boolean;
-  written: boolean;
-  input?: boolean;
-  availability?: "available" | "unavailable" | "unknown";
-}
+export type RegisterViewUsage = Omit<RegisterUsage, "references">;
 
 export interface RegisterRemappingModel {
   scope: string;

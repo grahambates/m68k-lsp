@@ -31,6 +31,7 @@
     "which": "^4.0.0"
   },
   "devDependencies": {
-    "@types/which": "^3.0.4"
+    "@types/which": "^3.0.4",
+    "@m68k-lsp/protocol": "0.0.0"
   }
 }

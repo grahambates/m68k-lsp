@@ -14,7 +14,8 @@
   },
   "workspaces": [
     "packages/server",
-    "packages/client"
+    "packages/client",
+    "packages/protocol"
   ],
   "scripts": {
     "build": "node scripts/build.mjs --minify",

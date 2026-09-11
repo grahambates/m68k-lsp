@@ -1,3 +1,4 @@
+import { IndexChangedNotification } from "@m68k-lsp/protocol";
 import * as lsp from "vscode-languageserver";
 import { TextDocument } from "vscode-languageserver-textdocument";
 
@@ -83,7 +84,7 @@ export default class TextDocumentSyncProvider implements Provider {
     this.connection.sendDiagnostics({ uri, diagnostics: [] });
     try {
       await this.processor.close(uri);
-      this.connection.sendNotification("m68k/indexChanged");
+      this.connection.sendNotification(IndexChangedNotification);
     } catch (error) {
       this.ctx.logger.error(
         `Unable to index closed document ${uri}: ${String(error)}`,

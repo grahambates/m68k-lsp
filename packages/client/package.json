@@ -399,6 +399,7 @@
   },
   "devDependencies": {
     "@types/vscode": "^1.85.0",
-    "@vscode/vsce": "^3.6.0"
+    "@vscode/vsce": "^3.6.0",
+    "@m68k-lsp/protocol": "0.0.0"
   }
 }

@@ -1,3 +1,20 @@
+import {
+  RegisterRangesRequest,
+  RegisterUsageRequest,
+  RegisterSwapRequest,
+  RegisterRemapRequest,
+  RoutineRangeRequest,
+} from "@m68k-lsp/protocol";
+import type {
+  RegisterUsageParams,
+  RegisterUsageResult,
+  RegisterSwapParams,
+  RegisterSwapResult,
+  RegisterRemapParams,
+  RegisterRemapResult,
+  RoutineRangeParams,
+  RoutineRangeResult,
+} from "@m68k-lsp/protocol";
 import * as lsp from "vscode-languageserver";
 import { Provider } from ".";
 import { Context } from "../context";
@@ -7,62 +24,19 @@ import {
   canonicalGeneralPurposeRegister,
   findRoutineRange,
   registerRanges,
-  RegisterUsageParams,
-  RegisterUsageResult,
-  RegisterUsageReference,
-  RoutineRangeParams,
-  RoutineRangeResult,
 } from "../registerAnalysis";
-
-export interface RegisterSwapParams extends RegisterUsageParams {
-  documentVersion: number;
-  registers: [string, string];
-}
-
-export interface RegisterRemapParams extends RegisterUsageParams {
-  documentVersion: number;
-  mappings: Record<string, string>;
-}
-
-export type RegisterSwapError =
-  | "invalid-registers"
-  | "stale-document"
-  | "unsupported-reference"
-  | "analysis-incomplete";
-
-export type RegisterRemapError =
-  | "analysis-incomplete"
-  | "invalid-mappings"
-  | "mapping-conflict"
-  | "stale-document"
-  | "unsupported-reference";
-
-export interface RegisterSwapResult {
-  documentVersion: number;
-  edits: lsp.TextEdit[];
-  error?: RegisterSwapError;
-  unsupported?: RegisterUsageReference[];
-}
-
-export interface RegisterRemapResult {
-  documentVersion: number;
-  edits: lsp.TextEdit[];
-  error?: RegisterRemapError;
-  conflicts?: string[];
-  unsupported?: RegisterUsageReference[];
-}
 
 export default class RegisterProvider implements Provider {
   constructor(protected readonly ctx: Context) {}
 
   register(connection: lsp.Connection) {
-    connection.onRequest("m68k/registerRanges", ({ uri }: { uri: string }) =>
+    connection.onRequest(RegisterRangesRequest, ({ uri }) =>
       registerRanges(this.ctx, uri),
     );
-    connection.onRequest("m68k/registerUsage", this.onRegisterUsage.bind(this));
-    connection.onRequest("m68k/registerSwap", this.onRegisterSwap.bind(this));
-    connection.onRequest("m68k/registerRemap", this.onRegisterRemap.bind(this));
-    connection.onRequest("m68k/routineRange", this.onRoutineRange.bind(this));
+    connection.onRequest(RegisterUsageRequest, this.onRegisterUsage.bind(this));
+    connection.onRequest(RegisterSwapRequest, this.onRegisterSwap.bind(this));
+    connection.onRequest(RegisterRemapRequest, this.onRegisterRemap.bind(this));
+    connection.onRequest(RoutineRangeRequest, this.onRoutineRange.bind(this));
     return {};
   }
 

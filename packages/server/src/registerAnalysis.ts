@@ -1,3 +1,13 @@
+import type {
+  RegisterAccess,
+  RegisterUsage,
+  RegisterUsageReference,
+  RegisterUsageParams,
+  RegisterUsageResult,
+  RegisterRangesResult,
+  RoutineRangeParams,
+  RoutineRangeResult,
+} from "@m68k-lsp/protocol";
 import * as lsp from "vscode-languageserver";
 import { parseLine } from "m68k-parser";
 import type { Block, ParsedLine } from "m68k-parser";
@@ -92,49 +102,6 @@ const conditionalBranches = new Set([
   "bvc",
   "bvs",
 ]);
-
-export type RegisterAccess = "read" | "write" | "readwrite" | "unknown";
-export type RegisterAvailability = "available" | "unavailable" | "unknown";
-
-export interface RegisterUsageReference {
-  range: lsp.Range;
-  spelling: string;
-  kind: "explicit" | "register-list" | "macro-expansion";
-  access: RegisterAccess;
-}
-
-export interface RegisterUsage {
-  name: string;
-  references: RegisterUsageReference[];
-  firstUse: lsp.Position;
-  read: boolean;
-  written: boolean;
-  input?: boolean;
-  availability?: RegisterAvailability;
-}
-
-export interface RegisterUsageResult {
-  /** At least one macro expansion was truncated; edits must not use this result. */
-  incomplete?: boolean;
-  documentVersion: number;
-  registers: RegisterUsage[];
-}
-
-export interface RegisterUsageParams {
-  textDocument: lsp.TextDocumentIdentifier;
-  range: lsp.Range;
-  position?: lsp.Position;
-}
-
-export interface RoutineRangeParams {
-  textDocument: lsp.TextDocumentIdentifier;
-  position: lsp.Position;
-}
-
-export interface RoutineRangeResult {
-  range: lsp.Range;
-  label: string;
-}
 
 export function analyzeRegisterUsage(
   ctx: Context,
@@ -338,13 +305,13 @@ export function findRoutineRange(
 export function registerRanges(
   ctx: Context,
   uri: string,
-): Record<string, lsp.Range[]> {
+): RegisterRangesResult {
   const document = ctx.store.get(uri);
   if (!isProcessed(document)) {
     return {};
   }
 
-  const ranges: Record<string, lsp.Range[]> = {};
+  const ranges: RegisterRangesResult = {};
   for (const { node } of walkFile(document.parsed)) {
     const register = registerName(node);
     if (register) {
