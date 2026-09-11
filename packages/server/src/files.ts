@@ -338,7 +338,13 @@ export function getEntryPointsFor(
   return found;
 }
 
-export async function getAsmFilesInDir(uri: string): Promise<string[]> {
+export async function getAsmFilesInDir(
+  uri: string,
+  isExcluded?: (uri: string, isDirectory: boolean) => boolean,
+): Promise<string[]> {
+  if (isExcluded?.(uri, true)) {
+    return [];
+  }
   const result: string[] = [];
   const url = new URL(uri);
 
@@ -350,11 +356,11 @@ export async function getAsmFilesInDir(uri: string): Promise<string[]> {
 
   for (const dirent of await fsp.readdir(url, { withFileTypes: true })) {
     const childUri = `${uri}/${dirent.name}`;
-    if (isAsmExt(dirent.name)) {
-      result.push(childUri);
-    } else if (dirent.isDirectory()) {
-      const inDir = await getAsmFilesInDir(childUri);
+    if (dirent.isDirectory()) {
+      const inDir = await getAsmFilesInDir(childUri, isExcluded);
       result.push(...inDir);
+    } else if (isAsmExt(dirent.name) && !isExcluded?.(childUri, false)) {
+      result.push(childUri);
     }
   }
 

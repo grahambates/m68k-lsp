@@ -1,4 +1,5 @@
 import { mkdtemp, mkdir, writeFile, rm } from "fs/promises";
+import { promises as fsp } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
 import { pathToFileURL } from "url";
@@ -9,7 +10,11 @@ import DocumentProcessor from "../src/DocumentProcessor";
 import { indexWorkspace } from "../src/workspace";
 import RegisterProvider from "../src/providers/RegisterProvider";
 import { TextDocument } from "vscode-languageserver-textdocument";
-import { getEntryPoints, getEntryPointsFor } from "../src/files";
+import {
+  getAsmFilesInDir,
+  getEntryPoints,
+  getEntryPointsFor,
+} from "../src/files";
 import { NullLogger } from "./helpers";
 
 describe("indexWorkspace", () => {
@@ -39,6 +44,7 @@ describe("indexWorkspace", () => {
   });
 
   afterEach(async () => {
+    jest.restoreAllMocks();
     await rm(dir, { recursive: true, force: true });
   });
 
@@ -80,6 +86,49 @@ describe("indexWorkspace", () => {
 
     expect(count).toBe(1);
     expect([...ctx.store.keys()].join()).not.toContain("vendor");
+  });
+
+  it("does not enumerate excluded directory contents", async () => {
+    const source = await write("src/main.s", "Start:\n rts\n");
+    for (const directory of [
+      "node_modules",
+      ".git",
+      "build",
+      "out",
+      "dist",
+      "target",
+      "vendor",
+    ]) {
+      await write(`${directory}/nested/ignored.s`, "Ignored equ 1\n");
+    }
+    const ctx = await contextFor({ exclude: ["**/vendor/**"] });
+    const readdir = jest.spyOn(fsp, "readdir");
+    await indexWorkspace(ctx, new DocumentProcessor(ctx));
+
+    expect([...ctx.store.keys()]).toEqual([source]);
+    expect(readdir.mock.calls.map(([path]) => String(path)).sort()).toEqual(
+      [
+        pathToFileURL(dir).toString(),
+        pathToFileURL(join(dir, "src")).toString(),
+      ].sort(),
+    );
+  });
+
+  it("keeps traversing folders when only particular files are excluded", async () => {
+    const kept = await write("src/kept.i", "Kept equ 1\n");
+    await write("src/generated.s", "Ignored equ 1\n");
+    const nested = await write("sources.s/nested/kept.i", "Nested equ 1\n");
+    const ctx = await contextFor({ exclude: ["**/*.s"] });
+    await indexWorkspace(ctx, new DocumentProcessor(ctx));
+    expect([...ctx.store.keys()].sort()).toEqual([kept, nested].sort());
+  });
+
+  it("keeps directory enumeration unfiltered for file operations", async () => {
+    const source = await write("main.s", "Start:\n rts\n");
+    const generated = await write("build/generated.s", "Generated equ 1\n");
+    expect(
+      (await getAsmFilesInDir(pathToFileURL(dir).toString())).sort(),
+    ).toEqual([source, generated].sort());
   });
 
   it("records include edges so units can be worked out", async () => {

@@ -21,10 +21,25 @@ export const defaultExclude = [
   "**/target/**",
 ];
 
-export function isIndexExcluded(uri: string, ctx: Context): boolean {
-  return [...defaultExclude, ...ctx.config.exclude].some((pattern) =>
-    minimatch(URI.parse(uri).fsPath, pattern, { dot: true }),
-  );
+export function isIndexExcluded(
+  uri: string,
+  ctx: Context,
+  isDirectory = false,
+): boolean {
+  const path = URI.parse(uri).fsPath;
+  return [...defaultExclude, ...ctx.config.exclude].some((pattern) => {
+    // Prune only explicit subtree exclusions. A file glob can match a folder
+    // name without excluding its children; negated globs cannot prove that
+    // every descendant is excluded either.
+    if (isDirectory && (!pattern.endsWith("/**") || pattern.startsWith("!"))) {
+      return false;
+    }
+    return minimatch(
+      isDirectory ? path.replace(/\/$/, "") + "/" : path,
+      pattern,
+      { dot: true },
+    );
+  });
 }
 
 /**
@@ -48,7 +63,9 @@ export async function indexWorkspace(
   let indexed = 0;
 
   for (const folder of ctx.workspaceFolders) {
-    const uris = await getAsmFilesInDir(folder.uri);
+    const uris = await getAsmFilesInDir(folder.uri, (uri, isDirectory) =>
+      isIndexExcluded(uri, ctx, isDirectory),
+    );
     for (const uri of uris) {
       if (isIndexExcluded(uri, ctx)) {
         continue;
