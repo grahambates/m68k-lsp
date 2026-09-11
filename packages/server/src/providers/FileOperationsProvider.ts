@@ -4,8 +4,9 @@ import { Definition, Symbols } from "../symbols";
 
 import { Provider } from ".";
 import { Context } from "../context";
-import { isProcessed } from "../DocumentProcessor";
+import DocumentProcessor, { isProcessed } from "../DocumentProcessor";
 import { getAsmFilesInDir, isAsmExt, isDir } from "../files";
+import { isIndexExcluded } from "../workspace";
 import { TextDocument } from "vscode-languageserver-textdocument";
 
 export default class FileOperationsProvider implements Provider {
@@ -32,28 +33,73 @@ export default class FileOperationsProvider implements Provider {
     return null;
   }
 
-  onDidDeleteFiles({ files }: lsp.DeleteFilesParams): null {
+  async onDidDeleteFiles({ files }: lsp.DeleteFilesParams): Promise<null> {
+    const processor = new DocumentProcessor(this.ctx);
     for (const { uri } of files) {
-      const fileDeletes = this.fileDeletesMap.get(uri);
-      if (fileDeletes) {
-        for (const deleteUri of fileDeletes) {
-          // Delete from store
-          this.ctx.store.delete(deleteUri);
-
-          // Find referencing docs
-          for (const processedDoc of this.ctx.store.values()) {
-            const refIndex = processedDoc.referencedUris.indexOf(deleteUri);
-            // Remove reference
-            if (refIndex !== -1) {
-              delete processedDoc.referencedUris[refIndex];
-            }
-          }
+      // didDelete may arrive without willDelete (for example from another client).
+      const deleted = new Set([
+        uri,
+        ...(this.fileDeletesMap.get(uri) ?? []),
+        ...Array.from(
+          new Set([
+            ...this.ctx.store.keys(),
+            ...this.ctx.documentUpdates.keys(),
+          ]),
+        ).filter((key) => key.startsWith(uri.replace(/\/$/, "") + "/")),
+      ]);
+      for (const deleteUri of deleted) {
+        processor.remove(deleteUri, false);
+        if (!isProcessed(this.ctx.store.get(deleteUri))) {
+          this.ctx.connection.sendDiagnostics({
+            uri: deleteUri,
+            diagnostics: [],
+          });
         }
+      }
+      this.fileDeletesMap.delete(uri);
+    }
+    this.ctx.connection.sendNotification("m68k/indexChanged");
+    return null;
+  }
 
-        this.fileDeletesMap.delete(uri);
+  async onDidCreateFiles({ files }: lsp.CreateFilesParams): Promise<null> {
+    await this.onDidChangeWatchedFiles({
+      changes: files.map(({ uri }) => ({
+        uri,
+        type: lsp.FileChangeType.Created,
+      })),
+    });
+    return null;
+  }
+
+  async onDidChangeWatchedFiles({
+    changes,
+  }: lsp.DidChangeWatchedFilesParams): Promise<void> {
+    const processor = new DocumentProcessor(this.ctx);
+    // Editors may report several events for one save; process the final state.
+    const latest = new Map(changes.map((change) => [change.uri, change.type]));
+    let changed = false;
+    for (const [uri, type] of latest) {
+      if (
+        !this.ctx.store.has(uri) &&
+        (!isAsmExt(uri) || isIndexExcluded(uri, this.ctx))
+      ) {
+        continue;
+      }
+      changed = true;
+      if (type === lsp.FileChangeType.Deleted) {
+        processor.remove(uri);
+        if (!isProcessed(this.ctx.store.get(uri))) {
+          this.ctx.connection.sendDiagnostics({ uri, diagnostics: [] });
+        }
+      } else {
+        await processor.index(uri);
       }
     }
-    return null;
+    if (changed) {
+      await processor.refreshIncludes();
+      this.ctx.connection.sendNotification("m68k/indexChanged");
+    }
   }
 
   async onDidRenameFiles({ files }: lsp.RenameFilesParams): Promise<null> {
@@ -61,8 +107,10 @@ export default class FileOperationsProvider implements Provider {
 
     for (const file of fileRenames) {
       this.ctx.logger.info(`renaming ${file.oldUri} to ${file.newUri}`);
+      this.ctx.documentUpdates.delete(file.oldUri);
       const processed = this.ctx.store.get(file.oldUri);
       if (processed) {
+        this.ctx.documentUpdates.set(file.newUri, Symbol());
         processed.uri = file.newUri;
         relocateSymbols(processed.symbols, file.newUri);
         this.ctx.store.set(file.newUri, processed);
@@ -120,6 +168,8 @@ export default class FileOperationsProvider implements Provider {
     connection.workspace.onWillDeleteFiles(this.onWillDeleteFiles.bind(this));
     connection.workspace.onDidDeleteFiles(this.onDidDeleteFiles.bind(this));
     connection.workspace.onDidRenameFiles(this.onDidRenameFiles.bind(this));
+    connection.workspace.onDidCreateFiles(this.onDidCreateFiles.bind(this));
+    connection.onDidChangeWatchedFiles(this.onDidChangeWatchedFiles.bind(this));
 
     const fileOperationFilter: FileOperationFilter = {
       pattern: {

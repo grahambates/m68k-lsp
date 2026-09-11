@@ -5,6 +5,8 @@ import { Config, mergeConfig, defaultConfig } from "./config";
 
 export interface Context {
   store: ProcessedDocumentStore;
+  /** Identifies the newest open/index operation for each document. */
+  documentUpdates: Map<string, symbol>;
   workspaceFolders: lsp.WorkspaceFolder[];
   logger: lsp.Logger;
   connection: lsp.Connection;
@@ -19,6 +21,7 @@ export async function createContext(
 ): Promise<Context> {
   return {
     store: new Map(),
+    documentUpdates: new Map(),
     workspaceFolders,
     logger,
     connection,

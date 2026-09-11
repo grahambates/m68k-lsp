@@ -39,8 +39,10 @@ describe("FileOperationsProvider", () => {
           onWillDeleteFiles: jest.fn(),
           onDidDeleteFiles: jest.fn(),
           onDidRenameFiles: jest.fn(),
+          onDidCreateFiles: jest.fn(),
         },
       };
+      Object.assign(conn, { onDidChangeWatchedFiles: jest.fn() });
       const capabilities = provider.register(conn as unknown as lsp.Connection);
       expect(conn.workspace.onWillDeleteFiles).toHaveBeenCalled();
       expect(conn.workspace.onDidDeleteFiles).toHaveBeenCalled();

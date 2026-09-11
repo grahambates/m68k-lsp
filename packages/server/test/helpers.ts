@@ -29,6 +29,7 @@ export function createTestContext(config: Partial<Config> = {}) {
 
   const connection = {
     sendDiagnostics: jest.fn(),
+    sendNotification: jest.fn(),
   } as unknown as lsp.Connection;
 
   return createContext(

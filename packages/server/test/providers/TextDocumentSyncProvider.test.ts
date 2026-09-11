@@ -27,10 +27,16 @@ describe("TextDocumentSyncProvider", () => {
         onDidOpenTextDocument: jest.fn(),
         onDidChangeTextDocument: jest.fn(),
         onDidSaveTextDocument: jest.fn(),
+        onDidCloseTextDocument: jest.fn(),
       };
       const capabilities = provider.register(conn as unknown as lsp.Connection);
       expect(conn.onDidOpenTextDocument).toHaveBeenCalled();
       expect(conn.onDidChangeTextDocument).toHaveBeenCalled();
+      expect(conn.onDidCloseTextDocument).toHaveBeenCalled();
+      expect(capabilities.textDocumentSync).toMatchObject({
+        openClose: true,
+        save: { includeText: false },
+      });
       expect(capabilities).toHaveProperty("textDocumentSync");
     });
   });

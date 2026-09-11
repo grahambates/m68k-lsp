@@ -21,8 +21,10 @@ export const defaultExclude = [
   "**/target/**",
 ];
 
-function isExcluded(path: string, patterns: string[]): boolean {
-  return patterns.some((pattern) => minimatch(path, pattern, { dot: true }));
+export function isIndexExcluded(uri: string, ctx: Context): boolean {
+  return [...defaultExclude, ...ctx.config.exclude].some((pattern) =>
+    minimatch(URI.parse(uri).fsPath, pattern, { dot: true }),
+  );
 }
 
 /**
@@ -42,14 +44,13 @@ export async function indexWorkspace(
   ctx: Context,
   processor: DocumentProcessor,
 ): Promise<number> {
-  const exclude = [...defaultExclude, ...ctx.config.exclude];
   const started = Date.now();
   let indexed = 0;
 
   for (const folder of ctx.workspaceFolders) {
     const uris = await getAsmFilesInDir(folder.uri);
     for (const uri of uris) {
-      if (isExcluded(URI.parse(uri).fsPath, exclude)) {
+      if (isIndexExcluded(uri, ctx)) {
         continue;
       }
       if (ctx.store.has(uri)) {

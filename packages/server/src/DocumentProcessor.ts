@@ -49,6 +49,9 @@ export function isProcessed(
   return doc !== undefined && "parsed" in doc;
 }
 
+// Shared across processor instances, without retaining closed document objects.
+const referenceUpdates = new WeakMap<IndexedDocument, symbol>();
+
 export default class DocumentProcessor {
   constructor(protected readonly ctx: Context) {}
 
@@ -60,6 +63,8 @@ export default class DocumentProcessor {
    */
   async process(document: TextDocument): Promise<ProcessedDocument> {
     this.ctx.logger.log("processDocument: " + document.uri);
+    const update = Symbol();
+    this.ctx.documentUpdates.set(document.uri, update);
 
     const text = document.getText();
     const parsed = parseFile(text);
@@ -77,12 +82,7 @@ export default class DocumentProcessor {
 
     this.ctx.store.set(document.uri, processed);
 
-    const resolved = await resolveReferencedUris(document.uri, this.ctx);
-    processed.referencedUris.push(...resolved);
-
-    await Promise.all(
-      processed.referencedUris.map((uri) => this.indexIfAbsent(uri)),
-    );
+    await this.resolveReferences(processed, update);
 
     return processed;
   }
@@ -99,14 +99,15 @@ export default class DocumentProcessor {
       return existing;
     }
 
+    const update = Symbol();
+    this.ctx.documentUpdates.set(uri, update);
     const document = await readDocumentFromUri(uri);
-    // Opening a document while the disk read is pending installs its current
-    // text and syntax tree. Never replace that entry with the disk index.
-    const current = this.ctx.store.get(uri);
-    if (isProcessed(current)) {
-      return current;
+    // A later open, close, disk change or deletion wins over this disk read.
+    if (this.ctx.documentUpdates.get(uri) !== update) {
+      return this.ctx.store.get(uri);
     }
     if (!document) {
+      this.remove(uri);
       return undefined;
     }
 
@@ -123,10 +124,60 @@ export default class DocumentProcessor {
 
     this.ctx.store.set(uri, indexed);
 
-    const resolved = await resolveReferencedUris(uri, this.ctx);
-    indexed.referencedUris.push(...resolved);
-
+    await this.resolveReferences(indexed, update);
     return indexed;
+  }
+
+  /** Release editor text immediately, then rebuild symbols from the saved file. */
+  async close(uri: string): Promise<void> {
+    this.ctx.documentUpdates.delete(uri);
+    this.ctx.store.delete(uri);
+    await this.index(uri);
+  }
+
+  /** Remove disk-backed data; an open editor remains authoritative. */
+  remove(uri: string, preserveOpen = true): void {
+    if (preserveOpen && isProcessed(this.ctx.store.get(uri))) {
+      return;
+    }
+    this.ctx.documentUpdates.delete(uri);
+    this.ctx.store.delete(uri);
+    for (const document of this.ctx.store.values()) {
+      referenceUpdates.delete(document);
+      document.referencedUris = document.referencedUris.filter(
+        (ref) => ref !== uri,
+      );
+    }
+  }
+
+  /** Reconnect includes after files appear, disappear, or change their incdirs. */
+  async refreshIncludes(): Promise<void> {
+    for (const document of Array.from(this.ctx.store.values())) {
+      if (document.symbols.includes.length) {
+        await this.resolveReferences(
+          document,
+          this.ctx.documentUpdates.get(document.uri),
+        );
+      }
+    }
+  }
+
+  private async resolveReferences(
+    document: IndexedDocument,
+    update: symbol | undefined,
+  ): Promise<void> {
+    const referenceUpdate = Symbol();
+    referenceUpdates.set(document, referenceUpdate);
+    const resolved = await resolveReferencedUris(document.uri, this.ctx);
+    if (
+      referenceUpdates.get(document) !== referenceUpdate ||
+      this.ctx.store.get(document.uri) !== document ||
+      this.ctx.documentUpdates.get(document.uri) !== update
+    ) {
+      return;
+    }
+    document.referencedUris = resolved;
+    await Promise.all(resolved.map((uri) => this.indexIfAbsent(uri)));
   }
 
   /** Index a file and everything it includes, skipping what is already known. */
@@ -134,13 +185,7 @@ export default class DocumentProcessor {
     if (this.ctx.store.has(uri)) {
       return;
     }
-    const indexed = await this.index(uri);
-    if (!indexed) {
-      return;
-    }
-    await Promise.all(
-      indexed.referencedUris.map((next) => this.indexIfAbsent(next)),
-    );
+    await this.index(uri);
   }
 }
 

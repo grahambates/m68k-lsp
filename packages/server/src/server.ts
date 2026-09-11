@@ -23,6 +23,19 @@ connection.onInitialize(async (params) => {
   // delay the first response for no benefit: requests arriving meanwhile see
   // whatever is indexed so far.
   connection.onInitialized(() => {
+    if (
+      params.capabilities.workspace?.didChangeWatchedFiles?.dynamicRegistration
+    ) {
+      void connection.client
+        .register(lsp.DidChangeWatchedFilesNotification.type, {
+          watchers: [{ globPattern: "**/*.{s,S,i,I,asm,ASM}" }],
+        })
+        .catch((error) =>
+          connection.console.error(
+            `Unable to watch source files: ${String(error)}`,
+          ),
+        );
+    }
     void indexWorkspace(ctx, new DocumentProcessor(ctx)).catch((err) => {
       ctx.logger.error(`Workspace indexing failed: ${String(err)}`);
     });

@@ -66,6 +66,7 @@ interface RegisterRemapResult {
 }
 
 interface RemappingContext {
+  isCurrent: () => boolean;
   uri: string;
   range: Range;
   documentVersion: number;
@@ -151,6 +152,8 @@ export function activate(context: ExtensionContext): void {
     .get<boolean>("enabled", true);
   let clientReady = false;
   let remappingContext: RemappingContext | undefined;
+  let modelGeneration = 0;
+  const decorationGenerations = new WeakMap<TextEditor, number>();
 
   const clearDecorations = (editor: TextEditor) => {
     for (const decoration of decorations.values()) {
@@ -159,6 +162,10 @@ export function activate(context: ExtensionContext): void {
   };
 
   const applyDecorations = async (editor: TextEditor) => {
+    const generation = (decorationGenerations.get(editor) ?? 0) + 1;
+    decorationGenerations.set(editor, generation);
+    if (!clientReady) return;
+    const version = editor.document.version;
     if (!enabled) {
       clearDecorations(editor);
       return;
@@ -168,6 +175,12 @@ export function activate(context: ExtensionContext): void {
       "m68k/registerRanges",
       { uri: editor.document.uri.toString() },
     );
+    if (
+      !enabled ||
+      editor.document.version !== version ||
+      decorationGenerations.get(editor) !== generation
+    )
+      return;
     for (const [register, decoration] of decorations) {
       editor.setDecorations(decoration, ranges[register] ?? []);
     }
@@ -184,9 +197,11 @@ export function activate(context: ExtensionContext): void {
     }
   };
 
-  const loadRemappingModel = async (): Promise<
-    RegisterRemappingModel | undefined
-  > => {
+  const loadRemappingModel = async (
+    isCurrent = () => true,
+  ): Promise<RegisterRemappingModel | undefined> => {
+    const generation = ++modelGeneration;
+    remappingContext = undefined;
     if (!clientReady) {
       return;
     }
@@ -195,9 +210,16 @@ export function activate(context: ExtensionContext): void {
       remappingContext = undefined;
       return;
     }
+    const selection = editor.selection;
+    const version = editor.document.version;
+    const stillCurrent = () =>
+      isCurrent() &&
+      modelGeneration === generation &&
+      window.activeTextEditor === editor &&
+      editor.document.version === version &&
+      editor.selection.isEqual(selection);
     const scope = await registerCommandScope(editor, false);
-    if (!scope) {
-      remappingContext = undefined;
+    if (!stillCurrent() || !scope) {
       return;
     }
     const { range } = scope;
@@ -206,16 +228,14 @@ export function activate(context: ExtensionContext): void {
       {
         textDocument: { uri: editor.document.uri.toString() },
         range,
-        position: editor.selection.isEmpty
-          ? editor.selection.active
-          : undefined,
+        position: selection.isEmpty ? selection.active : undefined,
       },
     );
-    if (!usage) {
-      remappingContext = undefined;
+    if (!stillCurrent() || !usage || usage.documentVersion !== version) {
       return;
     }
     remappingContext = {
+      isCurrent: stillCurrent,
       uri: editor.document.uri.toString(),
       range,
       documentVersion: usage.documentVersion,
@@ -242,6 +262,7 @@ export function activate(context: ExtensionContext): void {
     if (
       !editor ||
       !snapshot ||
+      !snapshot.isCurrent() ||
       editor.document.uri.toString() !== snapshot.uri ||
       editor.document.version !== snapshot.documentVersion
     ) {
@@ -548,6 +569,11 @@ export function activate(context: ExtensionContext): void {
     serverOptions,
     clientOptions,
   );
+
+  client.onNotification("m68k/indexChanged", () => {
+    refresh();
+    void remappingView.refresh();
+  });
 
   context.subscriptions.push(
     remappingView,

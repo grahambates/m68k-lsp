@@ -10,6 +10,7 @@ export default class TextDocumentSyncProvider implements Provider {
   private processor: DocumentProcessor;
   private diagnostics: DiagnosticProcessor;
   private connection: lsp.Connection;
+  private diagnosticRuns = new Map<string, symbol>();
 
   constructor(protected readonly ctx: Context) {
     this.processor = new DocumentProcessor(ctx);
@@ -17,68 +18,130 @@ export default class TextDocumentSyncProvider implements Provider {
     this.connection = ctx.connection;
   }
 
-  onDidOpenTextDocument({
+  async onDidOpenTextDocument({
     textDocument: { uri, languageId, text, version },
   }: lsp.DidOpenTextDocumentParams) {
-    const document = TextDocument.create(uri, languageId, version, text);
-    this.processor.process(document).then(() => {
-      this.fileDiagnostics(uri);
-    });
+    const run = Symbol();
+    this.diagnosticRuns.set(uri, run);
+    try {
+      const document = TextDocument.create(uri, languageId, version, text);
+      const processed = await this.processor.process(document);
+      if (
+        this.diagnosticRuns.get(uri) === run &&
+        this.ctx.store.get(uri) === processed
+      ) {
+        await this.fileDiagnostics(uri);
+      }
+    } catch (error) {
+      this.ctx.logger.error(`Unable to process ${uri}: ${String(error)}`);
+    }
   }
 
-  onDidChangeTextDocument({
+  async onDidChangeTextDocument({
     textDocument: { uri, version },
     contentChanges,
   }: lsp.DidChangeTextDocumentParams) {
+    const run = Symbol();
+    this.diagnosticRuns.set(uri, run);
     const existing = this.ctx.store.get(uri);
     if (!isProcessed(existing)) {
       return;
     }
-    const { document } = existing;
-
-    const updatedDoc = TextDocument.update(document, contentChanges, version);
-
-    this.processor.process(updatedDoc).then(({ parsed, blocks }) => {
-      // Send just local parser diagnostics - can't get vasm errors until save
-      const diagnostics = this.diagnostics.parserDiagnostics(parsed, blocks);
+    try {
+      // Keep snapshots held by in-flight analysis immutable.
+      const document = TextDocument.create(
+        uri,
+        existing.document.languageId,
+        existing.document.version,
+        existing.document.getText(),
+      );
+      const updatedDoc = TextDocument.update(document, contentChanges, version);
+      const processed = await this.processor.process(updatedDoc);
+      if (
+        this.diagnosticRuns.get(uri) !== run ||
+        this.ctx.store.get(uri) !== processed
+      ) {
+        return;
+      }
       this.connection.sendDiagnostics({
         uri,
-        diagnostics,
+        version,
+        diagnostics: this.diagnostics.parserDiagnostics(
+          processed.parsed,
+          processed.blocks,
+        ),
       });
-    });
+    } catch (error) {
+      this.ctx.logger.error(`Unable to process ${uri}: ${String(error)}`);
+    }
+  }
+
+  async onDidCloseTextDocument({
+    textDocument: { uri },
+  }: lsp.DidCloseTextDocumentParams) {
+    this.diagnosticRuns.delete(uri);
+    this.connection.sendDiagnostics({ uri, diagnostics: [] });
+    try {
+      await this.processor.close(uri);
+      this.connection.sendNotification("m68k/indexChanged");
+    } catch (error) {
+      this.ctx.logger.error(
+        `Unable to index closed document ${uri}: ${String(error)}`,
+      );
+    }
   }
 
   async onDidSaveTextDocument({
     textDocument: { uri },
   }: lsp.DidSaveTextDocumentParams) {
-    this.fileDiagnostics(uri);
+    await this.fileDiagnostics(uri);
   }
 
-  /**
-   * Send diagnostics from both local parser and vasm
-   */
+  /** Publish only the latest diagnostics for the same open document snapshot. */
   async fileDiagnostics(uri: string) {
     const existing = this.ctx.store.get(uri);
     if (!isProcessed(existing)) {
       return;
     }
-    const vasmDiagnostics = await this.diagnostics.vasmDiagnostics(uri);
-    const captureDiagnostics = this.diagnostics.parserDiagnostics(
-      existing.parsed,
-      existing.blocks,
-    );
-    this.connection.sendDiagnostics({
-      uri,
-      diagnostics: [...captureDiagnostics, ...vasmDiagnostics],
-    });
+    const version = existing.document.version;
+    const run = Symbol();
+    this.diagnosticRuns.set(uri, run);
+    try {
+      const vasmDiagnostics = await this.diagnostics.vasmDiagnostics(uri);
+      if (
+        this.diagnosticRuns.get(uri) !== run ||
+        this.ctx.store.get(uri) !== existing ||
+        existing.document.version !== version
+      ) {
+        return;
+      }
+      this.connection.sendDiagnostics({
+        uri,
+        version,
+        diagnostics: [
+          ...this.diagnostics.parserDiagnostics(
+            existing.parsed,
+            existing.blocks,
+          ),
+          ...vasmDiagnostics,
+        ],
+      });
+    } catch (error) {
+      this.ctx.logger.error(`Unable to diagnose ${uri}: ${String(error)}`);
+    }
   }
 
   register(connection: lsp.Connection): lsp.ServerCapabilities {
     connection.onDidOpenTextDocument(this.onDidOpenTextDocument.bind(this));
     connection.onDidChangeTextDocument(this.onDidChangeTextDocument.bind(this));
     connection.onDidSaveTextDocument(this.onDidSaveTextDocument.bind(this));
+    connection.onDidCloseTextDocument(this.onDidCloseTextDocument.bind(this));
     return {
-      textDocumentSync: lsp.TextDocumentSyncKind.Incremental,
+      textDocumentSync: {
+        openClose: true,
+        change: lsp.TextDocumentSyncKind.Incremental,
+        save: { includeText: false },
+      },
     };
   }
 }

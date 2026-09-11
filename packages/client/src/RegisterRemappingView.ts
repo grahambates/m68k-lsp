@@ -24,11 +24,15 @@ export class RegisterRemappingView implements WebviewViewProvider, Disposable {
   static readonly viewType = "m68k.registerRemapping";
 
   private view?: WebviewView;
+  private refreshGeneration = 0;
+  private pendingRefresh?: Promise<void>;
   private messageSubscription?: Disposable;
   private visibilitySubscription?: Disposable;
 
   constructor(
-    private readonly load: () => Promise<RegisterRemappingModel | undefined>,
+    private readonly load: (
+      isCurrent: () => boolean,
+    ) => Promise<RegisterRemappingModel | undefined>,
     private readonly apply: (
       mappings: Record<string, string>,
     ) => Promise<RegisterRemappingResult>,
@@ -37,6 +41,7 @@ export class RegisterRemappingView implements WebviewViewProvider, Disposable {
   resolveWebviewView(view: WebviewView): void {
     this.messageSubscription?.dispose();
     this.visibilitySubscription?.dispose();
+    this.refreshGeneration++;
     this.view = view;
     view.webview.options = { enableScripts: true };
     view.webview.html = webviewHtml(view.webview);
@@ -45,7 +50,10 @@ export class RegisterRemappingView implements WebviewViewProvider, Disposable {
         if (message.type === "ready" || message.type === "refresh") {
           await this.refresh();
         } else if (message.type === "apply" && message.mappings) {
+          const generation = this.refreshGeneration;
           const result = await this.apply(message.mappings);
+          if (this.view !== view || this.refreshGeneration !== generation)
+            return;
           await view.webview.postMessage({ type: "result", ...result });
           if (result.ok) {
             await this.refresh();
@@ -54,21 +62,52 @@ export class RegisterRemappingView implements WebviewViewProvider, Disposable {
       },
     );
     this.visibilitySubscription = view.onDidChangeVisibility(() => {
-      if (view.visible) {
-        void this.refresh();
-      }
+      void this.refresh();
     });
   }
 
-  async refresh(): Promise<void> {
+  refresh(): Promise<void> {
+    this.refreshGeneration++;
     if (!this.view?.visible) {
-      return;
+      return this.pendingRefresh ?? Promise.resolve();
     }
-    const model = await this.load();
-    await this.view.webview.postMessage({ type: "model", model });
+    // One request at a time; selection changes during it require only one
+    // further load, using the latest editor state.
+    if (!this.pendingRefresh) {
+      this.pendingRefresh = Promise.resolve().then(() => this.refreshLatest());
+    }
+    return this.pendingRefresh;
+  }
+
+  private async refreshLatest(): Promise<void> {
+    try {
+      while (this.view?.visible) {
+        const view = this.view;
+        const generation = this.refreshGeneration;
+        const isCurrent = () =>
+          this.view === view &&
+          view.visible &&
+          this.refreshGeneration === generation;
+        try {
+          const model = await this.load(isCurrent);
+          if (isCurrent()) {
+            await view.webview.postMessage({ type: "model", model });
+          }
+        } catch (error) {
+          if (isCurrent()) {
+            console.error("Unable to refresh register analysis", error);
+          }
+        }
+        if (this.refreshGeneration === generation) return;
+      }
+    } finally {
+      this.pendingRefresh = undefined;
+    }
   }
 
   dispose(): void {
+    this.refreshGeneration++;
+    this.view = undefined;
     this.messageSubscription?.dispose();
     this.visibilitySubscription?.dispose();
   }
