@@ -1,0 +1,107 @@
+import { dirname } from "node:path";
+import { defaultConfig, type LintConfig } from "m68k-lint";
+import { findProjectConfig, loadProjectConfig, lintConfigFromProject } from "m68k-lint/project-config";
+
+/**
+ * Editor settings, under the `m68kLint` section.
+ *
+ * The lint-semantic fields mirror the project config file, but the file wins
+ * where both speak. A checked-in `m68k-lint.json` is what makes a team's
+ * results match; per-user settings quietly overriding it is how "works on my
+ * machine" starts. These apply when a workspace has no config file at all.
+ */
+export interface Settings {
+  enable: boolean;
+  run: "onType" | "onSave";
+  /** Fall back to these when the workspace has no config file. */
+  defaults: Partial<LintConfig>;
+  quickFix: {
+    /** Offer fixes whose applicability is `conditional`, not just `safe`. */
+    conditional: boolean;
+    /** Keep the original commented above an opaque rewrite. */
+    annotate: boolean;
+  };
+}
+
+export const defaultSettings: Settings = {
+  enable: true,
+  run: "onType",
+  defaults: {},
+  quickFix: { conditional: false, annotate: false },
+};
+
+/** Drops the keys a source left unset, so a spread does not erase what is under it. */
+function defined<T extends object>(value: T): Partial<T> {
+  return Object.fromEntries(Object.entries(value).filter(([, entry]) => entry !== undefined)) as Partial<T>;
+}
+
+export interface ResolvedConfig {
+  config: LintConfig;
+  /** Absolute path of the config file backing this, if any. */
+  configPath?: string;
+  /** Set when a config file was found but could not be read or validated. */
+  error?: string;
+}
+
+/**
+ * Resolves and caches the lint config that applies to a file.
+ *
+ * Cached per containing directory rather than per file: the walk up to the
+ * nearest config file is the expensive part, and every file in a directory
+ * shares its answer.
+ */
+export class ConfigResolver {
+  private cache = new Map<string, Promise<ResolvedConfig>>();
+  private settings: Settings = defaultSettings;
+
+  getSettings(): Settings {
+    return this.settings;
+  }
+
+  updateSettings(settings: Settings): void {
+    this.settings = settings;
+    // Settings feed the resolved config, so every cached answer is now stale.
+    this.clear();
+  }
+
+  clear(): void {
+    this.cache.clear();
+  }
+
+  resolve(fsPath: string): Promise<ResolvedConfig> {
+    const dir = dirname(fsPath);
+    let resolved = this.cache.get(dir);
+    if (!resolved) {
+      resolved = this.load(dir);
+      this.cache.set(dir, resolved);
+    }
+    return resolved;
+  }
+
+  private async load(dir: string): Promise<ResolvedConfig> {
+    const base: LintConfig = { ...defaultConfig, ...this.settings.defaults };
+
+    let configPath: string | undefined;
+    try {
+      configPath = await findProjectConfig(dir);
+    } catch {
+      // An unreadable directory on the way up is not worth failing the file for.
+      configPath = undefined;
+    }
+    if (!configPath) return { config: base };
+
+    try {
+      const project = await loadProjectConfig(configPath);
+      // lintConfigFromProject returns every key, undefined where the file was
+      // silent. Spreading that as-is would erase the defaults underneath.
+      const overrides = defined(lintConfigFromProject(project));
+      return { config: { ...base, ...overrides }, configPath };
+    } catch (error) {
+      return {
+        config: base,
+        configPath,
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
+  }
+}
