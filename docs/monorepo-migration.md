@@ -61,7 +61,7 @@ Bundled server relationships are currently partly encoded in copy scripts rather
 
 ## Proposed repository and identity
 
-Use the agreed repository name `m68ktools` and default branch `main`. Keep published names and versions. Directories match package names except for the counter extension's required Marketplace compatibility treatment.
+Use the agreed repository name `m68k-tools` and default branch `main`. Keep published names and versions. Directories match package names except for the counter extension's required Marketplace compatibility treatment.
 
 ```text
 packages/
@@ -168,7 +168,7 @@ Rollback is per migration commit until external cutover. Preserve original refs 
 
 Owner decisions recorded after review:
 
-- Repository name: `m68ktools`; default branch: `main`.
+- Repository name: `m68k-tools`; default branch: `main`.
 - Tooling direction approved: pnpm, tsdown for libraries/CLIs, Vitest for unit tests, Changesets, shared lint/format configuration; preserve integration-runner exceptions.
 - Development/build runtime: Node 22.23.2. Published Node packages should target Node 22; exact minimum minor remains a dependency compatibility check. Document dropped Node 20 support when releasing.
 - Raising the minimum VS Code version is acceptable. Proposed starting point: `^1.101.0`, subject to dependency and extension-host tests; this release shipped Node 22.15.1 with Electron 35. Set VS Code type declarations to the chosen API floor rather than latest.
@@ -215,7 +215,7 @@ Missing-tool baselines are not passing baselines. Install dependencies and rerun
 
 ### Local migration execution — 2026-09-12
 
-- Local branch is `main`; workspace name is `m68ktools`. The GitHub repository and local directory still have their original names until cutover.
+- Local branch is `main`; workspace name is `m68k-tools`. The GitHub repository and local directory still have their original names until cutover.
 - Imported all six repositories with non-squashed subtree history. Flattened the lint LSP into separate server and extension workspaces. Original supporting files remain in `docs/imported-m68k-lint-lsp`.
 - Connected parser, formatter, counter, linter and application dependencies through pnpm workspaces. Counter extension deliberately retains `npm:68kcounter@^3.1.2` until its application upgrade.
 - Pinned pnpm 12.4.1, Node 22.23.2, TypeScript 5.9.3, ESLint 9.39.5 and Prettier 3.9.6. Migrated library builds to tsdown 0.23.0 and unit suites to Vitest 5. Preserved Vite, esbuild application builds, stdio integration tests and the VS Code host harness.

@@ -11,5 +11,5 @@
 ---
 
 Require Node.js 22.15.1 or later for Node packages and VS Code 1.101 or later for
-extensions. Builds and releases now come from the shared m68ktools workspace.
+extensions. Builds and releases now come from the shared m68k-tools workspace.
 Existing npm and Marketplace identities are preserved.

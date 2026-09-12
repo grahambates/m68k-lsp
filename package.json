@@ -1,5 +1,5 @@
 {
-  "name": "m68ktools",
+  "name": "m68k-tools",
   "version": "0.11.3",
   "private": true,
   "description": "Motorola 68000 assembly libraries, command-line tools and editor applications",

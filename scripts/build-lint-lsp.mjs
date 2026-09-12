@@ -1,3 +1,4 @@
+import { copySourceMap } from "./copy-source-map.mjs";
 import { copyFile, mkdir, rm } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -26,6 +27,7 @@ const bundledServer = join(root, "apps/m68k-lint-vscode/out/server.js");
 async function copyServer() {
   await mkdir(dirname(bundledServer), { recursive: true });
   await copyFile(serverOut, bundledServer);
+  if (args.has("--sourcemap")) await copySourceMap(serverOut, bundledServer);
 }
 
 /**

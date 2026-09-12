@@ -1,4 +1,4 @@
-# m68ktools
+# m68k-tools
 
 Tools for Motorola 68000 assembly: parsing, formatting, cycle counting, static analysis and editor integration.
 
@@ -43,6 +43,14 @@ pnpm package:counter
 Build before running the isolated tarball checks. VS Code host tests run separately with `pnpm test:extension-host` and require a graphical display (or Xvfb on Linux). Counter packaging generates `.staging/68kcounter-vscode` and preserves Marketplace identity `gigabates.68kcounter`.
 
 Imported source retains its formatting during migration. Shared tool versions and a common Node ESLint base coexist with package-specific React and type-aware lint rules.
+
+## Debugging in VS Code
+
+Open the repository root and choose a component in Run and Debug: `Assembly: Extension`, `Linter: Extension`, `Counter: Extension` or `Counter: Web`. Each launcher builds its dependencies first. The assembly and linter compounds also attach to their server processes, on ports 6009 and 6019 respectively.
+
+`Counter: Extension tests` runs the existing host suite. Counter launches use the staged extension with its Marketplace identity and source maps back to the workspace source. Launch settings are maintained at the root; opening an individual app folder is not required.
+
+The web launcher uses Chrome and starts Vite at `http://127.0.0.1:5173` with a fixed port. Its development server remains running after browser debugging stops; use **Tasks: Terminate Task** to stop `Counter: Start web`. Web source updates use Vite's live reload; restart extension debugging to rebuild extension or library changes.
 
 ## Releases
 

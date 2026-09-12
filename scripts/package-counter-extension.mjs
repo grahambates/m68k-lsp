@@ -38,6 +38,7 @@ await build({
   format: "cjs",
   target: "es2015",
   external: ["vscode"],
+  sourcemap: process.argv.includes("--sourcemap"),
 });
 if (manifest.publisher !== "gigabates" || manifest.name !== "68kcounter") {
   throw new Error("Unexpected Marketplace identity");

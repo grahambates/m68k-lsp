@@ -2,28 +2,139 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "type": "npm",
-      "script": "typecheck",
-      "group": "build",
-      "presentation": {
-        "panel": "dedicated",
-        "reveal": "never"
+      "label": "Build: Parser",
+      "type": "process",
+      "command": "pnpm",
+      "args": ["--filter", "m68k-parser", "build"],
+      "options": {
+        "cwd": "${workspaceFolder}"
       },
-      "problemMatcher": ["$tsc"]
+      "problemMatcher": []
     },
     {
-      "type": "npm",
-      "script": "watch",
-      "isBackground": true,
+      "label": "Build: Counter library",
+      "type": "process",
+      "command": "pnpm",
+      "args": ["--filter", "68kcounter", "build"],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [],
+      "dependsOn": ["Build: Parser"],
+      "dependsOrder": "sequence"
+    },
+    {
+      "label": "Build: Linter library",
+      "type": "process",
+      "command": "pnpm",
+      "args": ["--filter", "m68k-lint", "build"],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [],
+      "dependsOn": ["Build: Counter library"],
+      "dependsOrder": "sequence"
+    },
+    {
+      "label": "Assembly: Build for debug",
+      "type": "process",
+      "command": "node",
+      "args": ["scripts/build.mjs", "--sourcemap"],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [],
+      "dependsOn": ["Build: Parser"],
+      "dependsOrder": "sequence"
+    },
+    {
+      "label": "Linter: Build for debug",
+      "type": "process",
+      "command": "node",
+      "args": ["scripts/build-lint-lsp.mjs", "--sourcemap"],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [],
+      "dependsOn": ["Build: Linter library"],
+      "dependsOrder": "sequence"
+    },
+    {
+      "label": "Counter: Compile extension tests",
+      "type": "process",
+      "command": "pnpm",
+      "args": ["--filter", "68kcounter-vscode", "compile"],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Counter: Stage extension",
+      "type": "process",
+      "command": "node",
+      "args": [
+        "scripts/package-counter-extension.mjs",
+        "--stage-only",
+        "--sourcemap"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [],
+      "dependsOn": ["Counter: Compile extension tests"],
+      "dependsOrder": "sequence"
+    },
+    {
+      "label": "Counter: Start web",
+      "type": "process",
+      "command": "pnpm",
+      "args": [
+        "--filter",
+        "68kcounter-web",
+        "dev",
+        "--host",
+        "127.0.0.1",
+        "--port",
+        "5173",
+        "--strictPort"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}",
+        "env": {
+          "NO_COLOR": "1"
+        }
+      },
+      "problemMatcher": {
+        "owner": "vite",
+        "pattern": {
+          "regexp": "^$",
+          "file": 1,
+          "message": 2
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "VITE",
+          "endsPattern": "Local:.*http://127\\.0\\.0\\.1:5173/"
+        }
+      },
+      "dependsOn": ["Build: Counter library"],
+      "dependsOrder": "sequence",
+      "isBackground": true
+    },
+    {
+      "label": "Workspace: Typecheck",
+      "type": "process",
+      "command": "pnpm",
+      "args": ["typecheck"],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": ["$tsc"],
       "group": {
         "kind": "build",
         "isDefault": true
-      },
-      "presentation": {
-        "panel": "dedicated",
-        "reveal": "never"
-      },
-      "problemMatcher": []
+      }
     }
   ]
 }

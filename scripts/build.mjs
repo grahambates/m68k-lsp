@@ -1,3 +1,4 @@
+import { copySourceMap } from "./copy-source-map.mjs";
 import { execFileSync } from "node:child_process";
 import { copyFile, mkdir, readdir } from "node:fs/promises";
 import { dirname, join } from "node:path";
@@ -43,6 +44,11 @@ async function copyAssets() {
 async function copyServer() {
   await mkdir(clientOut, { recursive: true });
   await copyFile(join(serverOut, "server.js"), join(clientOut, "server.js"));
+  if (args.has("--sourcemap"))
+    await copySourceMap(
+      join(serverOut, "server.js"),
+      join(clientOut, "server.js"),
+    );
 }
 
 /**

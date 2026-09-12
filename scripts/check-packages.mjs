@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
-const temp = mkdtempSync(join(tmpdir(), "m68ktools-pack-"));
+const temp = mkdtempSync(join(tmpdir(), "m68k-tools-pack-"));
 const names = [
   "m68k-parser",
   "68kcounter",

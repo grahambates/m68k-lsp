@@ -1,34 +1,87 @@
-// A launch configuration that compiles the extension and then opens it inside a new window
 {
   "version": "0.2.0",
   "configurations": [
     {
+      "name": "Assembly: Extension",
       "type": "extensionHost",
       "request": "launch",
-      "name": "Launch Client",
       "runtimeExecutable": "${execPath}",
-      "args": ["--extensionDevelopmentPath=${workspaceRoot}/apps/m68k-lsp"],
-      // The build copies a fresh server bundle into the client's out dir on
-      // every rebuild, so there is no need to point M68K_SERVER_PATH elsewhere.
-      "outFiles": ["${workspaceRoot}/apps/m68k-lsp/out/**/*.js"],
-      "preLaunchTask": {
-        "type": "npm",
-        "script": "build:dev"
-      }
+      "args": ["--extensionDevelopmentPath=${workspaceFolder}/apps/m68k-lsp"],
+      "outFiles": ["${workspaceFolder}/apps/m68k-lsp/out/**/*.js"],
+      "preLaunchTask": "Assembly: Build for debug"
     },
     {
+      "name": "Linter: Extension",
+      "type": "extensionHost",
+      "request": "launch",
+      "runtimeExecutable": "${execPath}",
+      "args": [
+        "--extensionDevelopmentPath=${workspaceFolder}/apps/m68k-lint-vscode"
+      ],
+      "outFiles": ["${workspaceFolder}/apps/m68k-lint-vscode/out/**/*.js"],
+      "preLaunchTask": "Linter: Build for debug"
+    },
+    {
+      "name": "Counter: Extension",
+      "type": "extensionHost",
+      "request": "launch",
+      "runtimeExecutable": "${execPath}",
+      "args": [
+        "--extensionDevelopmentPath=${workspaceFolder}/.staging/68kcounter-vscode"
+      ],
+      "outFiles": ["${workspaceFolder}/.staging/68kcounter-vscode/out/**/*.js"],
+      "preLaunchTask": "Counter: Stage extension"
+    },
+    {
+      "name": "Assembly: Attach to server",
       "type": "node",
       "request": "attach",
-      "name": "Attach to Server",
       "port": 6009,
       "restart": true,
-      "outFiles": ["${workspaceRoot}/apps/m68k-lsp/out/**/*.js"]
+      "outFiles": ["${workspaceFolder}/apps/m68k-lsp/out/server.js"]
+    },
+    {
+      "name": "Linter: Attach to server",
+      "type": "node",
+      "request": "attach",
+      "port": 6019,
+      "restart": true,
+      "outFiles": ["${workspaceFolder}/apps/m68k-lint-vscode/out/server.js"]
+    },
+    {
+      "name": "Counter: Extension tests",
+      "type": "extensionHost",
+      "request": "launch",
+      "runtimeExecutable": "${execPath}",
+      "args": [
+        "--extensionDevelopmentPath=${workspaceFolder}/.staging/68kcounter-vscode",
+        "--extensionTestsPath=${workspaceFolder}/apps/68kcounter-vscode/out/test/suite/index"
+      ],
+      "outFiles": [
+        "${workspaceFolder}/.staging/68kcounter-vscode/out/**/*.js",
+        "${workspaceFolder}/apps/68kcounter-vscode/out/**/*.js"
+      ],
+      "preLaunchTask": "Counter: Stage extension"
+    },
+    {
+      "name": "Counter: Web",
+      "type": "chrome",
+      "request": "launch",
+      "url": "http://127.0.0.1:5173",
+      "webRoot": "${workspaceFolder}/apps/68kcounter-web",
+      "preLaunchTask": "Counter: Start web"
     }
   ],
   "compounds": [
     {
-      "name": "Client + Server",
-      "configurations": ["Launch Client", "Attach to Server"]
+      "name": "Assembly: Extension + server",
+      "configurations": ["Assembly: Extension", "Assembly: Attach to server"],
+      "stopAll": true
+    },
+    {
+      "name": "Linter: Extension + server",
+      "configurations": ["Linter: Extension", "Linter: Attach to server"],
+      "stopAll": true
     }
   ]
 }
