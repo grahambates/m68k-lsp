@@ -4,7 +4,8 @@
     "composite": false,
     "declaration": false,
     "rootDir": ".",
-    "noEmit": true
+    "noEmit": true,
+    "types": ["node", "vitest/globals"]
   },
   "include": ["src", "test"]
 }

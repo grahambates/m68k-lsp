@@ -13,6 +13,13 @@ const manifest = JSON.parse(
   await readFile(join(source, "package.json"), "utf8"),
 );
 manifest.name = "68kcounter";
+manifest.files = [
+  "out/**",
+  "images/**",
+  "README.md",
+  "CHANGELOG.md",
+  "LICENSE",
+];
 delete manifest.scripts;
 delete manifest.dependencies;
 delete manifest.devDependencies;
@@ -35,13 +42,15 @@ await build({
 if (manifest.publisher !== "gigabates" || manifest.name !== "68kcounter") {
   throw new Error("Unexpected Marketplace identity");
 }
-execFileSync(
-  join(source, "node_modules/.bin/vsce"),
-  [
-    "package",
-    "--no-dependencies",
-    "--out",
-    join(root, `68kcounter-${manifest.version}.vsix`),
-  ],
-  { cwd: staging, stdio: "inherit" },
-);
+if (!process.argv.includes("--stage-only")) {
+  execFileSync(
+    join(source, "node_modules/.bin/vsce"),
+    [
+      "package",
+      "--no-dependencies",
+      "--out",
+      join(root, `68kcounter-${manifest.version}.vsix`),
+    ],
+    { cwd: staging, stdio: "inherit" },
+  );
+}

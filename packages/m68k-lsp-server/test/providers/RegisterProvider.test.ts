@@ -28,7 +28,7 @@ describe("RegisterProvider", () => {
   describe("#register()", () => {
     it("registers custom requests", () => {
       const conn = {
-        onRequest: jest.fn(),
+        onRequest: vi.fn(),
       };
       const capabilities = provider.register(conn as unknown as lsp.Connection);
       expect(conn.onRequest).toHaveBeenCalledWith(

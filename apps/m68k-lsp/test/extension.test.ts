@@ -11,9 +11,9 @@ let mockLoad: (
 let mockApply: (
   mappings: Record<string, string>,
 ) => Promise<RegisterRemappingResult>;
-const mockSendRequest = jest.fn();
+const mockSendRequest = vi.fn();
 
-jest.mock("../src/RegisterRemappingView", () => ({
+vi.mock("../src/RegisterRemappingView", () => ({
   RegisterRemappingView: class {
     static viewType = "m68k.registerRemapping";
     constructor(load: typeof mockLoad, apply: typeof mockApply) {
@@ -23,36 +23,36 @@ jest.mock("../src/RegisterRemappingView", () => ({
     refresh() {}
   },
 }));
-jest.mock("vscode-languageclient/node", () => ({
+vi.mock("vscode-languageclient/node", () => ({
   TransportKind: { ipc: 1 },
   LanguageClient: class {
     sendRequest = mockSendRequest;
-    onNotification = jest.fn();
+    onNotification = vi.fn();
     start() {
       return Promise.resolve();
     }
   },
 }));
-jest.mock(
+vi.mock(
   "vscode",
   () => ({
     DecorationRangeBehavior: { ClosedClosed: 1 },
     Range: class {},
-    commands: { registerCommand: jest.fn() },
+    commands: { registerCommand: vi.fn() },
     workspace: {
       getConfiguration: () => ({
         get: (_key: string, fallback: unknown) => fallback,
       }),
-      onDidChangeTextDocument: jest.fn(),
-      onDidChangeConfiguration: jest.fn(),
+      onDidChangeTextDocument: vi.fn(),
+      onDidChangeConfiguration: vi.fn(),
     },
     window: {
       visibleTextEditors: [],
-      createTextEditorDecorationType: jest.fn(),
-      onDidChangeActiveTextEditor: jest.fn(),
-      onDidChangeVisibleTextEditors: jest.fn(),
-      onDidChangeTextEditorSelection: jest.fn(),
-      registerWebviewViewProvider: jest.fn(),
+      createTextEditorDecorationType: vi.fn(),
+      onDidChangeActiveTextEditor: vi.fn(),
+      onDidChangeVisibleTextEditors: vi.fn(),
+      onDidChangeTextEditorSelection: vi.fn(),
+      registerWebviewViewProvider: vi.fn(),
     },
   }),
   { virtual: true },
@@ -72,7 +72,7 @@ it.each([false, true])(
         active: { line: 0, character: 1 },
         isEqual: () => true,
       },
-      edit: jest.fn().mockResolvedValue(true),
+      edit: vi.fn().mockResolvedValue(true),
     };
     Object.assign(window, { activeTextEditor: editor });
     activate({
@@ -126,7 +126,7 @@ it("does not let an older model overwrite the current remapping scope", async ()
       active: { line: 0, character: 1 },
       isEqual: () => true,
     },
-    edit: jest.fn().mockResolvedValue(true),
+    edit: vi.fn().mockResolvedValue(true),
   };
   Object.assign(window, { activeTextEditor: editor });
   activate({
@@ -179,7 +179,7 @@ it("discards a model if the document changes while its scope is being fetched", 
       active: { line: 0, character: 1 },
       isEqual: () => true,
     },
-    edit: jest.fn(),
+    edit: vi.fn(),
   };
   Object.assign(window, { activeTextEditor: editor });
   activate({
@@ -213,7 +213,7 @@ it("invalidates Apply as soon as the loaded model is superseded", async () => {
       active: { line: 0, character: 1 },
       isEqual: () => true,
     },
-    edit: jest.fn(),
+    edit: vi.fn(),
   };
   Object.assign(window, { activeTextEditor: editor });
   activate({

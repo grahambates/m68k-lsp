@@ -28,8 +28,8 @@ describe("RenameProvider", () => {
   describe("#register()", () => {
     it("regsiters", () => {
       const conn = {
-        onPrepareRename: jest.fn(),
-        onRenameRequest: jest.fn(),
+        onPrepareRename: vi.fn(),
+        onRenameRequest: vi.fn(),
       };
       const capabilities = provider.register(conn as unknown as lsp.Connection);
       expect(conn.onPrepareRename).toHaveBeenCalled();

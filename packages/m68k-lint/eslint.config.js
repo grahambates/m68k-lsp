@@ -59,7 +59,7 @@ export default tseslint.config(
 
   // Config and build scripts are plain Node ESM, outside the TS project.
   {
-    files: ["*.js", "*.mjs", "scripts/**/*.{js,mjs}"],
+    files: ["*.js", "*.mjs", "*.mts", "scripts/**/*.{js,mjs}"],
     extends: [tseslint.configs.disableTypeChecked],
     languageOptions: {
       globals: { console: "readonly", process: "readonly", URL: "readonly", URLSearchParams: "readonly" },

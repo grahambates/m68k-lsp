@@ -13,9 +13,9 @@
     "win-uae"
   ],
   "scripts": {
-    "test": "jest",
-    "lint": "eslint . --ext .ts --ignore-path .gitignore",
-    "build": "tsc --build",
+    "test": "vitest run",
+    "lint": "eslint .",
+    "build": "tsdown",
     "clean": "tsc --build --clean"
   },
   "main": "dist/index.js",
@@ -30,20 +30,14 @@
     "directory": "packages/68kcounter"
   },
   "devDependencies": {
-    "@babel/preset-env": "^7.13.12",
-    "@babel/preset-typescript": "^7.13.0",
-    "@types/jest": "^26.0.22",
-    "@types/node": "^14.14.37",
-    "@typescript-eslint/eslint-plugin": "^4.20.0",
-    "@typescript-eslint/parser": "^4.20.0",
-    "eslint": "^7.23.0",
-    "eslint-config-prettier": "^8.1.0",
-    "eslint-plugin-import": "^2.22.1",
-    "eslint-plugin-prettier": "^3.3.1",
+    "@types/node": "22.18.0",
+    "eslint": "9.39.5",
     "husky": "^6.0.0",
-    "jest": "^26.6.3",
-    "prettier": "^2.2.1",
-    "typescript": "5.9.3"
+    "prettier": "3.9.6",
+    "typescript": "5.9.3",
+    "vitest": "5.0.0",
+    "tsdown": "0.23.0",
+    "typescript-eslint": "8.70.0"
   },
   "dependencies": {
     "@types/yargs": "^17.0.24",
@@ -51,5 +45,14 @@
     "expression-eval": "^4.0.0",
     "m68k-parser": "workspace:^",
     "yargs": "^17.7.2"
-  }
+  },
+  "engines": {
+    "node": ">=22.15.1"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "types": "dist/index.d.ts"
 }

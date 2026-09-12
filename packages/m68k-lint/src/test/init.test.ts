@@ -1,4 +1,4 @@
-import { jest } from "@jest/globals";
+import { vi } from "vitest";
 import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
@@ -186,7 +186,7 @@ describe("m68k-lint --init", () => {
     let next = 0;
     // eslint-disable-next-line @typescript-eslint/require-await
     const rl = { question: async () => replies[next++] ?? "" };
-    const error = jest.spyOn(console, "error").mockImplementation(() => undefined);
+    const error = vi.spyOn(console, "error").mockImplementation(() => undefined);
     try {
       expect(await terminalPrompt(rl).choice("Platform", ["generic", "atari"] as const, "generic")).toBe("atari");
       expect(error).toHaveBeenCalledWith("  Expected one of: generic, atari");

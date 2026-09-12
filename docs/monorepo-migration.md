@@ -196,7 +196,7 @@ version: 1.2.0                         version: 1.2.0
 
 The different workspace name resolves the collision with the npm library. The generated shipping name preserves the existing Marketplace ID. The version and all other extension metadata come from the tracked source; we do not maintain two hand-edited manifests. Development launch configuration and host tests would point at the generated extension directory too. The owner has accepted this mechanism; validate its prototype before relying on it.
 
-Remaining implementation checks: exact tool versions and ESLint plugin compatibility; Node 22 minor/API floor and matching VS Code minimum; staging prototype; external release/deployment settings and baseline test execution. No imports, tooling migrations, repository renames, tags, publishing or deployment changes have been performed by this audit.
+The audit above records the pre-migration state. Local implementation has now progressed as recorded below; external repository and deployment changes remain outstanding.
 
 ## Implementation notes
 
@@ -212,3 +212,19 @@ TypeScript 5.9 is a transitional baseline. Evaluate TypeScript 7 separately afte
 - Raw command output is retained locally in `/tmp/m68ktools-baselines`; these temporary logs are not part of the repository.
 
 Missing-tool baselines are not passing baselines. Install dependencies and rerun before changing the affected applications' behavior. No external source files were modified by these baseline commands.
+
+### Local migration execution — 2026-09-12
+
+- Local branch is `main`; workspace name is `m68ktools`. The GitHub repository and local directory still have their original names until cutover.
+- Imported all six repositories with non-squashed subtree history. Flattened the lint LSP into separate server and extension workspaces. Original supporting files remain in `docs/imported-m68k-lint-lsp`.
+- Connected parser, formatter, counter, linter and application dependencies through pnpm workspaces. Counter extension deliberately retains `npm:68kcounter@^3.1.2` until its application upgrade.
+- Pinned pnpm 12.4.1, Node 22.23.2, TypeScript 5.9.3, ESLint 9.39.5 and Prettier 3.9.6. Migrated library builds to tsdown 0.23.0 and unit suites to Vitest 5. Preserved Vite, esbuild application builds, stdio integration tests and the VS Code host harness.
+- Set published Node engine floors to 22.15.1 and VS Code engine/type floors to 1.101. Development tooling requires Node 22.18 or later. Tests below ran on Node 22.23.2; the minimum runtime and VS Code host still need execution checks before release.
+- Full workspace checks passed: 435 assembly/formatter tests, 362 parser tests, 3,062 counter tests, 727 lint tests, two web tests and 13 lint-LSP integration tests. Linter coverage thresholds passed; rule-impact audit covered 122 cases across 120 rules with zero regressions or missing cases.
+- All six npm tarballs passed isolated imports and CLI smoke checks. Corrected counter's package file list to include its complete distribution and parser's file list to include its CLI.
+- Built and inspected all three VSIX archives. Counter retains `gigabates.68kcounter`; assembly and lint extensions retain their own identities. Counter debugging and host tests use the generated staging directory. Graphical host tests have not run in this environment.
+- Changesets versioning rehearsal passed in a disposable directory: package versions and changelogs updated, pending changeset consumed, private extension versions bumped, and the counter extension's registry 3.x dependency preserved. No real versions were bumped or tags created. Release workflow is manual and creates version PRs only; publishers remain unwired.
+- Web production build passes. Vercel configuration is prepared for project root `apps/68kcounter-web`; no Vercel project settings or deployment linkage have changed.
+- Existing web React hook warning and counter expression-evaluation build warnings remain. Imported source formatting is deliberately excluded from the root formatting sweep to avoid an unrelated whole-source rewrite; package lint checks still run.
+
+Next cutover steps: validate VS Code host/minimum runtime, review a Vercel preview, rename the remote repository and change its default branch, update repository metadata and source notices, and then enable separately reviewed publication/deployment settings. Keep the old repositories available until the new workflow is proven. The owner's counter extension API upgrade remains deferred.

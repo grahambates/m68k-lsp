@@ -35,8 +35,8 @@ describe("document lifecycle", () => {
       [{ uri: uriFor(""), name: "test" }],
       new NullLogger(),
       {
-        sendDiagnostics: jest.fn(),
-        sendNotification: jest.fn(),
+        sendDiagnostics: vi.fn(),
+        sendNotification: vi.fn(),
       } as unknown as lsp.Connection,
       {},
     );
@@ -44,7 +44,7 @@ describe("document lifecycle", () => {
     operations = new FileOperationsProvider(ctx);
   });
   afterEach(async () => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
     await rm(dir, { recursive: true, force: true });
   });
 
@@ -82,7 +82,7 @@ describe("document lifecycle", () => {
       TextDocument.create(uri, "m68k", 1, "First equ 1\n"),
     );
     const read = deferred<TextDocument | null>();
-    jest.spyOn(files, "readDocumentFromUri").mockReturnValueOnce(read.promise);
+    vi.spyOn(files, "readDocumentFromUri").mockReturnValueOnce(read.promise);
     const closing = processor.close(uri);
     const reopened = await processor.process(
       TextDocument.create(uri, "m68k", 1, "Reopened equ 2\n"),
@@ -96,7 +96,7 @@ describe("document lifecycle", () => {
     const uri = uriFor("main.s");
     const oldRead = deferred<TextDocument | null>();
     const newRead = deferred<TextDocument | null>();
-    const read = jest
+    const read = vi
       .spyOn(files, "readDocumentFromUri")
       .mockReturnValueOnce(oldRead.promise)
       .mockReturnValueOnce(newRead.promise);

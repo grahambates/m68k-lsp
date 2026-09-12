@@ -1,4 +1,4 @@
-import { jest } from "@jest/globals";
+import { vi } from "vitest";
 import { mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -18,8 +18,8 @@ const at = (severity: Severity) => ({ severity }) as Diagnostic;
 async function capture(argv: string[]): Promise<{ code: number; out: string; err: string }> {
   const out: string[] = [];
   const err: string[] = [];
-  const log = jest.spyOn(console, "log").mockImplementation((...args: unknown[]) => void out.push(args.join(" ")));
-  const error = jest.spyOn(console, "error").mockImplementation((...args: unknown[]) => void err.push(args.join(" ")));
+  const log = vi.spyOn(console, "log").mockImplementation((...args: unknown[]) => void out.push(args.join(" ")));
+  const error = vi.spyOn(console, "error").mockImplementation((...args: unknown[]) => void err.push(args.join(" ")));
   try {
     return { code: await run(argv), out: out.join("\n"), err: err.join("\n") };
   } finally {

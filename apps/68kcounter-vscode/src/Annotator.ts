@@ -98,7 +98,8 @@ export class Annotator implements Disposable {
   }
 
   toggle(): void {
-    this.visible ? this.hide() : this.show();
+    if (this.visible) this.hide();
+    else this.show();
   }
 
   show(): void {

@@ -25,12 +25,12 @@ it.each([undefined, { d0: "#e06c75" }])(
     const webview = {
       html: "",
       cspSource: "test",
-      onDidReceiveMessage: jest.fn(),
+      onDidReceiveMessage: vi.fn(),
     };
-    const view = new RegisterRemappingView(jest.fn(), jest.fn());
+    const view = new RegisterRemappingView(vi.fn(), vi.fn());
     view.resolveWebviewView({
       webview,
-      onDidChangeVisibility: jest.fn(),
+      onDidChangeVisibility: vi.fn(),
     } as unknown as WebviewView);
     const elements = new Map<string, Element>();
     const script = webview.html.match(
@@ -77,10 +77,10 @@ function testView() {
     webview: {
       html: "",
       cspSource: "test",
-      postMessage: jest.fn().mockResolvedValue(true),
-      onDidReceiveMessage: jest.fn(),
+      postMessage: vi.fn().mockResolvedValue(true),
+      onDidReceiveMessage: vi.fn(),
     },
-    onDidChangeVisibility: jest.fn(),
+    onDidChangeVisibility: vi.fn(),
   };
 }
 
@@ -88,7 +88,7 @@ it("coalesces refreshes and only posts the latest model", async () => {
   const first = deferred<{ scope: string; registers: [] }>();
   const second = deferred<{ scope: string; registers: [] }>();
   const started = deferred<void>();
-  const load = jest
+  const load = vi
     .fn()
     .mockReturnValueOnce(first.promise)
     .mockImplementationOnce(() => {
@@ -96,7 +96,7 @@ it("coalesces refreshes and only posts the latest model", async () => {
       return second.promise;
     });
   const view = testView();
-  const provider = new RegisterRemappingView(load, jest.fn());
+  const provider = new RegisterRemappingView(load, vi.fn());
   provider.resolveWebviewView(view as unknown as WebviewView);
   const pending = provider.refresh();
   await Promise.resolve();
@@ -120,9 +120,9 @@ it.each(["hidden", "disposed"])(
   "drops in-flight results when the view is %s",
   async (state) => {
     const result = deferred<{ scope: string; registers: [] }>();
-    const load = jest.fn().mockReturnValue(result.promise);
+    const load = vi.fn().mockReturnValue(result.promise);
     const view = testView();
-    const provider = new RegisterRemappingView(load, jest.fn());
+    const provider = new RegisterRemappingView(load, vi.fn());
     provider.resolveWebviewView(view as unknown as WebviewView);
     const pending = provider.refresh();
     await Promise.resolve();
@@ -146,11 +146,11 @@ it("does not lose a refresh arriving as the previous post completes", async () =
     started.resolve();
     return posted.promise;
   });
-  const load = jest
+  const load = vi
     .fn()
     .mockResolvedValueOnce({ scope: "first", registers: [] })
     .mockResolvedValueOnce({ scope: "second", registers: [] });
-  const provider = new RegisterRemappingView(load, jest.fn());
+  const provider = new RegisterRemappingView(load, vi.fn());
   provider.resolveWebviewView(view as unknown as WebviewView);
   const first = provider.refresh();
   await started.promise;

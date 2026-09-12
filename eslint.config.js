@@ -48,7 +48,7 @@ module.exports = tseslint.config(
   {
     files: ["packages/*/test/**/*.ts", "apps/*/test/**/*.ts"],
     languageOptions: {
-      globals: { ...globals.jest },
+      globals: { ...globals.vitest },
     },
   },
   prettier,

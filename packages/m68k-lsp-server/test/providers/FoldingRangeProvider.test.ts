@@ -28,7 +28,7 @@ describe("DefinitionProvider", () => {
   describe("#register()", () => {
     it("regsiters", () => {
       const conn = {
-        onFoldingRanges: jest.fn(),
+        onFoldingRanges: vi.fn(),
       };
       const capabilities = provider.register(conn as unknown as lsp.Connection);
       expect(conn.onFoldingRanges).toHaveBeenCalled();

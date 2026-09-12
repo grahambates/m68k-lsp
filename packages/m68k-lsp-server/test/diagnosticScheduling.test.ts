@@ -31,13 +31,14 @@ describe("diagnostic scheduling", () => {
       TextDocument.create(uri, "m68k", 1, " move d0,d1\n"),
     );
   });
-  afterEach(() => jest.restoreAllMocks());
+  afterEach(() => vi.restoreAllMocks());
 
   it("drops assembly diagnostics if the editor changes before completion", async () => {
     const assembly = deferred<lsp.Diagnostic[]>();
-    jest
-      .spyOn(DiagnosticProcessor.prototype, "vasmDiagnostics")
-      .mockReturnValueOnce(assembly.promise);
+    vi.spyOn(
+      DiagnosticProcessor.prototype,
+      "vasmDiagnostics",
+    ).mockReturnValueOnce(assembly.promise);
     const pending = sync.fileDiagnostics(uri);
     await sync.onDidChangeTextDocument({
       textDocument: { uri, version: 2 },
@@ -56,8 +57,7 @@ describe("diagnostic scheduling", () => {
   it("publishes only the latest assembly request even at the same document version", async () => {
     const first = deferred<lsp.Diagnostic[]>();
     const second = deferred<lsp.Diagnostic[]>();
-    jest
-      .spyOn(DiagnosticProcessor.prototype, "vasmDiagnostics")
+    vi.spyOn(DiagnosticProcessor.prototype, "vasmDiagnostics")
       .mockReturnValueOnce(first.promise)
       .mockReturnValueOnce(second.promise);
     const older = sync.fileDiagnostics(uri);
@@ -76,8 +76,7 @@ describe("diagnostic scheduling", () => {
 
   it("does not republish diagnostics after closing and reopening with the same version", async () => {
     const first = deferred<lsp.Diagnostic[]>();
-    jest
-      .spyOn(DiagnosticProcessor.prototype, "vasmDiagnostics")
+    vi.spyOn(DiagnosticProcessor.prototype, "vasmDiagnostics")
       .mockReturnValueOnce(first.promise)
       .mockResolvedValue([]);
     const older = sync.fileDiagnostics(uri);
@@ -103,13 +102,13 @@ describe("diagnostic scheduling", () => {
   it("drops parser diagnostics from an older processing request", async () => {
     const gate = deferred<void>();
     const process = DocumentProcessor.prototype.process;
-    jest
-      .spyOn(DocumentProcessor.prototype, "process")
-      .mockImplementation(async function (this: DocumentProcessor, document) {
+    vi.spyOn(DocumentProcessor.prototype, "process").mockImplementation(
+      async function (this: DocumentProcessor, document) {
         const result = await process.call(this, document);
         if (document.version === 2) await gate.promise;
         return result;
-      });
+      },
+    );
     const older = sync.onDidChangeTextDocument({
       textDocument: { uri, version: 2 },
       contentChanges: [{ text: " move d0,d1\n" }],

@@ -28,7 +28,7 @@ describe("HoverProvider", () => {
   describe("#register()", () => {
     it("regsiters", () => {
       const conn = {
-        onHover: jest.fn(),
+        onHover: vi.fn(),
       };
       const capabilities = provider.register(conn as unknown as lsp.Connection);
       expect(conn.onHover).toHaveBeenCalled();

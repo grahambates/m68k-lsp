@@ -5,7 +5,7 @@
   "author": "Graham Bates",
   "license": "MIT",
   "engines": {
-    "node": ">=20"
+    "node": ">=22.15.1"
   },
   "main": "out/index.js",
   "types": "out/index.d.ts",
@@ -19,8 +19,8 @@
     "LICENSE.md"
   ],
   "scripts": {
-    "build": "tsc -b",
-    "test": "jest",
+    "build": "tsdown",
+    "test": "vitest run",
     "prepack": "pnpm run build",
     "pretest": "pnpm run build"
   },
@@ -31,10 +31,9 @@
     "vscode-languageserver-textdocument": "^1.0.12"
   },
   "devDependencies": {
-    "typescript": "^5.9.3",
-    "@types/node": "^24.9.1",
-    "@types/jest": "^30.0.0",
-    "jest": "^30.2.0",
-    "ts-jest": "^29.4.5"
+    "typescript": "5.9.3",
+    "@types/node": "22.18.0",
+    "tsdown": "0.23.0",
+    "vitest": "5.0.0"
   }
 }

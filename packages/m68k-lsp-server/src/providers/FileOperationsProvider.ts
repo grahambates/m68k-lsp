@@ -1,6 +1,6 @@
 import { IndexChangedNotification } from "@m68k-lsp/protocol";
 import * as lsp from "vscode-languageserver";
-import { FileOperationFilter } from "vscode-languageserver-protocol/lib/common/protocol.fileOperations";
+import type { FileOperationFilter } from "vscode-languageserver-protocol/lib/common/protocol.fileOperations";
 import { Definition, Symbols } from "../symbols";
 
 import { Provider } from ".";

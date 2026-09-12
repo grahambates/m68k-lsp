@@ -1,0 +1,5 @@
+{
+  "buildCommand": "cd ../.. && pnpm --filter m68k-parser build && pnpm --filter 68kcounter build && pnpm --filter 68kcounter-web build",
+  "outputDirectory": "dist",
+  "installCommand": "cd ../.. && pnpm install --frozen-lockfile"
+}

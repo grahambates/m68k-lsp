@@ -37,7 +37,7 @@ describe("ConfigurationProvider", () => {
       join(dir, ".m68krc.json"),
       JSON.stringify({ processors: ["mc68020"] }),
     );
-    const getConfiguration = jest.fn().mockResolvedValue({});
+    const getConfiguration = vi.fn().mockResolvedValue({});
     const ctx = await createContext(
       [{ uri: pathToFileURL(dir).toString(), name: "config" }],
       new NullLogger(),

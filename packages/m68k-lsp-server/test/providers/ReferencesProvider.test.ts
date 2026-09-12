@@ -28,7 +28,7 @@ describe("ReferencesProvider", () => {
   describe("#register()", () => {
     it("regsiters", () => {
       const conn = {
-        onReferences: jest.fn(),
+        onReferences: vi.fn(),
       };
       const capabilities = provider.register(conn as unknown as lsp.Connection);
       expect(conn.onReferences).toHaveBeenCalled();

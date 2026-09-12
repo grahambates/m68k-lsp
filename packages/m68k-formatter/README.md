@@ -1,20 +1,20 @@
 # m68k-formatter
 
 Motorola 68000 assembly formatter, usable as a library or the `m68k-format` CLI.
-Requires Node.js 20 or later. Uses `m68k-parser` and has no dependency on the language server.
+Requires Node.js 22.15.1 or later. Uses `m68k-parser` and has no dependency on the language server.
 
 ## Workspace development
 
 From the repository root:
 
 ```sh
-npm install
-npm run build:formatter
+pnpm install
+pnpm run build:formatter
 node packages/m68k-formatter/cli.js --help
 ```
 
-The package also builds and tests independently with `npm run build` and `npm test`
-from this directory. `npm pack` builds a package containing the JavaScript library,
+The package also builds and tests independently with `pnpm run build` and `pnpm test`
+from this directory. `pnpm pack` builds a package containing the JavaScript library,
 TypeScript declarations, and CLI. It has not been published yet.
 
 ## CLI

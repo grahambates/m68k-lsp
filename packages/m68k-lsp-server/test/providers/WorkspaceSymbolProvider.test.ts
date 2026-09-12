@@ -28,7 +28,7 @@ describe("WorkspaceSymbolProvider", () => {
   describe("#register()", () => {
     it("regsiters", () => {
       const conn = {
-        onWorkspaceSymbol: jest.fn(),
+        onWorkspaceSymbol: vi.fn(),
       };
       const capabilities = provider.register(conn as unknown as lsp.Connection);
       expect(conn.onWorkspaceSymbol).toHaveBeenCalled();

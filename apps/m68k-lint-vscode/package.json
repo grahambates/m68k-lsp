@@ -25,7 +25,7 @@
     "lint"
   ],
   "engines": {
-    "vscode": "^1.85.0"
+    "vscode": "^1.101.0"
   },
   "main": "./out/extension.js",
   "scripts": {
@@ -162,7 +162,7 @@
     "vscode-languageclient": "^9.0.1"
   },
   "devDependencies": {
-    "@types/vscode": "^1.85.0",
+    "@types/vscode": "1.101.0",
     "m68k-lint-langserver": "workspace:^",
     "@vscode/vsce": "^3.6.0"
   }

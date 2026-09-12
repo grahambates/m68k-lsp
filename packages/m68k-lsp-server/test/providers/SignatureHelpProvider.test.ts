@@ -28,7 +28,7 @@ describe("SignatureHelpProvider", () => {
   describe("#register()", () => {
     it("regsiters", () => {
       const conn = {
-        onSignatureHelp: jest.fn(),
+        onSignatureHelp: vi.fn(),
       };
       const capabilities = provider.register(conn as unknown as lsp.Connection);
       expect(conn.onSignatureHelp).toHaveBeenCalled();

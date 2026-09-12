@@ -21,7 +21,7 @@
   "publisher": "gigabates",
   "icon": "icon.png",
   "engines": {
-    "vscode": "^1.85.0"
+    "vscode": "^1.101.0"
   },
   "categories": [
     "Formatters",
@@ -416,7 +416,7 @@
     "vscode-languageclient": "^9.0.1"
   },
   "devDependencies": {
-    "@types/vscode": "^1.85.0",
+    "@types/vscode": "1.101.0",
     "@vscode/vsce": "^3.6.0",
     "@m68k-lsp/protocol": "workspace:^"
   },

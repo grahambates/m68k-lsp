@@ -19,7 +19,7 @@
     "directory": "packages/m68k-lint-langserver"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=22.15.1"
   },
   "bin": {
     "m68k-lint-langserver": "./out/server.js"

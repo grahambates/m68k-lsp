@@ -4,3 +4,6 @@ node_modules/**
 .tsbuild/**
 tsconfig.json
 out/*.map
+
+test/**
+**/*.vsix

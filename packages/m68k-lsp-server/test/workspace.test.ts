@@ -29,7 +29,7 @@ describe("indexWorkspace", () => {
 
   const contextFor = async (config = {}) => {
     const connection = {
-      sendDiagnostics: jest.fn(),
+      sendDiagnostics: vi.fn(),
     } as unknown as lsp.Connection;
     return createContext(
       [{ uri: pathToFileURL(dir).toString(), name: "ws" }],
@@ -44,7 +44,7 @@ describe("indexWorkspace", () => {
   });
 
   afterEach(async () => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
     await rm(dir, { recursive: true, force: true });
   });
 
@@ -102,7 +102,7 @@ describe("indexWorkspace", () => {
       await write(`${directory}/nested/ignored.s`, "Ignored equ 1\n");
     }
     const ctx = await contextFor({ exclude: ["**/vendor/**"] });
-    const readdir = jest.spyOn(fsp, "readdir");
+    const readdir = vi.spyOn(fsp, "readdir");
     await indexWorkspace(ctx, new DocumentProcessor(ctx));
 
     expect([...ctx.store.keys()]).toEqual([source]);

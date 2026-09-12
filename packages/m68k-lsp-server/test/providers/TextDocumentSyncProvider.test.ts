@@ -24,10 +24,10 @@ describe("TextDocumentSyncProvider", () => {
   describe("#register()", () => {
     it("regsiters", () => {
       const conn = {
-        onDidOpenTextDocument: jest.fn(),
-        onDidChangeTextDocument: jest.fn(),
-        onDidSaveTextDocument: jest.fn(),
-        onDidCloseTextDocument: jest.fn(),
+        onDidOpenTextDocument: vi.fn(),
+        onDidChangeTextDocument: vi.fn(),
+        onDidSaveTextDocument: vi.fn(),
+        onDidCloseTextDocument: vi.fn(),
       };
       const capabilities = provider.register(conn as unknown as lsp.Connection);
       expect(conn.onDidOpenTextDocument).toHaveBeenCalled();

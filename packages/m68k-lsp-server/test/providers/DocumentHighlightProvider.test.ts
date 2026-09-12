@@ -27,7 +27,7 @@ describe("DocumentHighlightProvider", () => {
 
   describe("#register()", () => {
     it("registers document highlighting", () => {
-      const conn = { onDocumentHighlight: jest.fn() };
+      const conn = { onDocumentHighlight: vi.fn() };
       expect(provider.register(conn as unknown as lsp.Connection)).toEqual({
         documentHighlightProvider: true,
       });

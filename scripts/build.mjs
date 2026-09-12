@@ -78,15 +78,10 @@ const client = {
   external: ["vscode"],
 };
 
-execFileSync(
-  process.execPath,
-  [
-    join(root, "node_modules/typescript/bin/tsc"),
-    "-b",
-    join(root, "packages/m68k-formatter"),
-  ],
-  { stdio: "inherit" },
-);
+execFileSync("pnpm", ["--filter", "m68k-formatter", "build"], {
+  cwd: root,
+  stdio: "inherit",
+});
 
 await copyAssets();
 

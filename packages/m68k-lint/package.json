@@ -28,7 +28,7 @@
   "author": "Graham Bates",
   "license": "MIT",
   "engines": {
-    "node": ">=20"
+    "node": ">=22.15.1"
   },
   "type": "module",
   "main": "./dist/index.js",
@@ -50,9 +50,9 @@
     "m68k-lint.schema.json"
   ],
   "scripts": {
-    "build": "tsc -p tsconfig.build.json",
-    "test": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js",
-    "test:coverage": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js --coverage",
+    "build": "tsdown",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
@@ -69,50 +69,17 @@
     "m68k-parser": "workspace:^"
   },
   "devDependencies": {
-    "@eslint/js": "^10.0.1",
+    "@eslint/js": "9.39.5",
     "@specy/s68k": "^1.4.0",
-    "@types/jest": "^30.0.0",
-    "@types/node": "^24.3.0",
-    "eslint": "^10.10.0",
+    "@types/node": "22.18.0",
+    "eslint": "9.39.5",
     "eslint-config-prettier": "^10.1.8",
-    "jest": "^30.2.0",
-    "prettier": "^3.9.6",
-    "ts-jest": "^29.4.5",
-    "typescript": "^5.9.3",
-    "typescript-eslint": "^8.69.0"
-  },
-  "jest": {
-    "preset": "ts-jest/presets/default-esm",
-    "transform": {
-      "^.+\\.tsx?$": [
-        "ts-jest",
-        {
-          "useESM": true
-        }
-      ]
-    },
-    "testEnvironment": "node",
-    "extensionsToTreatAsEsm": [
-      ".ts"
-    ],
-    "moduleNameMapper": {
-      "^(\\.{1,2}/.*)\\.js$": "$1"
-    },
-    "testMatch": [
-      "**/src/test/**/*.test.ts"
-    ],
-    "collectCoverageFrom": [
-      "src/**/*.ts",
-      "!src/test/**"
-    ],
-    "coverageThreshold": {
-      "global": {
-        "statements": 84,
-        "branches": 79,
-        "functions": 89,
-        "lines": 89
-      }
-    }
+    "prettier": "3.9.6",
+    "typescript": "5.9.3",
+    "typescript-eslint": "8.70.0",
+    "vitest": "5.0.0",
+    "@vitest/coverage-v8": "5.0.0",
+    "tsdown": "0.23.0"
   },
   "bin": {
     "m68k-lint": "./dist/cli/main.js"

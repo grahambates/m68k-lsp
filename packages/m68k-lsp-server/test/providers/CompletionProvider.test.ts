@@ -28,8 +28,8 @@ describe("CompletionProvider", () => {
   describe("#register()", () => {
     it("regsiters", () => {
       const conn = {
-        onCompletion: jest.fn(),
-        onCompletionResolve: jest.fn(),
+        onCompletion: vi.fn(),
+        onCompletionResolve: vi.fn(),
       };
       const capabilities = provider.register(conn as unknown as lsp.Connection);
       expect(conn.onCompletion).toHaveBeenCalled();

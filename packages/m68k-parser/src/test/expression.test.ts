@@ -1234,10 +1234,9 @@ describe("Expression Parsing", () => {
   describe("float literals", () => {
     const literal = (src: string) => {
       const operand = parseLine(src).value.operands?.[0] as {
-        value?: { format?: string; raw?: string; value?: number };
+        value?: { format?: string; raw?: string; value?: number } | number;
         format?: string;
         raw?: string;
-        value?: number;
       };
       return operand.value ?? operand;
     };

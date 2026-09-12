@@ -36,13 +36,13 @@ describe("FileOperationsProvider", () => {
     it("regsiters", () => {
       const conn = {
         workspace: {
-          onWillDeleteFiles: jest.fn(),
-          onDidDeleteFiles: jest.fn(),
-          onDidRenameFiles: jest.fn(),
-          onDidCreateFiles: jest.fn(),
+          onWillDeleteFiles: vi.fn(),
+          onDidDeleteFiles: vi.fn(),
+          onDidRenameFiles: vi.fn(),
+          onDidCreateFiles: vi.fn(),
         },
       };
-      Object.assign(conn, { onDidChangeWatchedFiles: jest.fn() });
+      Object.assign(conn, { onDidChangeWatchedFiles: vi.fn() });
       const capabilities = provider.register(conn as unknown as lsp.Connection);
       expect(conn.workspace.onWillDeleteFiles).toHaveBeenCalled();
       expect(conn.workspace.onDidDeleteFiles).toHaveBeenCalled();

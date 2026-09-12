@@ -28,7 +28,7 @@ describe("DocumentSymbolProvider", () => {
   describe("#register()", () => {
     it("regsiters", () => {
       const conn = {
-        onDocumentSymbol: jest.fn(),
+        onDocumentSymbol: vi.fn(),
       };
       const capabilities = provider.register(conn as unknown as lsp.Connection);
       expect(conn.onDocumentSymbol).toHaveBeenCalled();

@@ -28,8 +28,8 @@ export function createTestContext(config: Partial<Config> = {}) {
   const logger = new NullLogger();
 
   const connection = {
-    sendDiagnostics: jest.fn(),
-    sendNotification: jest.fn(),
+    sendDiagnostics: vi.fn(),
+    sendNotification: vi.fn(),
   } as unknown as lsp.Connection;
 
   return createContext(

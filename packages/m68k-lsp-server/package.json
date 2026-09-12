@@ -5,7 +5,7 @@
   "author": "Graham Bates",
   "license": "MIT",
   "engines": {
-    "node": ">=20"
+    "node": ">=22.15.1"
   },
   "bin": {
     "m68k-lsp-server": "cli.js"
@@ -30,7 +30,8 @@
     "vscode-uri": "^3.0.8",
     "which": "^4.0.0",
     "m68k-formatter": "workspace:^",
-    "vscode-languageserver-types": "^3.17.5"
+    "vscode-languageserver-types": "^3.17.5",
+    "vscode-languageserver-protocol": "^3.17.5"
   },
   "devDependencies": {
     "@types/which": "^3.0.4",
