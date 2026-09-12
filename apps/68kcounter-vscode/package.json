@@ -10,7 +10,7 @@
   "homepage": "https://github.com/grahambates/68kcounter-vscode.git",
   "repository": {
     "type": "git",
-    "url": "https://github.com/grahambates/68kcounter-vscode.git",
+    "url": "git+https://github.com/grahambates/m68k-tools.git",
     "directory": "apps/68kcounter-vscode"
   },
   "engines": {

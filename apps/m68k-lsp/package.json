@@ -15,7 +15,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/grahambates/m68k-lsp.git",
+    "url": "git+https://github.com/grahambates/m68k-tools.git",
     "directory": "apps/m68k-lsp"
   },
   "publisher": "gigabates",

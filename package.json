@@ -7,7 +7,7 @@
   "author": "Graham Bates",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/grahambates/m68k-lsp.git"
+    "url": "git+https://github.com/grahambates/m68k-tools.git"
   },
   "engines": {
     "node": ">=22.18.0"

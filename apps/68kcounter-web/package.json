@@ -6,7 +6,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/grahambates/68kcounter-web.git",
+    "url": "git+https://github.com/grahambates/m68k-tools.git",
     "directory": "apps/68kcounter-web"
   },
   "type": "module",

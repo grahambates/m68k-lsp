@@ -9,7 +9,7 @@
   "private": true,
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/grahambates/m68k-lint-lsp.git",
+    "url": "git+https://github.com/grahambates/m68k-tools.git",
     "directory": "apps/m68k-lint-vscode"
   },
   "categories": [

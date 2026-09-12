@@ -228,3 +228,9 @@ Missing-tool baselines are not passing baselines. Install dependencies and rerun
 - Existing web React hook warning and counter expression-evaluation build warnings remain. Imported source formatting is deliberately excluded from the root formatting sweep to avoid an unrelated whole-source rewrite; package lint checks still run.
 
 Next cutover steps: validate VS Code host/minimum runtime, review a Vercel preview, rename the remote repository and change its default branch, update repository metadata and source notices, and then enable separately reviewed publication/deployment settings. Keep the old repositories available until the new workflow is proven. The owner's counter extension API upgrade remains deferred.
+
+### Debugging and minimum-runtime verification
+
+Root VS Code launch configurations now cover all extensions, server attachments, counter host tests and the web app. Dependency builds run before launching; copied server source maps are rebased to their original source locations. These changes and the `m68k-tools` umbrella name were committed as `cb707c8`, with full workspace checks passing.
+
+Isolated tarball imports and CLI smoke tests passed on Node 22.15.1. The existing counter extension-host suite passed on VS Code 1.101.0 (one sample test and successful extension activation). This is a startup smoke check, not comprehensive extension feature coverage. The host run required removing the inherited `ELECTRON_RUN_AS_NODE` environment variable. Manual breakpoint and feature checks for all three extensions remain useful before release.

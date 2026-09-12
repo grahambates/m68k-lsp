@@ -22,7 +22,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/grahambates/m68k-lint.git",
+    "url": "git+https://github.com/grahambates/m68k-tools.git",
     "directory": "packages/m68k-lint"
   },
   "author": "Graham Bates",
