@@ -215,7 +215,7 @@ Missing-tool baselines are not passing baselines. Install dependencies and rerun
 
 ### Local migration execution — 2026-09-12
 
-- Local branch is `main`; workspace name is `m68k-tools`. The GitHub repository and local directory still have their original names until cutover.
+- Local branch is `main`; workspace name is `m68k-tools`. GitHub is now `grahambates/m68k-tools` with default branch `main`; the local directory still retains its original name.
 - Imported all six repositories with non-squashed subtree history. Flattened the lint LSP into separate server and extension workspaces. Original supporting files remain in `docs/imported-m68k-lint-lsp`.
 - Connected parser, formatter, counter, linter and application dependencies through pnpm workspaces. Counter extension deliberately retains `npm:68kcounter@^3.1.2` until its application upgrade.
 - Pinned pnpm 12.4.1, Node 22.23.2, TypeScript 5.9.3, ESLint 9.39.5 and Prettier 3.9.6. Migrated library builds to tsdown 0.23.0 and unit suites to Vitest 5. Preserved Vite, esbuild application builds, stdio integration tests and the VS Code host harness.
@@ -234,3 +234,7 @@ Next cutover steps: validate VS Code host/minimum runtime, review a Vercel previ
 Root VS Code launch configurations now cover all extensions, server attachments, counter host tests and the web app. Dependency builds run before launching; copied server source maps are rebased to their original source locations. These changes and the `m68k-tools` umbrella name were committed as `cb707c8`, with full workspace checks passing.
 
 Isolated tarball imports and CLI smoke tests passed on Node 22.15.1. The existing counter extension-host suite passed on VS Code 1.101.0 (one sample test and successful extension activation). This is a startup smoke check, not comprehensive extension feature coverage. The host run required removing the inherited `ELECTRON_RUN_AS_NODE` environment variable. Manual breakpoint and feature checks for all three extensions remain useful before release.
+
+### GitHub cutover
+
+Renamed the existing GitHub repository to `grahambates/m68k-tools`, pushed the migrated `main` branch, set it as the default branch, and updated the repository description and workspace package repository metadata. The old `master` branch is retained. No tags or packages were published and no source repositories were archived. Vercel linkage and publisher setup remain outstanding.
