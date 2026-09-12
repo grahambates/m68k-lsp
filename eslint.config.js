@@ -6,6 +6,13 @@ const globals = require("globals");
 module.exports = tseslint.config(
   {
     ignores: [
+      "packages/m68k-parser/**",
+      "packages/68kcounter/**",
+      "packages/m68k-lint/**",
+      "packages/m68k-lint-langserver/**",
+      "apps/68kcounter-*/**",
+      "apps/m68k-lint-vscode/**",
+      "docs/imported-m68k-lint-lsp/**",
       "**/node_modules/**",
       "**/out/**",
       "**/.tsbuild/**",

@@ -5,7 +5,8 @@
   "author": "Graham Bates",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/grahambates/m68k-parser.git"
+    "url": "git+https://github.com/grahambates/m68k-parser.git",
+    "directory": "packages/m68k-parser"
   },
   "license": "MIT",
   "type": "module",

@@ -34,7 +34,7 @@ const colors: Record<Level, ThemeColor | string> = {
 interface Annotation {
   text: string;
   hoverMessage: string;
-  color: ThemeColor;
+  color: ThemeColor | string;
 }
 
 /**
@@ -150,7 +150,7 @@ export class Annotator implements Disposable {
   private buildAnnotation(line: Line): Annotation {
     const { bytes, timing } = line;
     let text = "";
-    let color = colorPre;
+    let color: ThemeColor | string = colorPre;
     if (timing) {
       text += timing.values.map(formatTiming).join(" ");
       const level = timingLevel(timing.values[0]);

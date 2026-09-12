@@ -5,3 +5,8 @@ out/
 .DS_Store
 apps/m68k-lsp/wasm/
 coverage/
+
+dist/
+.staging/
+.vscode-test/
+*.tsbuildinfo

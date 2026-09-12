@@ -10,7 +10,7 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/grahambates/m68k-lint-lsp.git",
-    "directory": "packages/client"
+    "directory": "apps/m68k-lint-vscode"
   },
   "categories": [
     "Linters",
@@ -29,7 +29,7 @@
   },
   "main": "./out/extension.js",
   "scripts": {
-    "build": "node ../../scripts/build.mjs --minify",
+    "build": "node ../../scripts/build-lint-lsp.mjs --minify",
     "vscode:prepublish": "npm run build",
     "package": "vsce package --no-dependencies"
   },
@@ -162,6 +162,8 @@
     "vscode-languageclient": "^9.0.1"
   },
   "devDependencies": {
-    "@types/vscode": "^1.85.0"
+    "@types/vscode": "^1.85.0",
+    "m68k-lint-langserver": "workspace:^",
+    "@vscode/vsce": "^3.6.0"
   }
 }

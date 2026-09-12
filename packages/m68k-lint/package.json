@@ -22,7 +22,8 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/grahambates/m68k-lint.git"
+    "url": "git+https://github.com/grahambates/m68k-lint.git",
+    "directory": "packages/m68k-lint"
   },
   "author": "Graham Bates",
   "license": "MIT",
@@ -64,8 +65,8 @@
     "prepublishOnly": "npm run typecheck && npm run lint && npm test && npm run build && npm run audit:impact"
   },
   "dependencies": {
-    "68kcounter": "^4.1.0",
-    "m68k-parser": "^1.10.0"
+    "68kcounter": "workspace:^",
+    "m68k-parser": "workspace:^"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

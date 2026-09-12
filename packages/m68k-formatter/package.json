@@ -25,7 +25,7 @@
     "pretest": "pnpm run build"
   },
   "dependencies": {
-    "m68k-parser": "^1.10.0",
+    "m68k-parser": "workspace:^",
     "glob": "^13.0.6",
     "vscode-languageserver-types": "^3.17.5",
     "vscode-languageserver-textdocument": "^1.0.12"
