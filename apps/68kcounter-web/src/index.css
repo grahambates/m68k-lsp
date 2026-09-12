@@ -1,0 +1,38 @@
+body {
+  background: #f9ffff;
+  color: #333;
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen",
+    "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue",
+    sans-serif;
+  scroll-behavior: smooth;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+a {
+  color: #009193;
+}
+
+a:hover {
+  color: #007779;
+}
+
+a:visited {
+  color: #007779;
+}
+
+.vhigh {
+  background-color: #af1212;
+}
+.high {
+  color: #f44;
+}
+.med {
+  color: #fa4;
+}
+.low {
+  color: #8f8;
+}

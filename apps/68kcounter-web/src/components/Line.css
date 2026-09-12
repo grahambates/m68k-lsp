@@ -1,0 +1,124 @@
+.Line {
+  display: flex;
+  background: #f6f6f6;
+  font-family: monospace;
+  font-size: 14px;
+  line-height: 22px;
+  cursor: pointer;
+}
+.Line:nth-of-type(even) {
+  background-color: white;
+}
+
+.Line:hover,
+.Line:nth-of-type(even).selected:hover,
+.Line.selected:hover {
+  background-color: #009193;
+  color: white;
+}
+
+.Line.selected {
+  background-color: #bde2e2;
+}
+.Line:nth-of-type(even).selected {
+  background-color: #d1eaea;
+}
+.Line:hover span {
+  color: white;
+}
+
+.Line__info {
+  width: 270px;
+  min-width: 270px;
+  background: #282828;
+  color: white;
+  padding-right: 1rem;
+  user-select: none;
+}
+
+.Line__infoItems {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.Line__infoItems > span {
+  margin-left: 0.5rem;
+}
+
+.Line:nth-child(even) .Line__info {
+  background-color: #333;
+}
+
+.Line:hover .Line__info,
+.Line.selected .Line__info {
+  background: #000;
+}
+
+.Line__number {
+  color: rgba(0, 0, 0, 0.5);
+  width: 4em;
+  padding-left: 1rem;
+  user-select: none;
+}
+.Line:hover .number {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.Line__content {
+  display: flex;
+  cursor: pointer;
+  flex-grow: 1;
+}
+
+.Line__code {
+  font-family: monospace;
+  margin: 0;
+}
+
+.Line__detail {
+  display: none;
+}
+
+.Line__detail.expanded {
+  display: block;
+}
+
+.Line__toggleWrapper {
+  flex-grow: 1;
+}
+
+.Line__toggle {
+  border: none;
+  color: white;
+  cursor: pointer;
+  background: #000;
+  padding: 0;
+  width: 1rem;
+  height: 1rem;
+  align-self: flex-start;
+  margin-left: 3px;
+}
+
+.Line__detailContent {
+  line-height: 1.4;
+  padding: 0.5rem 1rem 0.5rem 0;
+  text-align: right;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.Line__detailLabel {
+  color: rgba(255, 255, 255, 0.5);
+  margin-right: 0.5rem;
+}
+
+.Line__label {
+  color: #009193;
+}
+
+.Line__mnem {
+  color: #c72222;
+}
+
+.Line__comment {
+  color: #888;
+}

@@ -1,0 +1,57 @@
+.Form {
+  margin-bottom: 2rem;
+}
+
+.Form__textarea {
+  border: none;
+  height: 20em;
+  width: 100%;
+  resize: none;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+}
+
+.Form__textarea:focus {
+  outline: none;
+  border-color: #009193;
+}
+
+.Form__submit {
+  background-color: #003b3c;
+  color: white;
+  font-size: 1.25rem;
+  padding: 0.75rem 1.5rem;
+  border: none;
+  cursor: pointer;
+  border-radius: 30px;
+}
+
+.Form__submit:focus,
+.Form__submit:hover {
+  outline: none;
+  background-color: #000;
+}
+
+.Form__dropper {
+  background: white;
+  margin-bottom: 1rem;
+  position: relative;
+}
+
+.Form__dropOverlay {
+  background-color: rgba(255, 255, 255, 0.95);
+  color: #009193;
+  opacity: 0.8;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: none;
+}
+
+.isDragging .Form__dropOverlay {
+  display: flex;
+}

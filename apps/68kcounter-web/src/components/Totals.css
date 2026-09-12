@@ -1,0 +1,21 @@
+.Totals {
+  padding: 1rem;
+  background: rgba(0, 0, 0, 0.2);
+  width: 270px;
+}
+
+.Totals > span {
+  margin-right: 1em;
+}
+
+.Totals strong {
+  color: #000;
+}
+
+.Totals p {
+  margin: 0;
+}
+
+.Totals p + p {
+  margin-top: 1rem;
+}

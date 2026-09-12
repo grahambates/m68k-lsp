@@ -1,0 +1,32 @@
+.LineTotals {
+  position: absolute;
+  left: 0;
+  transform: translateY(-100%);
+  background: #009193;
+  padding: 0.75rem 1rem 0.75rem 0;
+  color: black;
+  border-radius: 12px 0 0 0;
+  width: 270px;
+  color: white;
+  display: flex;
+  font-size: 0.9rem;
+  box-shadow: 0 0 12px rgba(0, 0, 0, 0.5);
+}
+
+.LineTotals > span {
+  margin-left: 0.5rem;
+}
+
+.LineTotals > strong {
+  flex-grow: 1;
+}
+
+.LineTotals__clear {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  padding: 0;
+  width: 1.75rem;
+  height: 1rem;
+  font-size: 1rem;
+}

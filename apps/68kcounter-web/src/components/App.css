@@ -1,0 +1,64 @@
+.App__header {
+  padding: 1rem;
+  max-width: 70em;
+}
+
+.App__footer {
+  padding: 1rem;
+  margin: 1rem 0;
+}
+
+.App__logo {
+  display: flex;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  color: #000;
+}
+
+.App__logo h1 {
+  margin: 0;
+  padding-left: 1rem;
+  font-weight: 100;
+  font-size: 2rem;
+}
+
+.App__resultsHeader {
+  display: flex;
+}
+
+.App__intro {
+  margin-bottom: 3rem;
+}
+
+.App__intro p {
+  margin: 0.75rem 0;
+}
+
+.App__help {
+  padding: 1rem;
+  background: rgba(0, 0, 0, 0.07);
+  flex-grow: 1;
+}
+
+.App__help ul {
+  margin: 0.5rem 0;
+}
+
+.App__help li {
+  margin-bottom: 0.5rem;
+}
+
+.App__links svg {
+  color: rgba(0, 0, 0, 0.9);
+  vertical-align: middle;
+  margin-right: 0.25rem;
+}
+
+.App__links a {
+  text-decoration: none;
+  margin-right: 1rem;
+  vertical-align: middle;
+}
+.App__links a:hover {
+  text-decoration: underline;
+}
