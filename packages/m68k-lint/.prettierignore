@@ -1,0 +1,13 @@
+dist
+node_modules
+package-lock.json
+docs/rules.md
+coverage
+
+# Assembly fixtures - Prettier has no parser for these.
+*.asm
+*.s
+*.i
+
+# Third-party reference material, kept verbatim.
+sources

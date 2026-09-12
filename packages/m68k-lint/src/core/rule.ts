@@ -1,0 +1,46 @@
+import type { ParsedLine } from "m68k-parser";
+import type { RuleContext } from "./context.js";
+import type { RuleCategory, Severity } from "./diagnostic.js";
+import type { OptimizationGoal, Platform, RulePreset } from "./config.js";
+
+export interface RuleMeta {
+  id: string;
+  category: RuleCategory;
+  defaultSeverity: Severity;
+  enabledByDefault?: boolean;
+  /** Presets which opt this rule in when it is otherwise disabled by default. */
+  presets?: RulePreset[];
+  /** If present, this rule only runs for these platform modes. */
+  platforms?: Platform[];
+  /**
+   * Which goal this rule serves, for a rewrite that trades one resource for the
+   * other. A rule that wins on both axes leaves this unset and always applies.
+   *
+   * Declared rather than inferred because impact is only measured for 68000
+   * targets, and only when measurement is enabled; without it a size-costing
+   * rewrite would be offered in a size-focused run. A test checks the
+   * declaration against what the audit measures, so it cannot drift.
+   */
+  serves?: OptimizationGoal;
+  /**
+   * The rule this one undoes.
+   *
+   * Two rules that reverse each other must never both be active: applying one
+   * recreates the other's input, so a fixer running to a fixpoint would loop.
+   * Only the goal each serves decides which is live, and in balanced runs the
+   * one carrying this is off, leaving the other as the canonical direction.
+   */
+  inverseOf?: string;
+  description: string;
+  tags?: string[];
+  docs?: {
+    source?: string;
+    note?: string;
+  };
+}
+
+export interface Rule {
+  meta: RuleMeta;
+  checkLine?(ctx: RuleContext, line: ParsedLine, index: number): void;
+  checkFile?(ctx: RuleContext): void;
+}

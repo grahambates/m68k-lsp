@@ -1,0 +1,110 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/grahambates/m68k-lint/main/m68k-lint.schema.json",
+  "title": "m68k-lint configuration",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "processors": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "enum": ["mc68000", "mc68010", "mc68020", "mc68030", "mc68040", "mc68060", "cpu32"]
+      }
+    },
+    "platform": {
+      "enum": ["generic", "amiga", "atari"]
+    },
+    "goal": {
+      "enum": ["balanced", "speed", "size"]
+    },
+    "measureImpact": {
+      "type": "boolean"
+    },
+    "inlineConfig": {
+      "type": "boolean",
+      "description": "Honor m68k-lint directives embedded in assembly comments."
+    },
+    "projectSymbols": {
+      "type": "boolean",
+      "description": "Resolve constants a file does not define by indexing the rest of the project. A name is used only where every file that defines it agrees on one value. Set false to analyse each file strictly alone."
+    },
+    "presets": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "enum": ["recommended", "style"]
+      },
+      "description": "Optional rule presets. recommended is the normal baseline; style enables subjective convention rules."
+    },
+    "extensions": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "files": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "ignores": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "include": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "deprecated": true
+    },
+    "ignorePatterns": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "deprecated": true
+    },
+    "categories": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "correctness": {
+          "type": "boolean"
+        },
+        "suspicious": {
+          "type": "boolean"
+        },
+        "optimization": {
+          "type": "boolean"
+        },
+        "portability": {
+          "type": "boolean"
+        },
+        "style": {
+          "type": "boolean"
+        }
+      }
+    },
+    "rules": {
+      "type": "object",
+      "additionalProperties": {
+        "enum": ["off", "error", "warning", "suggestion", "info"]
+      }
+    }
+  }
+}
