@@ -1,5 +1,5 @@
 {
-  "name": "m68k-lsp-workspace",
+  "name": "m68ktools",
   "version": "0.11.3",
   "private": true,
   "description": "Motorola 68000 assembly language server and VS Code extension",
@@ -10,32 +10,26 @@
     "url": "git+https://github.com/grahambates/m68k-lsp.git"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=22.18.0"
   },
-  "workspaces": [
-    "packages/server",
-    "packages/client",
-    "packages/protocol",
-    "packages/formatter"
-  ],
   "scripts": {
     "build": "node scripts/build.mjs --minify",
     "build:dev": "node scripts/build.mjs --sourcemap",
     "watch": "node scripts/build.mjs --sourcemap --watch",
-    "clean": "rm -rf packages/*/out packages/*/.tsbuild packages/client/wasm",
-    "check": "npm run lint && npm run format:check && npm run typecheck && npm run test",
-    "typecheck": "tsc -b packages/server packages/client",
+    "clean": "rm -rf packages/*/out packages/*/.tsbuild apps/m68k-lsp/wasm",
+    "check": "pnpm run lint && pnpm run format:check && pnpm run typecheck && pnpm run test",
+    "typecheck": "tsc -b packages/m68k-lsp-server apps/m68k-lsp",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
     "test": "jest",
     "test:coverage": "jest --coverage",
     "build-docs": "scripts/conv-directives && scripts/conv-instructions",
-    "package": "npm run package --workspace packages/client",
+    "package": "pnpm --filter m68k-lsp package",
     "prepare": "husky",
     "format:check": "prettier --check .",
-    "build:formatter": "npm run build --workspace m68k-formatter",
-    "pretest": "npm run build:formatter"
+    "build:formatter": "pnpm --filter m68k-formatter build",
+    "pretest": "pnpm run build:formatter"
   },
   "devDependencies": {
     "@eslint/js": "^9.38.0",
@@ -53,5 +47,6 @@
     "ts-jest": "^29.4.5",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.46.2"
-  }
+  },
+  "packageManager": "pnpm@12.4.1"
 }

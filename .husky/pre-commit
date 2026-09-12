@@ -1,1 +1,1 @@
-npm run check
+corepack pnpm run check

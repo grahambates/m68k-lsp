@@ -7,10 +7,10 @@
       "request": "launch",
       "name": "Launch Client",
       "runtimeExecutable": "${execPath}",
-      "args": ["--extensionDevelopmentPath=${workspaceRoot}/packages/client"],
+      "args": ["--extensionDevelopmentPath=${workspaceRoot}/apps/m68k-lsp"],
       // The build copies a fresh server bundle into the client's out dir on
       // every rebuild, so there is no need to point M68K_SERVER_PATH elsewhere.
-      "outFiles": ["${workspaceRoot}/packages/client/out/**/*.js"],
+      "outFiles": ["${workspaceRoot}/apps/m68k-lsp/out/**/*.js"],
       "preLaunchTask": {
         "type": "npm",
         "script": "build:dev"
@@ -22,7 +22,7 @@
       "name": "Attach to Server",
       "port": 6009,
       "restart": true,
-      "outFiles": ["${workspaceRoot}/packages/client/out/**/*.js"]
+      "outFiles": ["${workspaceRoot}/apps/m68k-lsp/out/**/*.js"]
     }
   ],
   "compounds": [

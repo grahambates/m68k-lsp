@@ -1,0 +1,10 @@
+packages:
+  - packages/*
+  - apps/*
+
+allowBuilds:
+  esbuild: true
+  "@parcel/watcher": false
+  "@vscode/vsce-sign": false
+  keytar: false
+  unrs-resolver: false

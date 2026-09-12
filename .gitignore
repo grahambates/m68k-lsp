@@ -3,5 +3,5 @@ out/
 .tsbuild/
 *.vsix
 .DS_Store
-packages/client/wasm/
+apps/m68k-lsp/wasm/
 coverage/

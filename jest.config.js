@@ -4,17 +4,17 @@ module.exports = {
   testEnvironment: "node",
   rootDir: ".",
   roots: [
-    "<rootDir>/packages/server",
-    "<rootDir>/packages/client",
-    "<rootDir>/packages/formatter",
+    "<rootDir>/packages/m68k-lsp-server",
+    "<rootDir>/apps/m68k-lsp",
+    "<rootDir>/packages/m68k-formatter",
   ],
   moduleNameMapper: {
-    "^m68k-formatter$": "<rootDir>/packages/formatter/src/index.ts",
+    "^m68k-formatter$": "<rootDir>/packages/m68k-formatter/src/index.ts",
   },
   transform: {
     "^.+\\.tsx?$": [
       "ts-jest",
-      { tsconfig: "<rootDir>/packages/server/tsconfig.test.json" },
+      { tsconfig: "<rootDir>/packages/m68k-lsp-server/tsconfig.test.json" },
     ],
   },
 };

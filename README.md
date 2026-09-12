@@ -145,9 +145,9 @@ The server will use a local `vasmm68k_mot` executable if one exists in your path
 
 ### Formatting:
 
-Formatting is provided by the [m68k-formatter workspace package](packages/formatter/README.md),
+Formatting is provided by the [m68k-formatter workspace package](packages/m68k-formatter/README.md),
 which also includes a standalone CLI. Build it with `npm run build:formatter`, then
-run `node packages/formatter/cli.js --write 'src/**/*.s'` or use `--check` for CI.
+run `node packages/m68k-formatter/cli.js --write 'src/**/*.s'` or use `--check` for CI.
 
 Both the CLI and language server read the nearest `.m68k-format.json` above the
 source file. This file contains the options below directly, without the `format`

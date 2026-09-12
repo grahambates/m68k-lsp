@@ -11,7 +11,7 @@ module.exports = tseslint.config(
       "**/.tsbuild/**",
       "**/wasm/**",
       "**/coverage/**",
-      "packages/client/syntaxes/**",
+      "apps/m68k-lsp/syntaxes/**",
     ],
   },
   js.configs.recommended,
@@ -39,7 +39,7 @@ module.exports = tseslint.config(
     rules: { "@typescript-eslint/no-require-imports": "off" },
   },
   {
-    files: ["packages/*/test/**/*.ts"],
+    files: ["packages/*/test/**/*.ts", "apps/*/test/**/*.ts"],
     languageOptions: {
       globals: { ...globals.jest },
     },

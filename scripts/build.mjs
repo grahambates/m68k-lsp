@@ -7,8 +7,8 @@ import * as esbuild from "esbuild";
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const args = new Set(process.argv.slice(2));
 
-const serverDir = join(root, "packages/server");
-const clientDir = join(root, "packages/client");
+const serverDir = join(root, "packages/m68k-lsp-server");
+const clientDir = join(root, "apps/m68k-lsp");
 const serverOut = join(serverDir, "out");
 const clientOut = join(clientDir, "out");
 
@@ -61,7 +61,9 @@ const copyServerPlugin = {
 };
 
 const server = {
-  alias: { "m68k-formatter": join(root, "packages/formatter/src/index.ts") },
+  alias: {
+    "m68k-formatter": join(root, "packages/m68k-formatter/src/index.ts"),
+  },
   ...shared,
   entryPoints: [join(serverDir, "src/server.ts")],
   outfile: join(serverOut, "server.js"),
@@ -81,7 +83,7 @@ execFileSync(
   [
     join(root, "node_modules/typescript/bin/tsc"),
     "-b",
-    join(root, "packages/formatter"),
+    join(root, "packages/m68k-formatter"),
   ],
   { stdio: "inherit" },
 );

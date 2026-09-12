@@ -5,13 +5,13 @@
       "path": "./packages/protocol"
     },
     {
-      "path": "./packages/server"
+      "path": "./packages/m68k-lsp-server"
     },
     {
-      "path": "./packages/client"
+      "path": "./apps/m68k-lsp"
     },
     {
-      "path": "./packages/formatter"
+      "path": "./packages/m68k-formatter"
     }
   ]
 }

@@ -16,7 +16,7 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/grahambates/m68k-lsp.git",
-    "directory": "packages/client"
+    "directory": "apps/m68k-lsp"
   },
   "publisher": "gigabates",
   "icon": "icon.png",
@@ -418,6 +418,7 @@
   "devDependencies": {
     "@types/vscode": "^1.85.0",
     "@vscode/vsce": "^3.6.0",
-    "@m68k-lsp/protocol": "0.0.0"
-  }
+    "@m68k-lsp/protocol": "workspace:^"
+  },
+  "private": true
 }

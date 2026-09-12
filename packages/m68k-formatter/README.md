@@ -10,7 +10,7 @@ From the repository root:
 ```sh
 npm install
 npm run build:formatter
-node packages/formatter/cli.js --help
+node packages/m68k-formatter/cli.js --help
 ```
 
 The package also builds and tests independently with `npm run build` and `npm test`
