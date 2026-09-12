@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process";
 import { copyFile, mkdir, readdir } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -60,6 +61,7 @@ const copyServerPlugin = {
 };
 
 const server = {
+  alias: { "m68k-formatter": join(root, "packages/formatter/src/index.ts") },
   ...shared,
   entryPoints: [join(serverDir, "src/server.ts")],
   outfile: join(serverOut, "server.js"),
@@ -73,6 +75,16 @@ const client = {
   // Supplied by the extension host, never bundled.
   external: ["vscode"],
 };
+
+execFileSync(
+  process.execPath,
+  [
+    join(root, "node_modules/typescript/bin/tsc"),
+    "-b",
+    join(root, "packages/formatter"),
+  ],
+  { stdio: "inherit" },
+);
 
 await copyAssets();
 

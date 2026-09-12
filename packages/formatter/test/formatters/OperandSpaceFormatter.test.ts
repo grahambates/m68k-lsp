@@ -1,7 +1,7 @@
 import OperandSpaceFormatter, {
   OperandSpaceOptions,
-} from "../../../src/formatter/formatters/OperandSpaceFormatter";
-import { applyEdits, formatContext } from "../../helpers";
+} from "../../src/formatter/formatters/OperandSpaceFormatter";
+import { applyEdits, formatContext } from "../helpers";
 
 async function doFormat(src: string, options: OperandSpaceOptions) {
   const formatter = new OperandSpaceFormatter(options);

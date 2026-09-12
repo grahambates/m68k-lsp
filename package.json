@@ -15,7 +15,8 @@
   "workspaces": [
     "packages/server",
     "packages/client",
-    "packages/protocol"
+    "packages/protocol",
+    "packages/formatter"
   ],
   "scripts": {
     "build": "node scripts/build.mjs --minify",
@@ -32,7 +33,9 @@
     "build-docs": "scripts/conv-directives && scripts/conv-instructions",
     "package": "npm run package --workspace packages/client",
     "prepare": "husky",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "build:formatter": "npm run build --workspace m68k-formatter",
+    "pretest": "npm run build:formatter"
   },
   "devDependencies": {
     "@eslint/js": "^9.38.0",

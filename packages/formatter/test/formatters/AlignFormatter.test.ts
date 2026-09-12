@@ -1,7 +1,7 @@
 import AlignFormatter, {
   AlignOptions,
-} from "../../../src/formatter/formatters/AlignFormatter";
-import { applyEdits, formatContext } from "../../helpers";
+} from "../../src/formatter/formatters/AlignFormatter";
+import { applyEdits, formatContext } from "../helpers";
 
 async function doFormat(src: string, options: AlignOptions) {
   const formatter = new AlignFormatter(options);

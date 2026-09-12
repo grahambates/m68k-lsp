@@ -1,7 +1,7 @@
 import DocumentFormatter, {
   FormatterOptions,
-} from "../../src/formatter/DocumentFormatter";
-import { applyEdits, formatContext } from "../helpers";
+} from "../src/formatter/DocumentFormatter";
+import { applyEdits, formatContext } from "./helpers";
 
 async function doFormat(src: string, options: FormatterOptions) {
   const formatter = new DocumentFormatter(options);

@@ -1,5 +1,5 @@
 import { Processor } from "./docs";
-import { FormatterOptions } from "./formatter/DocumentFormatter";
+import { FormatterOptions, defaultOptions } from "m68k-formatter";
 import * as os from "os";
 import { VasmOptions } from "./diagnostics";
 
@@ -16,28 +16,7 @@ export interface Config {
 }
 
 export const defaultConfig: Config = {
-  format: {
-    case: "lower",
-    labelColon: "on",
-    quotes: "double",
-    operandSpace: "off",
-    align: {
-      indentConditional: 0,
-      indentRept: 0,
-      indentMacro: 0,
-      mnemonic: 8,
-      operands: 16,
-      comment: 48,
-      operator: 0,
-      value: 0,
-      indentStyle: "space",
-      tabSize: 8,
-      autoExtend: "line",
-    },
-    trimWhitespace: false,
-    finalNewLine: true,
-    endOfLine: "lf",
-  },
+  format: defaultOptions,
   exclude: [],
   includePaths: [],
   processors: ["mc68000"],

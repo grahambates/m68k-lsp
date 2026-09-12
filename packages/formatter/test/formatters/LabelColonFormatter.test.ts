@@ -1,7 +1,7 @@
 import LabelColonFormatter, {
   LabelColonOptions,
-} from "../../../src/formatter/formatters/LabelColonFormatter";
-import { applyEdits, formatContext } from "../../helpers";
+} from "../../src/formatter/formatters/LabelColonFormatter";
+import { applyEdits, formatContext } from "../helpers";
 
 async function doFormat(src: string, options: LabelColonOptions) {
   const formatter = new LabelColonFormatter(options);

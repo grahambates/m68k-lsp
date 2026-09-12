@@ -1,7 +1,7 @@
 import QuotesFormatter, {
   QuotesOptions,
-} from "../../../src/formatter/formatters/QuotesFormatter";
-import { applyEdits, formatContext } from "../../helpers";
+} from "../../src/formatter/formatters/QuotesFormatter";
+import { applyEdits, formatContext } from "../helpers";
 
 async function doFormat(src: string, options: QuotesOptions) {
   const formatter = new QuotesFormatter(options);

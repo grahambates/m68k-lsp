@@ -1,4 +1,4 @@
-import { TextEdit } from "vscode-languageserver";
+import { TextEdit } from "vscode-languageserver-types";
 import { FormatContext, Formatter } from "../DocumentFormatter";
 
 const chars = {
@@ -49,10 +49,10 @@ class EndOfLineFormatter implements Formatter {
           newText,
         });
       }
-      if (this.finalNewLine === false && hasFinalNewLine) {
+      if (this.finalNewLine === false && hasFinalNewLine && lines.length > 1) {
         const line = lines.length - 2;
         // Prevent overlapping edit if just converted
-        if (edits[edits.length - 1].range.start.line === line) {
+        if (edits[edits.length - 1]?.range.start.line === line) {
           edits.pop();
         }
         // Remove new line

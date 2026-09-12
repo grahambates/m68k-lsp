@@ -1,5 +1,5 @@
-import TrimWhitespaceFormatter from "../../../src/formatter/formatters/TrimWhitespaceFormatter";
-import { applyEdits, formatContext } from "../../helpers";
+import TrimWhitespaceFormatter from "../../src/formatter/formatters/TrimWhitespaceFormatter";
+import { applyEdits, formatContext } from "../helpers";
 
 async function doFormat(src: string) {
   const formatter = new TrimWhitespaceFormatter();

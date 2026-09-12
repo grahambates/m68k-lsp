@@ -1,7 +1,7 @@
 import CaseFormatter, {
   CaseOptions,
-} from "../../../src/formatter/formatters/CaseFormatter";
-import { applyEdits, formatContext } from "../../helpers";
+} from "../../src/formatter/formatters/CaseFormatter";
+import { applyEdits, formatContext } from "../helpers";
 
 async function doFormat(src: string, options: CaseOptions) {
   const formatter = new CaseFormatter(options);

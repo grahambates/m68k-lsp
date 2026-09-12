@@ -28,7 +28,8 @@
     "vscode-languageserver": "^9.0.1",
     "vscode-languageserver-textdocument": "^1.0.12",
     "vscode-uri": "^3.0.8",
-    "which": "^4.0.0"
+    "which": "^4.0.0",
+    "m68k-formatter": "0.1.0"
   },
   "devDependencies": {
     "@types/which": "^3.0.4",

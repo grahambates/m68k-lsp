@@ -1,5 +1,5 @@
 import { parseBlocks, type Block } from "m68k-parser";
-import { TextEdit } from "vscode-languageserver";
+import { TextEdit } from "vscode-languageserver-types";
 
 import { TextDocument } from "vscode-languageserver-textdocument";
 

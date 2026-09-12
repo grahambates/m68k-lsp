@@ -1,0 +1,40 @@
+{
+  "name": "m68k-formatter",
+  "version": "0.1.0",
+  "description": "Motorola 68000 assembly formatter and CLI",
+  "author": "Graham Bates",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
+  "main": "out/index.js",
+  "types": "out/index.d.ts",
+  "bin": {
+    "m68k-format": "cli.js"
+  },
+  "files": [
+    "out",
+    "cli.js",
+    "README.md",
+    "LICENSE.md"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "test": "jest",
+    "prepack": "npm run build",
+    "pretest": "npm run build"
+  },
+  "dependencies": {
+    "m68k-parser": "^1.10.0",
+    "glob": "^13.0.6",
+    "vscode-languageserver-types": "^3.17.5",
+    "vscode-languageserver-textdocument": "^1.0.12"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3",
+    "@types/node": "^24.9.1",
+    "@types/jest": "^30.0.0",
+    "jest": "^30.2.0",
+    "ts-jest": "^29.4.5"
+  }
+}

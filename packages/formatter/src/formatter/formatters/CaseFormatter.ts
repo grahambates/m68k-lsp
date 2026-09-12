@@ -1,4 +1,4 @@
-import { TextEdit } from "vscode-languageserver";
+import { TextEdit } from "vscode-languageserver-types";
 import { walkLine } from "../../ast";
 import { locationAsRange } from "../../geometry";
 import { controlMnemonics, sectionTypes } from "../../syntax";

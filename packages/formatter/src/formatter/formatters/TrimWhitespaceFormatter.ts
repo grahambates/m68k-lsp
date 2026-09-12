@@ -1,4 +1,4 @@
-import { TextEdit } from "vscode-languageserver";
+import { TextEdit } from "vscode-languageserver-types";
 import { FormatContext, Formatter } from "../DocumentFormatter";
 
 class TrimWhitespaceFormatter implements Formatter {

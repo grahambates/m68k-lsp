@@ -1,9 +1,15 @@
+import { dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 import * as lsp from "vscode-languageserver";
 import { Provider } from ".";
 import { Context } from "../context";
-import DocumentFormatter, {
+import {
+  DocumentFormatter,
+  findConfig,
+  loadConfig,
+  mergeOptions,
   FormatContext,
-} from "../formatter/DocumentFormatter";
+} from "m68k-formatter";
 import { isProcessed, ProcessedDocument } from "../DocumentProcessor";
 
 export default class DocumentFormattingProvider implements Provider {
@@ -17,7 +23,7 @@ export default class DocumentFormattingProvider implements Provider {
     if (!isProcessed(processed)) {
       return null;
     }
-    const formatter = this.getFormatter(options);
+    const formatter = await this.getFormatter(options, textDocument.uri);
     return formatter.format(toContext(processed));
   }
 
@@ -30,7 +36,7 @@ export default class DocumentFormattingProvider implements Provider {
     if (!isProcessed(processed)) {
       return null;
     }
-    const formatter = this.getFormatter(options);
+    const formatter = await this.getFormatter(options, textDocument.uri);
     return formatter.formatRange(toContext(processed), range);
   }
 
@@ -44,11 +50,14 @@ export default class DocumentFormattingProvider implements Provider {
     if (!isProcessed(processed)) {
       return null;
     }
-    const formatter = this.getFormatter({
-      ...options,
-      // Force trim whitespace off while still typing
-      trimTrailingWhitespace: false,
-    });
+    const formatter = await this.getFormatter(
+      {
+        ...options,
+        // Force trim whitespace off while still typing
+        trimTrailingWhitespace: false,
+      },
+      textDocument.uri,
+    );
     // Line to format - current or previous if NL
     const line = ch === "\n" ? position.line - 1 : position.line;
     const range = {
@@ -58,9 +67,18 @@ export default class DocumentFormattingProvider implements Provider {
     return formatter.formatRange(toContext(processed), range);
   }
 
-  private getFormatter(options: lsp.FormattingOptions): DocumentFormatter {
+  private async getFormatter(
+    options: lsp.FormattingOptions,
+    uri: string,
+  ): Promise<DocumentFormatter> {
     // Defaults
-    const config = this.ctx.config.format;
+    const path = uri.startsWith("file:")
+      ? await findConfig(dirname(fileURLToPath(uri)))
+      : undefined;
+    const config = mergeOptions(
+      this.ctx.config.format,
+      path ? await loadConfig(path) : {},
+    );
 
     // Override defaults with passed options
     if (options.trimFinalNewlines) {

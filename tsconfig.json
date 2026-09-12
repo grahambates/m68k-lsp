@@ -9,6 +9,9 @@
     },
     {
       "path": "./packages/client"
+    },
+    {
+      "path": "./packages/formatter"
     }
   ]
 }

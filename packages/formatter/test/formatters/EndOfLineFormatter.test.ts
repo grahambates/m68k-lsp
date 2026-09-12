@@ -1,7 +1,7 @@
 import EndOfLineFormatter, {
   EOL,
-} from "../../../src/formatter/formatters/EndOfLineFormatter";
-import { applyEdits, formatContext } from "../../helpers";
+} from "../../src/formatter/formatters/EndOfLineFormatter";
+import { applyEdits, formatContext } from "../helpers";
 
 async function doFormat(src: string, type: EOL, finalNewLine?: boolean) {
   const formatter = new EndOfLineFormatter(type, finalNewLine);
